@@ -1,0 +1,1 @@
+{ "follow_ups": ["Kannst du mir ein konkretes Beispiel zeigen, wie ein Projekt mit HELIX abläuft?", "Welche Art von Projekten eignet sich am besten für HELIX?", "Wie funktioniert die Kommunikation zwischen den verschiedenen Claude-Instanzen?", "Was passiert, wenn in einer Phase ein Fehler auftritt?", "Kann ich HELIX auch für bestehende Projekte nutzen oder nur für neue?"] }

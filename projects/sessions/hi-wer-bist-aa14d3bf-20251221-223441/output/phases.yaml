@@ -1,0 +1,240 @@
+# HELIX Self-Evolution System - Phasen-Plan
+# 6 Phasen für vollständige Implementation
+
+phases:
+  # ============================================================================
+  # Phase 1: Analyse und Design
+  # ============================================================================
+  - id: 01-analysis
+    name: Architektur-Analyse & Design
+    type: development
+    description: |
+      Analyse der bestehenden HELIX-Architektur und Design des
+      Self-Evolution Systems. Erstellt detaillierte technische
+      Spezifikation für alle neuen Module.
+
+      Aufgaben:
+      - Bestehende Module analysieren (orchestrator, consultant, etc.)
+      - Schnittstellen identifizieren
+      - Detaildesign für evolution/ Package
+      - Docker-Compose Struktur für Test-System
+      - Sequenzdiagramme für Workflows
+
+    config:
+      skills:
+        - helix
+        - infrastructure
+      model: claude-sonnet  # Schnell für Analyse
+
+    input:
+      files: []
+
+    output:
+      files:
+        - phases/01-analysis/output/architecture-analysis.md
+        - phases/01-analysis/output/module-design.md
+        - phases/01-analysis/output/docker-compose-test.yaml
+        - phases/01-analysis/output/sequence-diagrams.md
+
+    quality_gate:
+      type: files_exist
+
+  # ============================================================================
+  # Phase 2: Test-Environment Manager
+  # ============================================================================
+  - id: 02-test-environment
+    name: Test-Environment Manager
+    type: development
+    description: |
+      Implementiert das TestEnvironmentManager Modul das
+      helix-v4-test verwaltet.
+
+      Funktionalität:
+      - Setup: helix-v4-test aus helix-v4 erstellen/syncen
+      - Isolation: Eigene Docker-Container starten
+      - Cleanup: Test-System zurücksetzen
+      - Status: Prüfen ob Test-System bereit ist
+
+    config:
+      skills:
+        - helix
+        - infrastructure
+      model: claude-opus  # Komplexe Implementation
+
+    input:
+      files:
+        - phases/01-analysis/output/architecture-analysis.md
+        - phases/01-analysis/output/module-design.md
+        - phases/01-analysis/output/docker-compose-test.yaml
+
+    output:
+      files:
+        - phases/02-test-environment/output/test_environment.py
+        - phases/02-test-environment/output/test_test_environment.py
+        - phases/02-test-environment/output/docker-compose.test.yaml
+
+    quality_gate:
+      type: python_syntax
+
+  # ============================================================================
+  # Phase 3: Cross-Instance Bridge
+  # ============================================================================
+  - id: 03-cross-instance
+    name: Cross-Instance Bridge
+    type: development
+    description: |
+      Implementiert die Kommunikation zwischen Consultant
+      und Developer-Instanzen.
+
+      Funktionalität:
+      - Message-Passing zwischen Instanzen
+      - Status-Synchronisation
+      - Arbeitsverzeichnis-Steuerung (in helix-v4-test)
+      - Progress-Tracking
+
+    config:
+      skills:
+        - helix
+      model: claude-opus
+
+    input:
+      files:
+        - phases/01-analysis/output/module-design.md
+        - phases/01-analysis/output/sequence-diagrams.md
+
+    output:
+      files:
+        - phases/03-cross-instance/output/cross_instance.py
+        - phases/03-cross-instance/output/test_cross_instance.py
+
+    quality_gate:
+      type: python_syntax
+
+  # ============================================================================
+  # Phase 4: Integration Manager
+  # ============================================================================
+  - id: 04-integration
+    name: Integration Manager
+    type: development
+    description: |
+      Implementiert den IntegrationManager für sichere
+      Code-Integration von Test nach Main.
+
+      Funktionalität:
+      - Pre-Integration Validierung
+      - Diff-Erstellung und Review
+      - Atomare Kopier-Operationen
+      - Rollback bei Fehlern
+      - Post-Integration Validierung
+
+    config:
+      skills:
+        - helix
+        - infrastructure
+      model: claude-opus
+
+    input:
+      files:
+        - phases/01-analysis/output/module-design.md
+        - phases/02-test-environment/output/test_environment.py
+
+    output:
+      files:
+        - phases/04-integration/output/integration_manager.py
+        - phases/04-integration/output/test_integration_manager.py
+        - phases/04-integration/output/integration_config.yaml
+
+    quality_gate:
+      type: python_syntax
+
+  # ============================================================================
+  # Phase 5: Validation Suite
+  # ============================================================================
+  - id: 05-validation
+    name: Validation Suite
+    type: development
+    description: |
+      Implementiert die ValidationSuite für E2E-Tests
+      und Vergleichstests.
+
+      Funktionalität:
+      - E2E-Tests über HELIX API
+      - Syntax-Check aller Python-Dateien
+      - Unit-Test Ausführung
+      - Benchmark: Main vs Test System
+      - Log-Analyse zur Erfolgsmessung
+
+    config:
+      skills:
+        - helix
+      model: claude-opus
+
+    input:
+      files:
+        - phases/01-analysis/output/module-design.md
+        - phases/04-integration/output/integration_manager.py
+
+    output:
+      files:
+        - phases/05-validation/output/validation_suite.py
+        - phases/05-validation/output/test_validation_suite.py
+        - phases/05-validation/output/e2e_tests.py
+
+    quality_gate:
+      type: python_syntax
+
+  # ============================================================================
+  # Phase 6: Integration & Testing
+  # ============================================================================
+  - id: 06-integration-testing
+    name: System-Integration & E2E-Tests
+    type: development
+    description: |
+      Integriert alle Module, erweitert bestehende HELIX-Module,
+      und führt vollständige E2E-Tests durch.
+
+      Aufgaben:
+      - evolution/ Package erstellen mit allen Modulen
+      - orchestrator.py erweitern
+      - consultant/meeting.py erweitern
+      - API-Endpoints hinzufügen
+      - Vollständige E2E-Test-Suite
+
+    config:
+      skills:
+        - helix
+      model: claude-opus
+
+    input:
+      files:
+        - phases/02-test-environment/output/test_environment.py
+        - phases/03-cross-instance/output/cross_instance.py
+        - phases/04-integration/output/integration_manager.py
+        - phases/05-validation/output/validation_suite.py
+
+    output:
+      files:
+        - phases/06-integration-testing/output/evolution/__init__.py
+        - phases/06-integration-testing/output/evolution/test_environment.py
+        - phases/06-integration-testing/output/evolution/cross_instance.py
+        - phases/06-integration-testing/output/evolution/integration_manager.py
+        - phases/06-integration-testing/output/evolution/validation_suite.py
+        - phases/06-integration-testing/output/orchestrator_patch.py
+        - phases/06-integration-testing/output/meeting_patch.py
+        - phases/06-integration-testing/output/api_routes_patch.py
+        - phases/06-integration-testing/output/test_e2e_evolution.py
+        - phases/06-integration-testing/output/README.md
+
+    quality_gate:
+      type: tests_pass
+
+# Metadaten
+metadata:
+  total_phases: 6
+  estimated_complexity: high
+  requires_docker: true
+  creates_package: evolution
+  modifies_existing:
+    - src/helix/orchestrator.py
+    - src/helix/consultant/meeting.py
+    - src/helix/api/routes/helix.py

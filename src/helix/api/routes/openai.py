@@ -180,7 +180,7 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
     try:
         result = await runner.run_phase(
             phase_dir=session_path,
-            timeout=120,  # 2 minutes max for consultant
+            timeout=300,  # 2 minutes max for consultant
         )
         
         if result.success:

@@ -1,0 +1,5 @@
+ich stelle es mir so vor. über gitlab server gibt es sowas wie den trunk und den branch oder so ähnlich. wir sind hier gerade im trunk. und der branch oder dev oder wie man es normal nennt ist das testsystem. es ist erstmal gespiegelt aufgebaut von der verzeichnis struktur. hat docker container etc. es soll auch seine eigenen docker container am laufen haben. also datenbanken wenn wir das nutzen oder cache oder sowas damit es isoliert ist. dann kann z.b helix main helix test erweitern und auch benchmarken und vergleichstests fahren und so sachen. das wäre punkt 1
+  
+punkt 2 volle validierung wäre gut. also nach der integration die eigenltichen features versuchen herauszutesten. über logs oder irgendwie anders ermitteln dass es funktioniert.
+  
+der integratieon trigger wird über den chat gegeben. bzw du fragst nach ob du integrieren sollst wenn du mit entwickeln und dokumentieren fertig bist.

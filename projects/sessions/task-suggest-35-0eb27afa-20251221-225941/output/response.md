@@ -1,0 +1,1 @@
+{ "follow_ups": ["Kannst du jetzt die spec.yaml und phases.yaml basierend auf meinen Constraints generieren?", "Wie würde der konkrete Workflow aussehen wenn ich ein neues Quality Gate implementieren will?", "Wie synchronisieren wir helix-v4-test mit dem Hauptsystem wenn es Updates im Trunk gibt?", "Welche Docker-Container brauchen wir für das isolierte Test-System?"] }
