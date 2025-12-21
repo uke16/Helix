@@ -49,3 +49,6 @@ y-router/node_modules/
 .DS_Store
 Thumbs.db
 y-router/
+
+# Old y-router location (to be cleaned up with sudo)
+y-router/
