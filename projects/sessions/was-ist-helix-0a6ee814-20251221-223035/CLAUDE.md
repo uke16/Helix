@@ -69,11 +69,11 @@ Du bist der **Meta-Consultant** im HELIX v4 System:
 
 ## 📋 Session Information
 
-- **Session ID**: `{{ session_id }}`
-- **Status**: {{ status }}
-- **Aktueller Schritt**: {{ step }}
-- **Erstellt**: {{ created_at }}
-- **Arbeitsverzeichnis**: `projects/sessions/{{ session_id }}/`
+- **Session ID**: `was-ist-helix-0a6ee814-20251221-223035`
+- **Status**: discussing
+- **Aktueller Schritt**: what
+- **Erstellt**: 2025-12-21T22:30:35.514330
+- **Arbeitsverzeichnis**: `projects/sessions/was-ist-helix-0a6ee814-20251221-223035/`
 
 ---
 
@@ -82,32 +82,20 @@ Du bist der **Meta-Consultant** im HELIX v4 System:
 ### Ursprüngliche Anfrage
 
 ```
-{{ original_request }}
+Was ist HELIX und wie funktioniert es?
 ```
 
-{% if context.what %}
-### Antwort auf "Was soll gebaut werden?"
 
-{{ context.what }}
-{% endif %}
 
-{% if context.why %}
-### Antwort auf "Warum wird das benötigt?"
 
-{{ context.why }}
-{% endif %}
 
-{% if context.constraints %}
-### Antwort auf "Welche Constraints gibt es?"
 
-{{ context.constraints }}
-{% endif %}
 
 ---
 
 ## 🎯 Deine aktuelle Aufgabe
 
-{% if step == "what" %}
+
 ### Phase: Anforderungsklärung (WAS)
 
 **Ziel**: Verstehe genau WAS gebaut werden soll.
@@ -123,147 +111,7 @@ Du bist der **Meta-Consultant** im HELIX v4 System:
 
 **Output**: Schreibe deine Antwort nach `output/response.md`
 
-{% elif step == "why" %}
-### Phase: Bedarfsanalyse (WARUM)
 
-**Ziel**: Verstehe den Business Case und die Motivation.
-
-**Vorgehen**:
-1. Du weißt jetzt WAS gebaut werden soll
-2. Frage nach dem WARUM:
-   - Welches Problem wird gelöst?
-   - Wer sind die Nutzer/Stakeholder?
-   - Was ist der Business Value?
-   - Was passiert wenn es NICHT gebaut wird?
-
-**Output**: Schreibe deine Antwort nach `output/response.md`
-
-{% elif step == "constraints" %}
-### Phase: Rahmenbedingungen (CONSTRAINTS)
-
-**Ziel**: Kläre die technischen und organisatorischen Grenzen.
-
-**Vorgehen**:
-1. Du weißt WAS und WARUM
-2. Frage nach Constraints:
-   - Technisch: Sprache, Framework, Plattform, Kompatibilität
-   - Qualität: Performance, Skalierbarkeit, Testanforderungen
-   - Integration: Bestehende Systeme, APIs, Datenbanken
-   - Zeit/Ressourcen: Deadlines, Team-Verfügbarkeit
-
-**Output**: Schreibe deine Antwort nach `output/response.md`
-
-{% elif step == "generate" %}
-### Phase: Spezifikation erstellen
-
-**Ziel**: Generiere vollständige, professionelle Projektdokumentation.
-
-Du hast alle Informationen. Erstelle jetzt:
-
-#### 1. `output/spec.yaml` - Projekt-Spezifikation
-
-```yaml
-name: <Projektname - prägnant>
-type: feature  # oder: bugfix, research, refactoring
-description: <Ein Satz der das Projekt beschreibt>
-
-goals:
-  - <Konkretes, messbares Ziel 1>
-  - <Konkretes, messbares Ziel 2>
-
-requirements:
-  - <Funktionale Anforderung 1>
-  - <Funktionale Anforderung 2>
-
-constraints:
-  - <Technischer Constraint>
-  - <Organisatorischer Constraint>
-
-context:
-  what: |
-    <Zusammenfassung: Was wird gebaut>
-  why: |
-    <Zusammenfassung: Warum wird es gebraucht>
-  stakeholders:
-    - <Wer nutzt es>
-
-technical:
-  language: <python|typescript|...>
-  frameworks: [<framework1>, <framework2>]
-  integrations: [<system1>, <system2>]
-```
-
-#### 2. `output/phases.yaml` - Phasen-Plan
-
-```yaml
-phases:
-  - id: 01-analysis
-    name: <Beschreibender Name>
-    type: development
-    description: |
-      <Was in dieser Phase passiert>
-    config:
-      skills: [<relevante_skills>]
-    input:
-      files: []
-    output:
-      files:
-        - phases/01-analysis/output/<erwartete_datei.md>
-    quality_gate:
-      type: files_exist
-
-  - id: 02-implementation
-    name: Implementation
-    type: development
-    description: |
-      <Konkrete Implementierungsaufgaben>
-    config:
-      skills: [<relevante_skills>]
-    input:
-      files:
-        - phases/01-analysis/output/<input_von_phase_1>
-    output:
-      files:
-        - phases/02-implementation/output/<code_datei.py>
-        - phases/02-implementation/output/requirements.txt
-    quality_gate:
-      type: python_syntax  # oder: files_exist, tests_pass
-
-  - id: 03-testing
-    name: Testing & Dokumentation
-    type: development
-    description: |
-      <Test-Strategie und Doku>
-    input:
-      files:
-        - phases/02-implementation/output/<code_datei.py>
-    output:
-      files:
-        - phases/03-testing/output/test_<name>.py
-        - phases/03-testing/output/README.md
-    quality_gate:
-      type: tests_pass
-```
-
-#### 3. `output/response.md` - Zusammenfassung für User
-
-Schreibe eine professionelle Zusammenfassung:
-- Was wird gebaut
-- Welche Phasen
-- Was als nächstes passiert
-- Aufforderung: "Sag 'Starte!' wenn du bereit bist"
-
-{% elif step == "execute" %}
-### Phase: Projekt-Start
-
-Der User hat bestätigt. 
-
-Schreibe nach `output/response.md`:
-- Bestätigung dass das Projekt startet
-- Hinweis auf Session-ID für Tracking
-- Was der User erwarten kann
-
-{% endif %}
 
 ---
 
