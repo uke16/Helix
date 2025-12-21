@@ -1,16 +1,21 @@
 """Claude Code CLI Runner for HELIX v4.
 
-Manages Claude Code CLI subprocess execution.
+Manages Claude Code CLI subprocess execution with live output streaming.
 """
 
 import asyncio
 import json
 import os
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Awaitable
 
 from .llm_client import LLMClient
+
+
+# Type alias for output callback
+OutputCallback = Callable[[str, str], Awaitable[None]]  # (stream: "stdout"|"stderr", line: str)
 
 
 @dataclass
@@ -38,27 +43,35 @@ class ClaudeRunner:
 
     The ClaudeRunner manages the execution of Claude Code CLI,
     handling environment setup, process management, and output
-    collection.
+    collection. Supports live output streaming via callbacks.
 
     Example:
         runner = ClaudeRunner()
+        
+        # Simple execution
         result = await runner.run_phase(
             phase_dir=Path("/project/phases/01-foundation"),
             model="claude-3-opus"
         )
-        if result.success:
-            print("Phase completed successfully")
-        else:
-            print(f"Phase failed: {result.stderr}")
+        
+        # With live output streaming
+        async def on_output(stream: str, line: str):
+            print(f"[{stream}] {line}")
+        
+        result = await runner.run_phase_streaming(
+            phase_dir=Path("/project/phases/01-foundation"),
+            on_output=on_output
+        )
     """
 
     DEFAULT_CLAUDE_CMD = "claude"
-    DEFAULT_TIMEOUT = 1800
+    DEFAULT_TIMEOUT = 1800  # 30 minutes
 
     def __init__(
         self,
         claude_cmd: str | None = None,
         llm_client: LLMClient | None = None,
+        use_stdbuf: bool = True,
     ) -> None:
         """Initialize the ClaudeRunner.
 
@@ -66,9 +79,41 @@ class ClaudeRunner:
             claude_cmd: Path to the Claude Code CLI executable.
                        Defaults to "claude" (uses PATH).
             llm_client: Optional LLMClient for model resolution.
+            use_stdbuf: Whether to use stdbuf for line buffering (default True).
         """
         self.claude_cmd = claude_cmd or self.DEFAULT_CLAUDE_CMD
         self.llm_client = llm_client or LLMClient()
+        self.use_stdbuf = use_stdbuf and self._check_stdbuf_available()
+
+    def _check_stdbuf_available(self) -> bool:
+        """Check if stdbuf is available on the system."""
+        return shutil.which("stdbuf") is not None
+
+    def _build_command(self, extra_args: list[str] | None = None) -> list[str]:
+        """Build the Claude CLI command with optional stdbuf wrapper.
+        
+        Args:
+            extra_args: Additional arguments for Claude CLI.
+            
+        Returns:
+            Command list ready for subprocess execution.
+        """
+        cmd = []
+        
+        # Add stdbuf for line buffering if available
+        if self.use_stdbuf:
+            cmd.extend(["stdbuf", "-oL", "-eL"])
+        
+        cmd.extend([
+            self.claude_cmd,
+            "--print",
+            "--dangerously-skip-permissions",
+        ])
+        
+        if extra_args:
+            cmd.extend(extra_args)
+        
+        return cmd
 
     async def run_phase(
         self,
@@ -78,7 +123,9 @@ class ClaudeRunner:
         timeout: int | None = None,
         env_overrides: dict[str, str] | None = None,
     ) -> ClaudeResult:
-        """Run Claude Code CLI for a phase.
+        """Run Claude Code CLI for a phase (buffered output).
+
+        For live streaming output, use run_phase_streaming() instead.
 
         Args:
             phase_dir: Path to the phase directory.
@@ -101,15 +148,11 @@ class ClaudeRunner:
         if prompt is None:
             claude_md = phase_dir / "CLAUDE.md"
             if claude_md.exists():
-                prompt = f"Read CLAUDE.md and execute all tasks described there."
+                prompt = "Read CLAUDE.md and execute all tasks described there."
             else:
                 prompt = "Execute the phase tasks as defined in the spec."
 
-        cmd = [
-            self.claude_cmd,
-            "--print",
-            "--dangerously-skip-permissions",
-        ]
+        cmd = self._build_command()
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -167,6 +210,154 @@ class ClaudeRunner:
                 success=False,
                 exit_code=-1,
                 stdout="",
+                stderr=str(e),
+                duration_seconds=duration,
+            )
+
+    async def run_phase_streaming(
+        self,
+        phase_dir: Path,
+        on_output: OutputCallback,
+        model: str | None = None,
+        prompt: str | None = None,
+        timeout: int | None = None,
+        env_overrides: dict[str, str] | None = None,
+    ) -> ClaudeResult:
+        """Run Claude Code CLI with live output streaming.
+
+        This method streams output line-by-line as it becomes available,
+        calling the on_output callback for each line.
+
+        Args:
+            phase_dir: Path to the phase directory.
+            on_output: Async callback function(stream, line) for output.
+            model: Optional model spec to use.
+            prompt: Optional initial prompt.
+            timeout: Optional timeout in seconds.
+            env_overrides: Optional environment variable overrides.
+
+        Returns:
+            ClaudeResult with execution details.
+        """
+        import time
+
+        start_time = time.time()
+
+        env = self.get_claude_env(model)
+        if env_overrides:
+            env.update(env_overrides)
+
+        if prompt is None:
+            claude_md = phase_dir / "CLAUDE.md"
+            if claude_md.exists():
+                prompt = "Read CLAUDE.md and execute all tasks described there."
+            else:
+                prompt = "Execute the phase tasks as defined in the spec."
+
+        cmd = self._build_command()
+
+        stdout_lines: list[str] = []
+        stderr_lines: list[str] = []
+
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=phase_dir,
+                env={**os.environ, **env},
+            )
+
+            # Send prompt to stdin
+            if process.stdin:
+                process.stdin.write(prompt.encode("utf-8"))
+                await process.stdin.drain()
+                process.stdin.close()
+                await process.stdin.wait_closed()
+
+            async def read_stream(
+                stream: asyncio.StreamReader | None,
+                stream_name: str,
+                lines_list: list[str],
+            ) -> None:
+                """Read from stream line by line."""
+                if stream is None:
+                    return
+                while True:
+                    try:
+                        line_bytes = await asyncio.wait_for(
+                            stream.readline(),
+                            timeout=1.0  # Check every second for overall timeout
+                        )
+                        if not line_bytes:
+                            break
+                        line = line_bytes.decode("utf-8", errors="replace").rstrip("\n\r")
+                        lines_list.append(line)
+                        await on_output(stream_name, line)
+                    except asyncio.TimeoutError:
+                        # Check if process is still running
+                        if process.returncode is not None:
+                            break
+                        # Check overall timeout
+                        if time.time() - start_time > (timeout or self.DEFAULT_TIMEOUT):
+                            raise asyncio.TimeoutError("Overall timeout exceeded")
+
+            # Read stdout and stderr concurrently
+            await asyncio.gather(
+                read_stream(process.stdout, "stdout", stdout_lines),
+                read_stream(process.stderr, "stderr", stderr_lines),
+            )
+
+            # Wait for process to complete
+            await process.wait()
+
+            stdout = "\n".join(stdout_lines)
+            stderr = "\n".join(stderr_lines)
+            exit_code = process.returncode or 0
+
+            output_json = self._extract_json_output(stdout, phase_dir)
+
+            duration = time.time() - start_time
+
+            return ClaudeResult(
+                success=exit_code == 0,
+                exit_code=exit_code,
+                stdout=stdout,
+                stderr=stderr,
+                output_json=output_json,
+                duration_seconds=duration,
+            )
+
+        except asyncio.TimeoutError:
+            # Kill the process on timeout
+            if process and process.returncode is None:
+                process.kill()
+                await process.wait()
+            
+            duration = time.time() - start_time
+            return ClaudeResult(
+                success=False,
+                exit_code=-1,
+                stdout="\n".join(stdout_lines),
+                stderr=f"Timeout after {timeout or self.DEFAULT_TIMEOUT} seconds\n" + "\n".join(stderr_lines),
+                duration_seconds=duration,
+            )
+        except FileNotFoundError:
+            duration = time.time() - start_time
+            return ClaudeResult(
+                success=False,
+                exit_code=-1,
+                stdout="",
+                stderr=f"Claude CLI not found: {self.claude_cmd}",
+                duration_seconds=duration,
+            )
+        except Exception as e:
+            duration = time.time() - start_time
+            return ClaudeResult(
+                success=False,
+                exit_code=-1,
+                stdout="\n".join(stdout_lines),
                 stderr=str(e),
                 duration_seconds=duration,
             )
@@ -248,6 +439,7 @@ class ClaudeRunner:
         model: str | None = None,
         max_retries: int = 3,
         retry_delay: float = 5.0,
+        on_output: OutputCallback | None = None,
         **kwargs: Any,
     ) -> ClaudeResult:
         """Run Claude CLI with automatic retries.
@@ -257,6 +449,7 @@ class ClaudeRunner:
             model: Optional model spec to use.
             max_retries: Maximum number of retry attempts.
             retry_delay: Delay between retries in seconds.
+            on_output: Optional callback for live streaming.
             **kwargs: Additional arguments for run_phase.
 
         Returns:
@@ -265,7 +458,12 @@ class ClaudeRunner:
         last_result: ClaudeResult | None = None
 
         for attempt in range(max_retries + 1):
-            result = await self.run_phase(phase_dir, model, **kwargs)
+            if on_output:
+                result = await self.run_phase_streaming(
+                    phase_dir, on_output, model, **kwargs
+                )
+            else:
+                result = await self.run_phase(phase_dir, model, **kwargs)
 
             if result.success:
                 return result
