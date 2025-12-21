@@ -1,0 +1,181 @@
+# Phase 14: Self-Evolution System
+# 6 Sub-Phasen
+
+name: Self-Evolution System
+type: feature
+description: |
+  HELIX kann sich selbst sicher weiterentwickeln durch
+  isoliertes Test-System und kontrollierte Integration.
+
+phases:
+  # ══════════════════════════════════════════════════════════════════════════
+  - id: "14.1"
+    name: helix-control.sh
+    type: development
+    description: |
+      Control Script für HELIX v4 erstellen.
+      Befehle: status, start, stop, restart, logs, docker-up, docker-down
+    
+    input:
+      reference:
+        - /home/aiuser01/helix-v3/control/helix-v3-control.sh
+    
+    output:
+      files:
+        - control/helix-control.sh
+    
+    quality_gate:
+      type: script_executable
+      test: "./control/helix-control.sh status"
+
+  # ══════════════════════════════════════════════════════════════════════════
+  - id: "14.2"
+    name: helix-v4-test Setup
+    type: infrastructure
+    description: |
+      Test-System als separates Verzeichnis aufsetzen.
+      Docker-Compose mit Test-Ports, .env.test
+    
+    input:
+      reference:
+        - /home/aiuser01/helix-v3-test/docker/testsystem/docker-compose.yaml
+        - docs/EVOLUTION-CONCEPT.md
+    
+    output:
+      files:
+        - docker/test/docker-compose.yaml
+        - docker/test/.env.test
+        - scripts/setup-test-system.sh
+      external:
+        - /home/aiuser01/helix-v4-test/
+    
+    quality_gate:
+      type: health_check
+      test: "curl -s http://localhost:9001/health"
+
+  # ══════════════════════════════════════════════════════════════════════════
+  - id: "14.3"
+    name: Evolution Project Manager
+    type: development
+    description: |
+      Python-Modul zur Verwaltung von Evolution-Projekten.
+      Create, list, status, paths für new/ und modified/
+    
+    input:
+      depends_on:
+        - "14.1"
+    
+    output:
+      files:
+        - src/helix/evolution/__init__.py
+        - src/helix/evolution/project.py
+        - tests/evolution/test_project.py
+    
+    quality_gate:
+      type: tests_pass
+      test: "pytest tests/evolution/test_project.py -v"
+
+  # ══════════════════════════════════════════════════════════════════════════
+  - id: "14.4"
+    name: Deployer & Validator
+    type: development
+    description: |
+      Deploy ins Test-System und Validation Module.
+      Pre-deploy sync, copy files, restart, syntax check, tests.
+    
+    input:
+      depends_on:
+        - "14.2"
+        - "14.3"
+    
+    output:
+      files:
+        - src/helix/evolution/deployer.py
+        - src/helix/evolution/validator.py
+        - tests/evolution/test_deployer.py
+        - tests/evolution/test_validator.py
+    
+    quality_gate:
+      type: tests_pass
+      test: "pytest tests/evolution/test_deployer.py tests/evolution/test_validator.py -v"
+
+  # ══════════════════════════════════════════════════════════════════════════
+  - id: "14.5"
+    name: Integrator & RAG Sync
+    type: development
+    description: |
+      Integration in Production und RAG-Datenbank Sync.
+      Backup, integrate, rollback, Qdrant sync.
+    
+    input:
+      depends_on:
+        - "14.4"
+    
+    output:
+      files:
+        - src/helix/evolution/integrator.py
+        - src/helix/evolution/rag_sync.py
+        - tests/evolution/test_integrator.py
+    
+    quality_gate:
+      type: tests_pass
+      test: "pytest tests/evolution/test_integrator.py -v"
+
+  # ══════════════════════════════════════════════════════════════════════════
+  - id: "14.6"
+    name: API Endpoints & Consultant Update
+    type: development
+    description: |
+      REST API für Evolution-Workflow.
+      Consultant-Template für Evolution-Projekte erweitern.
+    
+    input:
+      depends_on:
+        - "14.5"
+    
+    output:
+      files:
+        - src/helix/api/routes/evolution.py
+        - templates/consultant/evolution.md.j2
+        - tests/api/test_routes_evolution.py
+    
+    quality_gate:
+      type: e2e_test
+      test: |
+        curl -s http://localhost:8001/helix/evolution/projects | grep -q "projects"
+
+# ════════════════════════════════════════════════════════════════════════════
+# Documentation Updates (nach allen Sub-Phasen)
+# ════════════════════════════════════════════════════════════════════════════
+
+documentation_updates:
+  - file: docs/EVOLUTION-CONCEPT.md
+    change: "Status: DRAFT → IMPLEMENTED"
+  
+  - file: docs/ARCHITECTURE-MODULES.md
+    change: "Add evolution/ package documentation"
+  
+  - file: ONBOARDING.md
+    change: "Add Evolution workflow section"
+  
+  - file: CLAUDE.md
+    change: "Document evolution project type"
+  
+  - file: README.md
+    change: "Mention Self-Evolution feature"
+
+# ════════════════════════════════════════════════════════════════════════════
+# Metadata
+# ════════════════════════════════════════════════════════════════════════════
+
+metadata:
+  total_sub_phases: 6
+  estimated_lines: 1800
+  estimated_files: 16
+  priority: high
+  risk: medium
+  
+  dependencies:
+    - Phase 13 (Consultant Integration)
+    - helix-v3-test decommissioned
+    - GitLab repo configured
