@@ -277,11 +277,26 @@ projects/evolution/
 
 ### 5.2 Test-Datenbanken
 
-**Entscheidung**: Leere Datenbanken mit Fixtures/Seeds.
+**Entscheidung**: RAG-Datenbanken werden 1:1 kopiert.
 
-- Bei Start: Basis-Seeds laden (Minimal-Daten für Tests)
-- Keine Kopie von Production (Datenschutz, Größe)
-- RAG: Kleine Test-Collection mit definierten Dokumenten
+- **Qdrant (Embeddings)**: Vollständige Kopie von Production
+  - Enthält alle Embeddings für Skills, Dokumentation, etc.
+  - Ermöglicht realistische RAG-Tests
+  
+- **PostgreSQL**: Struktur + Seeds (keine User-Daten)
+  
+- **Neo4j**: Struktur + Seeds
+
+**Warum RAG kopieren?**
+- RAG-Suche muss realistisch funktionieren
+- Embeddings sind nicht sensibel (keine Personendaten)
+- Neu-Embedden würde lange dauern und API-Kosten verursachen
+
+**Sync-Strategie**:
+```bash
+# Bei Pre-Deploy: RAG-Daten synchronisieren
+./control/helix-control.sh sync-rag-to-test
+```
 
 ### 5.3 Fehlerbehandlung
 
