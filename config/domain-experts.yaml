@@ -1,0 +1,115 @@
+# HELIX v4 - Domain-Experten Konfiguration
+# FRABA-spezifisch
+
+experts:
+  helix:
+    name: "HELIX System Expert"
+    description: "HELIX v4 Architektur, Workflows, ADRs, Best Practices"
+    skills:
+      - "helix/architecture.md"
+      - "helix/workflows.md"
+      - "helix/adrs.md"
+    triggers:
+      - "helix"
+      - "orchestrator"
+      - "template"
+      - "phase"
+      - "quality gate"
+      - "escalation"
+      
+  pdm:
+    name: "PDM Domain Expert"
+    description: "Produktdatenmanagement, Stücklisten (BOM), Revisionen, Artikel"
+    skills:
+      - "domains/pdm/structure.md"
+      - "domains/pdm/bom.md"
+      - "domains/pdm/revisions.md"
+      - "domains/pdm/articles.md"
+    triggers:
+      - "pdm"
+      - "stückliste"
+      - "bom"
+      - "revision"
+      - "artikel"
+      - "produkt"
+      - "material"
+      
+  encoder:
+    name: "Encoder Technology Expert"
+    description: "Drehgeber, Encoder-Technologie, POSITAL, FRABA Produkte"
+    skills:
+      - "domains/encoder/technology.md"
+      - "domains/encoder/posital.md"
+      - "domains/encoder/specifications.md"
+    triggers:
+      - "encoder"
+      - "drehgeber"
+      - "posital"
+      - "ixarc"
+      - "tiltix"
+      - "linarix"
+      - "absolut"
+      - "inkremental"
+      - "wiegand"
+      
+  erp:
+    name: "ERP Integration Expert"
+    description: "SAP-Integration, Aufträge, Bestellungen, Materialwirtschaft"
+    skills:
+      - "domains/erp/sap-integration.md"
+      - "domains/erp/orders.md"
+      - "domains/erp/material.md"
+    triggers:
+      - "sap"
+      - "erp"
+      - "auftrag"
+      - "bestellung"
+      - "lieferant"
+      - "kunde"
+      
+  infrastructure:
+    name: "Infrastructure Expert"
+    description: "Deployment, Docker, Proxmox, CI/CD, Server"
+    skills:
+      - "tools/docker.md"
+      - "tools/proxmox.md"
+      - "tools/ci-cd.md"
+    triggers:
+      - "deploy"
+      - "docker"
+      - "proxmox"
+      - "server"
+      - "ci"
+      - "pipeline"
+      - "vm"
+      
+  database:
+    name: "Database Expert"
+    description: "PostgreSQL, Neo4j, Qdrant, Redis, Migrations"
+    skills:
+      - "tools/postgresql.md"
+      - "tools/neo4j.md"
+      - "tools/qdrant.md"
+    triggers:
+      - "datenbank"
+      - "database"
+      - "sql"
+      - "postgres"
+      - "neo4j"
+      - "graph"
+      - "vector"
+      - "qdrant"
+      - "redis"
+
+  webshop:
+    name: "Webshop Expert"
+    description: "FRABA Webshop, Produktkonfigurator, Bestellprozess"
+    skills:
+      - "domains/webshop/architecture.md"
+      - "domains/webshop/configurator.md"
+    triggers:
+      - "webshop"
+      - "shop"
+      - "konfigurator"
+      - "warenkorb"
+      - "checkout"

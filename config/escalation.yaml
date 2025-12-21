@@ -1,0 +1,62 @@
+# HELIX v4 Escalation Configuration
+
+escalation:
+  # Maximum retries before escalating
+  max_retries_per_level: 3
+
+  # Timeout for each attempt (minutes)
+  attempt_timeout: 30
+
+  levels:
+    # Level 1: Autonomous recovery (Consultant handles)
+    stufe_1:
+      name: "Autonomous Recovery"
+      description: "Consultant tries to fix issues automatically"
+      actions:
+        - type: "model_switch"
+          description: "Try a different/better model"
+          models:
+            - "openrouter:claude-opus-4"
+            - "openrouter:gpt-4o"
+        - type: "hint_generation"
+          description: "Generate hints from error analysis"
+        - type: "plan_revision"
+          description: "Revise the approach/plan"
+        - type: "context_expansion"
+          description: "Load additional skills/context"
+      max_attempts: 3
+
+    # Level 2: Human in the Loop
+    stufe_2:
+      name: "Human in the Loop"
+      description: "Requires human intervention"
+      actions:
+        - type: "notification"
+          channels:
+            - "api_event"  # SSE event to frontend
+            - "log"        # Log entry
+        - type: "pause"
+          description: "Pause execution and wait for human input"
+      wait_timeout_hours: 24
+
+# Error patterns and handling
+error_patterns:
+  - pattern: "syntax.*error"
+    level: "stufe_1"
+    action: "hint_generation"
+
+  - pattern: "permission.*denied"
+    level: "stufe_2"
+    action: "notification"
+
+  - pattern: "api.*rate.*limit"
+    level: "stufe_1"
+    action: "model_switch"
+
+  - pattern: "timeout"
+    level: "stufe_1"
+    action: "model_switch"
+
+  - pattern: "out.*of.*memory"
+    level: "stufe_2"
+    action: "notification"

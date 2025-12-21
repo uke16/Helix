@@ -1,0 +1,76 @@
+# HELIX v4 Quality Gate Configuration
+
+gates:
+  files_exist:
+    description: "Check that specified files exist"
+    type: "deterministic"
+    config:
+      fail_on_missing: true
+
+  syntax_check:
+    description: "Check syntax validity of generated code"
+    type: "deterministic"
+    config:
+      languages:
+        python:
+          command: "python3 -m py_compile {file}"
+          extensions: [".py"]
+        typescript:
+          command: "npx tsc --noEmit {file}"
+          extensions: [".ts", ".tsx"]
+        yaml:
+          command: "python3 -c \"import yaml; yaml.safe_load(open('{file}'))\""
+          extensions: [".yaml", ".yml"]
+        json:
+          command: "python3 -c \"import json; json.load(open('{file}'))\""
+          extensions: [".json"]
+
+  tests_pass:
+    description: "Run test suite and require passing"
+    type: "deterministic"
+    config:
+      python:
+        command: "pytest {path} -v"
+        coverage_threshold: 80
+      typescript:
+        command: "npm test"
+
+  lint_pass:
+    description: "Run linter and require no errors"
+    type: "deterministic"
+    config:
+      python:
+        command: "ruff check {path}"
+        auto_fix: false
+      typescript:
+        command: "npx eslint {path}"
+
+  review_approved:
+    description: "Require LLM review approval"
+    type: "llm"
+    config:
+      model: "openrouter:claude-opus-4"
+      min_approval_score: 0.8
+      require_no_high_severity: true
+
+# Gate combinations for different phase types
+phase_gates:
+  development:
+    required:
+      - syntax_check
+    optional:
+      - lint_pass
+
+  review:
+    required:
+      - review_approved
+
+  test:
+    required:
+      - tests_pass
+    optional:
+      - lint_pass
+
+  documentation:
+    required:
+      - files_exist

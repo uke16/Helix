@@ -1,0 +1,115 @@
+# HELIX v4 LLM Provider Configuration
+
+providers:
+  openrouter:
+    name: "OpenRouter"
+    base_url: "https://openrouter.ai/api/v1"
+    api_format: "openai"
+    env_key: "HELIX_OPENROUTER_API_KEY"
+    models:
+      gpt-4o:
+        id: "openai/gpt-4o"
+        context_window: 128000
+        cost_per_1m_input: 2.50
+        cost_per_1m_output: 10.00
+        supports_tools: true
+        supports_vision: true
+      gpt-4o-mini:
+        id: "openai/gpt-4o-mini"
+        context_window: 128000
+        cost_per_1m_input: 0.15
+        cost_per_1m_output: 0.60
+        supports_tools: true
+        supports_vision: true
+      claude-sonnet-4:
+        id: "anthropic/claude-sonnet-4"
+        context_window: 200000
+        cost_per_1m_input: 3.00
+        cost_per_1m_output: 15.00
+        supports_tools: true
+        supports_vision: true
+      claude-opus-4:
+        id: "anthropic/claude-opus-4"
+        context_window: 200000
+        cost_per_1m_input: 15.00
+        cost_per_1m_output: 75.00
+        supports_tools: true
+        supports_vision: true
+      gemini-2-flash:
+        id: "google/gemini-2.0-flash-001"
+        context_window: 1000000
+        cost_per_1m_input: 0.10
+        cost_per_1m_output: 0.40
+        supports_tools: true
+        supports_vision: true
+      llama-3-70b:
+        id: "meta-llama/llama-3.3-70b-instruct"
+        context_window: 131072
+        cost_per_1m_input: 0.50
+        cost_per_1m_output: 0.75
+        supports_tools: false
+        supports_vision: false
+
+  anthropic:
+    name: "Anthropic Direct"
+    base_url: "https://api.anthropic.com/v1"
+    api_format: "anthropic"
+    env_key: "HELIX_ANTHROPIC_API_KEY"
+    models:
+      claude-sonnet-4:
+        id: "claude-sonnet-4-20250514"
+        context_window: 200000
+        cost_per_1m_input: 3.00
+        cost_per_1m_output: 15.00
+        supports_tools: true
+        supports_vision: true
+      claude-opus-4:
+        id: "claude-opus-4-20250514"
+        context_window: 200000
+        cost_per_1m_input: 15.00
+        cost_per_1m_output: 75.00
+        supports_tools: true
+        supports_vision: true
+
+  openai:
+    name: "OpenAI Direct"
+    base_url: "https://api.openai.com/v1"
+    api_format: "openai"
+    env_key: "HELIX_OPENAI_API_KEY"
+    models:
+      gpt-4o:
+        id: "gpt-4o"
+        context_window: 128000
+        cost_per_1m_input: 5.00
+        cost_per_1m_output: 15.00
+        supports_tools: true
+        supports_vision: true
+      gpt-4o-mini:
+        id: "gpt-4o-mini"
+        context_window: 128000
+        cost_per_1m_input: 0.15
+        cost_per_1m_output: 0.60
+        supports_tools: true
+        supports_vision: true
+
+# Default model configuration
+defaults:
+  # For consultant discussions (needs good reasoning)
+  consultant: "openrouter:claude-opus-4"
+
+  # For code development (fast, good at code)
+  developer: "openrouter:claude-sonnet-4"
+
+  # For code review (thorough)
+  reviewer: "openrouter:claude-opus-4"
+
+  # For quick tasks (cheap and fast)
+  utility: "openrouter:gpt-4o-mini"
+
+# Model aliases for convenience
+aliases:
+  opus: "openrouter:claude-opus-4"
+  sonnet: "openrouter:claude-sonnet-4"
+  gpt4: "openrouter:gpt-4o"
+  fast: "openrouter:gpt-4o-mini"
+  cheap: "openrouter:gemini-2-flash"

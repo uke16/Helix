@@ -1,0 +1,456 @@
+"""HELIX v4 CLI Commands.
+
+This module contains all CLI commands for the HELIX system.
+"""
+
+import asyncio
+import json
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+import click
+
+
+def handle_error(func):
+    """Decorator to handle errors gracefully without showing tracebacks."""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except FileNotFoundError as e:
+            click.secho(f"✗ File not found: {e.filename}", fg="red")
+            sys.exit(1)
+        except json.JSONDecodeError as e:
+            click.secho(f"✗ Invalid JSON: {e.msg}", fg="red")
+            sys.exit(1)
+        except Exception as e:
+            click.secho(f"✗ Error: {str(e)}", fg="red")
+            sys.exit(1)
+    return wrapper
+
+
+@click.command()
+@click.argument("project_path", type=click.Path(exists=True))
+@click.option("--phase", "-p", help="Start from specific phase")
+@click.option("--model", "-m", default="claude-opus-4", help="LLM model to use")
+@click.option("--dry-run", is_flag=True, help="Show what would be done")
+@handle_error
+def run(project_path: str, phase: Optional[str], model: str, dry_run: bool) -> None:
+    """Run a HELIX project workflow.
+
+    PROJECT_PATH is the path to the project directory containing spec.yaml and phases.yaml.
+    """
+    from helix.orchestrator import Orchestrator
+    from helix.observability import HelixLogger
+
+    project = Path(project_path).resolve()
+    logger = HelixLogger(project)
+
+    click.secho(f"→ Loading project: {project.name}", fg="blue")
+
+    if dry_run:
+        click.secho("→ Dry run mode - showing planned execution", fg="yellow")
+        _show_dry_run(project, phase)
+        return
+
+    click.secho(f"→ Using model: {model}", fg="blue")
+    if phase:
+        click.secho(f"→ Starting from phase: {phase}", fg="blue")
+
+    orchestrator = Orchestrator(project, model=model, logger=logger)
+
+    async def execute():
+        await orchestrator.run(start_phase=phase)
+
+    try:
+        asyncio.run(execute())
+        click.secho("✓ Workflow completed successfully", fg="green")
+    except KeyboardInterrupt:
+        click.secho("\n⚠ Workflow interrupted by user", fg="yellow")
+        sys.exit(130)
+
+
+def _show_dry_run(project: Path, start_phase: Optional[str]) -> None:
+    """Display what would be executed in dry-run mode."""
+    from helix.phase_loader import PhaseLoader
+
+    loader = PhaseLoader(project)
+    phases = loader.load_phases()
+
+    started = start_phase is None
+    click.echo()
+    click.echo(f"{'Phase':<25} {'Description':<40} {'Status'}")
+    click.echo("-" * 80)
+
+    for phase in phases:
+        if phase.name == start_phase:
+            started = True
+
+        status = "→ would run" if started else "  skipped"
+        status_color = "green" if started else "white"
+        click.echo(f"{phase.name:<25} {phase.description[:38]:<40} ", nl=False)
+        click.secho(status, fg=status_color)
+
+    click.echo()
+
+
+@click.command()
+@click.argument("project_path", type=click.Path(exists=True))
+@handle_error
+def status(project_path: str) -> None:
+    """Show project status and progress.
+
+    PROJECT_PATH is the path to the project directory.
+    """
+    from helix.phase_loader import PhaseLoader
+    from helix.quality_gates import GateChecker
+
+    project = Path(project_path).resolve()
+
+    click.secho(f"→ Project: {project.name}", fg="blue")
+    click.echo()
+
+    # Load phases and check status
+    loader = PhaseLoader(project)
+    phases = loader.load_phases()
+    gate_checker = GateChecker(project)
+
+    # Determine current phase from state file
+    state_file = project / ".helix" / "state.json"
+    current_phase = None
+    completed_phases = []
+
+    if state_file.exists():
+        state = json.loads(state_file.read_text())
+        current_phase = state.get("current_phase")
+        completed_phases = state.get("completed_phases", [])
+
+    click.echo(f"{'Phase':<25} {'Status':<15} {'Gate'}")
+    click.echo("-" * 55)
+
+    for phase in phases:
+        if phase.name in completed_phases:
+            phase_status = "completed"
+            status_color = "green"
+            gate_status = "✓ passed"
+            gate_color = "green"
+        elif phase.name == current_phase:
+            phase_status = "in_progress"
+            status_color = "yellow"
+            gate_status = "pending"
+            gate_color = "white"
+        else:
+            phase_status = "pending"
+            status_color = "white"
+            gate_status = "-"
+            gate_color = "white"
+
+        click.secho(f"{phase.name:<25} ", nl=False)
+        click.secho(f"{phase_status:<15} ", fg=status_color, nl=False)
+        click.secho(gate_status, fg=gate_color)
+
+    click.echo()
+
+    # Show summary
+    completed_count = len(completed_phases)
+    total_count = len(phases)
+    progress = (completed_count / total_count * 100) if total_count > 0 else 0
+
+    click.echo(f"Progress: {completed_count}/{total_count} phases ({progress:.0f}%)")
+
+    if current_phase:
+        click.secho(f"Current: {current_phase}", fg="yellow")
+
+
+@click.command()
+@click.argument("project_path", type=click.Path(exists=True))
+@click.argument("phase", required=False)
+@click.option("--tail", "-n", default=50, help="Number of log lines")
+@handle_error
+def debug(project_path: str, phase: Optional[str], tail: int) -> None:
+    """Show debug logs for a project or phase.
+
+    PROJECT_PATH is the path to the project directory.
+    PHASE is an optional phase name to filter logs.
+    """
+    from helix.observability import HelixLogger
+
+    project = Path(project_path).resolve()
+    logger = HelixLogger(project)
+
+    if phase:
+        click.secho(f"→ Logs for phase: {phase}", fg="blue")
+        log_file = project / ".helix" / "logs" / f"{phase}.log"
+    else:
+        click.secho(f"→ Logs for project: {project.name}", fg="blue")
+        log_file = project / ".helix" / "logs" / "helix.log"
+
+    if not log_file.exists():
+        click.secho(f"⚠ No logs found at: {log_file}", fg="yellow")
+        return
+
+    click.echo()
+
+    # Read and display last N lines
+    lines = log_file.read_text().splitlines()
+    display_lines = lines[-tail:] if len(lines) > tail else lines
+
+    for line in display_lines:
+        # Color code based on log level
+        if "ERROR" in line or "CRITICAL" in line:
+            click.secho(line, fg="red")
+        elif "WARNING" in line:
+            click.secho(line, fg="yellow")
+        elif "INFO" in line:
+            click.echo(line)
+        else:
+            click.secho(line, fg="white", dim=True)
+
+    click.echo()
+    click.secho(f"Showing last {len(display_lines)} of {len(lines)} lines", dim=True)
+
+
+@click.command()
+@click.argument("project_path", type=click.Path(exists=True))
+@click.option("--detailed", "-d", is_flag=True, help="Show per-phase breakdown")
+@handle_error
+def costs(project_path: str, detailed: bool) -> None:
+    """Show token usage and costs.
+
+    PROJECT_PATH is the path to the project directory.
+    """
+    from helix.observability import MetricsCollector
+
+    project = Path(project_path).resolve()
+    collector = MetricsCollector(project)
+
+    click.secho(f"→ Costs for project: {project.name}", fg="blue")
+    click.echo()
+
+    metrics = collector.get_metrics()
+
+    if not metrics:
+        click.secho("⚠ No metrics data found", fg="yellow")
+        return
+
+    total_input = metrics.get("total_input_tokens", 0)
+    total_output = metrics.get("total_output_tokens", 0)
+    total_cost = metrics.get("total_cost", 0.0)
+
+    click.echo("Summary")
+    click.echo("-" * 40)
+    click.echo(f"Input tokens:  {total_input:>15,}")
+    click.echo(f"Output tokens: {total_output:>15,}")
+    click.echo(f"Total tokens:  {total_input + total_output:>15,}")
+    click.echo()
+    click.secho(f"Total cost:    ${total_cost:>14,.4f}", fg="green" if total_cost < 10 else "yellow")
+
+    if detailed and "phases" in metrics:
+        click.echo()
+        click.echo(f"{'Phase':<25} {'Input':<12} {'Output':<12} {'Cost'}")
+        click.echo("-" * 60)
+
+        for phase_name, phase_data in metrics["phases"].items():
+            input_tokens = phase_data.get("input_tokens", 0)
+            output_tokens = phase_data.get("output_tokens", 0)
+            cost = phase_data.get("cost", 0.0)
+
+            click.echo(
+                f"{phase_name:<25} {input_tokens:<12,} {output_tokens:<12,} ${cost:.4f}"
+            )
+
+
+@click.command()
+@click.argument("project_name")
+@click.option(
+    "--type",
+    "-t",
+    "project_type",
+    default="feature",
+    type=click.Choice(["feature", "bugfix", "documentation", "research"]),
+)
+@click.option("--output", "-o", type=click.Path(), help="Output directory")
+@handle_error
+def new(project_name: str, project_type: str, output: Optional[str]) -> None:
+    """Create a new HELIX project from template.
+
+    PROJECT_NAME is the name for the new project.
+    """
+    output_dir = Path(output) if output else Path.cwd()
+    project_dir = output_dir / project_name
+
+    if project_dir.exists():
+        click.secho(f"✗ Directory already exists: {project_dir}", fg="red")
+        sys.exit(1)
+
+    click.secho(f"→ Creating new {project_type} project: {project_name}", fg="blue")
+
+    # Create project structure
+    project_dir.mkdir(parents=True)
+    (project_dir / ".helix").mkdir()
+    (project_dir / ".helix" / "logs").mkdir()
+
+    # Create spec.yaml
+    spec_content = f"""# HELIX Project Specification
+# Generated: {datetime.now().isoformat()}
+
+name: {project_name}
+type: {project_type}
+version: "1.0.0"
+
+description: |
+  Add your project description here.
+
+goals:
+  - Define your project goals
+
+requirements:
+  - List your requirements
+
+constraints:
+  - Any constraints or limitations
+"""
+    (project_dir / "spec.yaml").write_text(spec_content)
+
+    # Create phases.yaml based on project type
+    phases_content = _get_phases_template(project_type)
+    (project_dir / "phases.yaml").write_text(phases_content)
+
+    # Create initial state
+    state = {
+        "created_at": datetime.now().isoformat(),
+        "current_phase": None,
+        "completed_phases": [],
+    }
+    (project_dir / ".helix" / "state.json").write_text(json.dumps(state, indent=2))
+
+    click.secho("✓ Project created successfully", fg="green")
+    click.echo()
+    click.echo("Project structure:")
+    click.echo(f"  {project_dir}/")
+    click.echo("  ├── spec.yaml")
+    click.echo("  ├── phases.yaml")
+    click.echo("  └── .helix/")
+    click.echo("      ├── state.json")
+    click.echo("      └── logs/")
+    click.echo()
+    click.echo("Next steps:")
+    click.echo(f"  1. Edit {project_dir}/spec.yaml to define your project")
+    click.echo(f"  2. Customize {project_dir}/phases.yaml if needed")
+    click.echo(f"  3. Run: helix run {project_dir}")
+
+
+def _get_phases_template(project_type: str) -> str:
+    """Get phases.yaml template based on project type."""
+    templates = {
+        "feature": """# HELIX Phases Configuration
+
+phases:
+  - name: 01-analysis
+    description: Analyze requirements and existing codebase
+    skills:
+      - code_analysis
+      - requirements_gathering
+
+  - name: 02-design
+    description: Design the feature architecture
+    skills:
+      - architecture
+      - api_design
+
+  - name: 03-implementation
+    description: Implement the feature
+    skills:
+      - coding
+      - testing
+
+  - name: 04-testing
+    description: Write and run tests
+    skills:
+      - unit_testing
+      - integration_testing
+
+  - name: 05-documentation
+    description: Document the feature
+    skills:
+      - documentation
+""",
+        "bugfix": """# HELIX Phases Configuration
+
+phases:
+  - name: 01-investigation
+    description: Investigate and reproduce the bug
+    skills:
+      - debugging
+      - code_analysis
+
+  - name: 02-root-cause
+    description: Identify root cause
+    skills:
+      - debugging
+      - code_analysis
+
+  - name: 03-fix
+    description: Implement the fix
+    skills:
+      - coding
+
+  - name: 04-testing
+    description: Verify fix and add regression tests
+    skills:
+      - unit_testing
+      - integration_testing
+""",
+        "documentation": """# HELIX Phases Configuration
+
+phases:
+  - name: 01-analysis
+    description: Analyze what needs to be documented
+    skills:
+      - code_analysis
+
+  - name: 02-outline
+    description: Create documentation outline
+    skills:
+      - documentation
+
+  - name: 03-writing
+    description: Write documentation
+    skills:
+      - documentation
+      - technical_writing
+
+  - name: 04-review
+    description: Review and refine
+    skills:
+      - documentation
+""",
+        "research": """# HELIX Phases Configuration
+
+phases:
+  - name: 01-scope
+    description: Define research scope and questions
+    skills:
+      - research
+
+  - name: 02-investigation
+    description: Investigate and gather information
+    skills:
+      - research
+      - code_analysis
+
+  - name: 03-analysis
+    description: Analyze findings
+    skills:
+      - research
+      - analysis
+
+  - name: 04-report
+    description: Create research report
+    skills:
+      - documentation
+      - technical_writing
+""",
+    }
+    return templates.get(project_type, templates["feature"])

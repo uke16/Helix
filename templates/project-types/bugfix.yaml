@@ -1,0 +1,20 @@
+name: bugfix
+description: Bug fix workflow
+
+phases:
+  - id: 01-analysis
+    name: Bug Analysis
+    type: meeting
+    template: consultant/meta-consultant.md
+
+  - id: 02-fix
+    name: Fix Implementation
+    type: development
+    template: developer/{{ spec.implementation.language }}.md
+    quality_gate:
+      type: tests_pass
+
+  - id: 03-review
+    name: Fix Review
+    type: review
+    template: reviewer/code.md

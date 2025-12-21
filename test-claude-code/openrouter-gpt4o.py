@@ -1,0 +1,1 @@
+print('Hello from GPT-4o via OpenRouter + y-router!')

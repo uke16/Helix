@@ -1,0 +1,15 @@
+name: documentation
+description: Documentation-only workflow
+
+phases:
+  - id: 01-planning
+    name: Documentation Planning
+    type: meeting
+    template: consultant/meta-consultant.md
+
+  - id: 02-writing
+    name: Documentation Writing
+    type: documentation
+    template: documentation/technical.md
+    quality_gate:
+      type: files_exist

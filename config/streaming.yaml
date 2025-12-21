@@ -1,0 +1,82 @@
+# HELIX v4 Streaming Configuration
+
+streaming:
+  # Default streaming level
+  default_level: "normal"
+
+  levels:
+    # Minimal: Only phase transitions and errors
+    minimal:
+      include:
+        - phase_start
+        - phase_end
+        - error
+        - completed
+        - failed
+      claude_output: false
+
+    # Normal: Phase info + key events
+    normal:
+      include:
+        - phase_start
+        - phase_end
+        - file_created
+        - file_modified
+        - error
+        - cost_update
+        - completed
+        - failed
+      claude_output:
+        enabled: true
+        max_lines_per_event: 20
+        throttle_ms: 500
+
+    # Verbose: Everything
+    verbose:
+      include:
+        - phase_start
+        - phase_end
+        - file_created
+        - file_modified
+        - file_deleted
+        - tool_call
+        - error
+        - warning
+        - cost_update
+        - token_update
+        - completed
+        - failed
+        - heartbeat
+      claude_output:
+        enabled: true
+        max_lines_per_event: 100
+        throttle_ms: 100
+
+    # Debug: Full raw output
+    debug:
+      include: ["*"]
+      claude_output:
+        enabled: true
+        raw: true  # No filtering
+
+  # Filter patterns for Claude Code output
+  output_filters:
+    # Hide thinking/internal messages
+    exclude_patterns:
+      - "^Thinking\\.\\.\\."
+      - "^Processing\\.\\.\\."
+      - "^\\s*$"  # Empty lines
+
+    # Highlight important messages
+    highlight_patterns:
+      - pattern: "^(Created|Modified|Deleted):"
+        style: "success"
+      - pattern: "^Error:"
+        style: "error"
+      - pattern: "^Warning:"
+        style: "warning"
+
+  # Heartbeat configuration
+  heartbeat:
+    interval_seconds: 15
+    enabled: true

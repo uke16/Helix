@@ -1,0 +1,32 @@
+name: feature
+description: Standard feature development workflow
+
+phases:
+  - id: 01-consultant
+    name: Requirements Discussion
+    type: meeting
+    template: consultant/meta-consultant.md
+    output:
+      - spec.yaml
+      - adr/*.md
+
+  - id: 02-development
+    name: Implementation
+    type: development
+    template: developer/{{ spec.implementation.language }}.md
+    quality_gate:
+      type: syntax_check
+
+  - id: 03-review
+    name: Code Review
+    type: review
+    template: reviewer/code.md
+    quality_gate:
+      type: review_approved
+
+  - id: 04-documentation
+    name: Documentation
+    type: documentation
+    template: documentation/technical.md
+    quality_gate:
+      type: files_exist
