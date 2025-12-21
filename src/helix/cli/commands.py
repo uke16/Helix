@@ -454,3 +454,65 @@ phases:
 """,
     }
     return templates.get(project_type, templates["feature"])
+
+
+@click.command()
+@click.argument("project_path", type=click.Path(exists=True))
+@click.option("--request", "-r", help="Path to request.md file or direct request text")
+@click.option("--model", "-m", default="claude-opus-4", help="LLM model for consultant")
+@handle_error
+def discuss(project_path: str, request: Optional[str], model: str) -> None:
+    """Start a consultant meeting for a project.
+
+    PROJECT_PATH is the path to the project directory.
+
+    The consultant will analyze the request, consult domain experts,
+    and generate spec.yaml, phases.yaml, and ADR documents.
+    """
+    from helix.consultant import ConsultantMeeting, ExpertManager
+    from helix.llm_client import LLMClient
+
+    project = Path(project_path).resolve()
+
+    # Load request
+    if request and Path(request).exists():
+        user_request = Path(request).read_text()
+    elif request:
+        user_request = request
+    else:
+        request_file = project / "input" / "request.md"
+        if not request_file.exists():
+            click.secho("✗ No request provided. Use --request or create input/request.md", fg="red")
+            sys.exit(1)
+        user_request = request_file.read_text()
+
+    click.secho(f"→ Starting consultant meeting for: {project.name}", fg="blue")
+    click.secho(f"→ Using model: {model}", fg="blue")
+
+    llm_client = LLMClient()
+    expert_manager = ExpertManager()
+    meeting = ConsultantMeeting(llm_client, expert_manager)
+
+    async def run_meeting():
+        result = await meeting.run(project, user_request)
+        return result
+
+    try:
+        result = asyncio.run(run_meeting())
+
+        click.secho("\n✓ Consultant meeting completed!", fg="green")
+        click.secho(f"  → Experts consulted: {', '.join(result.experts_consulted)}", fg="white")
+        click.secho(f"  → Duration: {result.duration_seconds:.1f}s", fg="white")
+
+        if result.spec:
+            click.secho(f"  → Created: spec.yaml", fg="green")
+        if result.phases:
+            click.secho(f"  → Created: phases.yaml", fg="green")
+        if result.adr_path:
+            click.secho(f"  → Created: {result.adr_path.name}", fg="green")
+
+        click.secho(f"\n→ Next step: helix run {project_path}", fg="blue")
+
+    except Exception as e:
+        click.secho(f"✗ Meeting failed: {e}", fg="red")
+        sys.exit(1)
