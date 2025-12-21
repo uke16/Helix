@@ -1,0 +1,1 @@
+Der Einkauf braucht das für Bestellungen bei Lieferanten. Aktuell werden die Daten manuell aus dem PDM kopiert, was fehleranfällig ist.

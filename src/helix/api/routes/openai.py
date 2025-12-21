@@ -1,9 +1,26 @@
-"""OpenAI-compatible API routes for Open WebUI integration."""
+"""OpenAI-compatible API routes for Open WebUI integration.
 
+This module handles chat completions by:
+1. Managing consultant sessions
+2. Running Claude Code instances for each turn
+3. Returning responses in OpenAI format
+"""
+
+import asyncio
+import os
+import sys
 import time
 import uuid
-from fastapi import APIRouter
+from pathlib import Path
+
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
+from jinja2 import Environment, FileSystemLoader
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+
+from helix.claude_runner import ClaudeRunner
 
 from ..models import (
     ChatCompletionRequest,
@@ -15,8 +32,13 @@ from ..models import (
     StreamDelta,
     ModelInfo,
 )
+from ..session_manager import session_manager, SessionState
 
 router = APIRouter(prefix="/v1", tags=["OpenAI Compatible"])
+
+# Template environment
+TEMPLATE_DIR = Path(__file__).parent.parent.parent.parent.parent / "templates"
+jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
 
 
 @router.get("/models")
@@ -41,31 +63,62 @@ async def list_models() -> dict:
 
 
 @router.post("/chat/completions")
-async def chat_completions(request: ChatCompletionRequest):
-    """Handle chat completion (OpenAI-compatible).
+async def chat_completions(request: ChatCompletionRequest, http_request: Request):
+    """Handle chat completion with Claude Code consultant.
     
-    This endpoint makes HELIX work with Open WebUI.
-    When stream=True, returns SSE stream.
+    This is the main integration point for Open WebUI.
+    Each conversation maps to a session directory where
+    Claude Code runs as the consultant.
     """
     completion_id = f"chatcmpl-{uuid.uuid4().hex[:8]}"
     created = int(time.time())
     
-    # Get the last user message
-    user_message = ""
-    for msg in reversed(request.messages):
-        if msg.role == "user":
-            user_message = msg.content
-            break
+    # Get messages
+    messages = [{"role": m.role, "content": m.content} for m in request.messages]
+    
+    if not messages:
+        return _error_response(completion_id, created, request.model, "No messages provided")
+    
+    # Get or create session
+    session_id = session_manager.get_session_id_from_messages(messages)
+    
+    if not session_id:
+        return _error_response(completion_id, created, request.model, "Could not determine session")
+    
+    # Check if session exists
+    if not session_manager.session_exists(session_id):
+        # New session - create it
+        original_request = messages[0].get('content', '')
+        session_manager.create_session(session_id, original_request)
+    
+    # Save current messages
+    session_manager.save_messages(session_id, messages)
+    
+    # Extract state from messages
+    conv_state = session_manager.extract_state_from_messages(messages)
+    
+    # Update session state
+    session_manager.update_state(session_id, step=conv_state["step"])
+    
+    # Save context answers
+    for key in ["what", "why", "constraints"]:
+        if conv_state["answers"].get(key):
+            session_manager.save_context(session_id, key, conv_state["answers"][key])
+    
+    # Generate CLAUDE.md for this session
+    session_state = session_manager.get_state(session_id)
+    context = session_manager.get_context(session_id)
+    
+    await _generate_session_claude_md(session_id, session_state, context)
+    
+    # Run Claude Code
+    response_text = await _run_consultant(session_id, session_state)
     
     if request.stream:
         return StreamingResponse(
-            _stream_response(completion_id, created, request.model, user_message),
+            _stream_response(completion_id, created, request.model, response_text),
             media_type="text/event-stream",
         )
-    
-    # Non-streaming response
-    # For now, return a helpful message about using HELIX
-    response_text = _generate_response(user_message, request.model)
     
     return ChatCompletionResponse(
         id=completion_id,
@@ -82,41 +135,86 @@ async def chat_completions(request: ChatCompletionRequest):
     )
 
 
-def _generate_response(user_message: str, model: str) -> str:
-    """Generate response based on user message.
+async def _generate_session_claude_md(
+    session_id: str, 
+    state: SessionState, 
+    context: dict[str, str]
+) -> None:
+    """Generate CLAUDE.md for the session from template."""
+    template = jinja_env.get_template("consultant/session.md.j2")
     
-    This is a simple implementation. In production, this would
-    integrate with the Consultant for discussion or trigger execution.
-    """
-    msg_lower = user_message.lower()
+    content = template.render(
+        session_id=session_id,
+        status=state.status,
+        step=state.step,
+        created_at=state.created_at.isoformat(),
+        original_request=state.original_request,
+        context=context,
+        project_name=state.project_name or "Neues Projekt",
+    )
     
-    # Check for HELIX commands
-    if any(word in msg_lower for word in ["erstelle", "create", "build", "implement"]):
-        return (
-            "I understand you want to create something. "
-            "To start a HELIX project, I'll need more details:\n\n"
-            "1. **What** do you want to build?\n"
-            "2. **Why** is this needed?\n"
-            "3. Any **constraints** or requirements?\n\n"
-            "Once you provide these details, I can create a project specification "
-            "and execute it through HELIX phases."
+    session_path = session_manager.get_session_path(session_id)
+    (session_path / "CLAUDE.md").write_text(content)
+
+
+async def _run_consultant(session_id: str, state: SessionState) -> str:
+    """Run Claude Code for the consultant session."""
+    session_path = session_manager.get_session_path(session_id)
+    
+    # Set NVM path
+    nvm_path = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
+    os.environ["PATH"] = f"{nvm_path}:{os.environ.get('PATH', '')}"
+    
+    # Create runner
+    runner = ClaudeRunner(
+        claude_cmd=f"{nvm_path}/claude",
+        use_stdbuf=True,
+    )
+    
+    # Check availability
+    available = await runner.check_availability()
+    if not available:
+        return "❌ Claude Code ist nicht verfügbar. Bitte später versuchen."
+    
+    # Run Claude Code in session directory
+    try:
+        result = await runner.run_phase(
+            phase_dir=session_path,
+            timeout=120,  # 2 minutes max for consultant
         )
-    
-    if any(word in msg_lower for word in ["status", "progress", "running"]):
-        return (
-            "To check project status, use:\n"
-            "- `GET /helix/jobs` - List all jobs\n"
-            "- `GET /helix/jobs/{job_id}` - Get specific job\n"
-            "- `GET /helix/stream/{job_id}` - Live stream"
-        )
-    
-    return (
-        f"Hello! I'm HELIX, an AI development orchestrator.\n\n"
-        f"I can help you:\n"
-        f"- **Create features** - Describe what you need\n"
-        f"- **Fix bugs** - Tell me about the issue\n"
-        f"- **Research** - Explore technical topics\n\n"
-        f"What would you like to work on?"
+        
+        if result.success:
+            # Read response from output
+            response_file = session_path / "output" / "response.md"
+            if response_file.exists():
+                return response_file.read_text()
+            else:
+                # Claude didn't write response file - use stdout
+                return result.stdout or "Ich habe deine Anfrage analysiert, aber keine Antwort generiert."
+        else:
+            # Error case
+            return f"❌ Fehler bei der Verarbeitung:\n```\n{result.stderr[:500]}\n```"
+            
+    except asyncio.TimeoutError:
+        return "⏱️ Timeout - die Verarbeitung hat zu lange gedauert."
+    except Exception as e:
+        return f"❌ Unerwarteter Fehler: {str(e)}"
+
+
+def _error_response(completion_id: str, created: int, model: str, error: str) -> ChatCompletionResponse:
+    """Create error response."""
+    return ChatCompletionResponse(
+        id=completion_id,
+        created=created,
+        model=model,
+        choices=[
+            ChatCompletionChoice(
+                index=0,
+                message=ChatMessage(role="assistant", content=f"Fehler: {error}"),
+                finish_reason="stop",
+            )
+        ],
+        usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
     )
 
 
@@ -124,14 +222,12 @@ async def _stream_response(
     completion_id: str,
     created: int,
     model: str,
-    user_message: str,
+    response_text: str,
 ):
-    """Stream response chunks."""
+    """Stream response in OpenAI format."""
     import json
     
-    response_text = _generate_response(user_message, model)
-    
-    # Stream character by character (or word by word for speed)
+    # Stream word by word
     words = response_text.split(" ")
     
     for i, word in enumerate(words):
@@ -151,8 +247,6 @@ async def _stream_response(
             ],
         )
         yield f"data: {json.dumps(chunk.model_dump())}\n\n"
-        # Small delay for visual effect
-        import asyncio
         await asyncio.sleep(0.02)
     
     # Final chunk
