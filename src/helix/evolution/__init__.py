@@ -35,6 +35,15 @@ from .validator import (
     ValidationLevel,
     quick_validate,
 )
+from .integrator import (
+    Integrator,
+    IntegrationResult,
+)
+from .rag_sync import (
+    RAGSync,
+    SyncResult,
+    SyncStatus,
+)
 
 __all__ = [
     # Project management
@@ -50,4 +59,11 @@ __all__ = [
     "ValidationResult",
     "ValidationLevel",
     "quick_validate",
+    # Integration
+    "Integrator",
+    "IntegrationResult",
+    # RAG Sync
+    "RAGSync",
+    "SyncResult",
+    "SyncStatus",
 ]
