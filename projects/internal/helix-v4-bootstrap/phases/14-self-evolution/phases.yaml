@@ -31,7 +31,7 @@ phases:
   # ══════════════════════════════════════════════════════════════════════════
   - id: "14.2"
     name: helix-v4-test Setup
-    type: infrastructure
+    type: development
     description: |
       Test-System als separates Verzeichnis aufsetzen.
       Docker-Compose mit Test-Ports, .env.test

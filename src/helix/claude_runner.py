@@ -64,7 +64,7 @@ class ClaudeRunner:
         )
     """
 
-    DEFAULT_CLAUDE_CMD = "claude"
+    DEFAULT_CLAUDE_CMD = "/home/aiuser01/helix-v4/control/claude-wrapper.sh"
     DEFAULT_TIMEOUT = 1800  # 30 minutes
 
     def __init__(
@@ -81,6 +81,11 @@ class ClaudeRunner:
             llm_client: Optional LLMClient for model resolution.
             use_stdbuf: Whether to use stdbuf for line buffering (default True).
         """
+        # Ensure NVM node is in PATH for Claude CLI
+        nvm_path = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
+        if nvm_path not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = f"{nvm_path}:{os.environ.get('PATH', '')}"
+        
         self.claude_cmd = claude_cmd or self.DEFAULT_CLAUDE_CMD
         self.llm_client = llm_client or LLMClient()
         self.use_stdbuf = use_stdbuf and self._check_stdbuf_available()
@@ -371,7 +376,15 @@ class ClaudeRunner:
         Returns:
             Dictionary of environment variables to set.
         """
-        env: dict[str, str] = {}
+        # Include nvm node in PATH so claude CLI can find node
+        nvm_bin = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
+        current_path = os.environ.get("PATH", "")
+        if nvm_bin not in current_path:
+            current_path = f"{nvm_bin}:{current_path}"
+        
+        env: dict[str, str] = {
+            "PATH": current_path,
+        }
 
         if model_spec:
             try:

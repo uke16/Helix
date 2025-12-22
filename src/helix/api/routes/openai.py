@@ -167,7 +167,7 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
     
     # Create runner
     runner = ClaudeRunner(
-        claude_cmd=f"{nvm_path}/claude",
+        claude_cmd="/home/aiuser01/helix-v4/control/claude-wrapper.sh",
         use_stdbuf=True,
     )
     

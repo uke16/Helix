@@ -1,0 +1,34 @@
+# ADR-System für HELIX v4
+# Evolution Project Specification
+
+name: ADR System
+description: |
+  Implement an ADR (Architecture Decision Records) system for HELIX v4.
+  Based on the proven ADR-086 template from HELIX v3.
+  
+  Goals:
+  1. ADR Parser - Parse ADR files with YAML header and Markdown body
+  2. ADR Validator - Validate ADRs against template requirements
+  3. Quality Gate - Integration point for workflow validation
+
+reference:
+  - /home/aiuser01/helix-v3/adr/086-adr-template-v2.md
+  - /home/aiuser01/helix-v3/adr/000-adr-index.md
+
+components:
+  - name: ADR Parser
+    description: Parse ADR YAML header and extract metadata
+    
+  - name: ADR Validator  
+    description: Validate structure, required sections, acceptance criteria
+    
+  - name: Quality Gate
+    description: QualityGateRunner integration for ADR validation
+
+output:
+  - src/helix/adr/__init__.py
+  - src/helix/adr/parser.py
+  - src/helix/adr/validator.py
+  - src/helix/quality_gates/adr_gate.py
+  - tests/adr/test_parser.py
+  - tests/adr/test_validator.py

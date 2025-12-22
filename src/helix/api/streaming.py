@@ -57,7 +57,7 @@ async def run_project_with_streaming(
         
         # Create runner with explicit path
         runner = ClaudeRunner(
-            claude_cmd=f"{nvm_path}/claude",
+            claude_cmd="/home/aiuser01/helix-v4/control/claude-wrapper.sh",
             use_stdbuf=True
         )
         print(f"[STREAMING] ClaudeRunner created")

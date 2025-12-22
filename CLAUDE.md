@@ -238,3 +238,26 @@ curl -X POST http://localhost:8001/helix/evolution/projects/{name}/integrate
 3. Automatic rollback on failure
 4. Git tag backup before integration
 5. RAG database 1:1 copy for realistic testing
+
+---
+
+## Self-Documentation Prinzip
+
+> **Jede Änderung dokumentiert sich selbst.**
+
+Wenn du ein neues Feature oder eine Änderung implementierst:
+
+1. **CONCEPT.md** muss eine "Dokumentation" Section haben
+2. **phases.yaml** braucht eine Documentation-Phase
+3. **Alle 4 Ebenen** müssen aktualisiert werden:
+   - Top-Level (README, ONBOARDING, CLAUDE.md)
+   - Architecture Docs (docs/*.md)
+   - Skills (skills/*/SKILL.md)
+   - Docstrings (im Code)
+
+→ **Lies:** [docs/SELF-DOCUMENTATION.md](docs/SELF-DOCUMENTATION.md)
+
+### Warum?
+
+Claude Code Instanzen lesen die Dokumentation um zu verstehen wie sie arbeiten sollen.
+Features die nicht dokumentiert sind, werden von zukünftigen Instanzen ignoriert.
