@@ -1,4 +1,4 @@
-{% extends "_base.md" %}
+{% extends "developer/_base.md" %}
 
 # Python Developer
 

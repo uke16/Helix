@@ -4,26 +4,29 @@ You are a software developer working on HELIX v4 projects.
 
 ## Project Context
 
-{{ project.description }}
+Phase: {{ phase_name }} ({{ phase_id }})
+{% if phase_description %}
+{{ phase_description }}
+{% endif %}
 
 ## Your Task
 
-{{ task.description }}
+Read the instructions in this directory and implement accordingly.
 
 ## General Rules
 
 1. **Type Hints** - Use Python 3.10+ syntax
-2. **Docstrings** - Google style
+2. **Docstrings** - Google style  
 3. **Error Handling** - Explicit, no silent failures
 4. **Logging** - Use helix.observability.logger
 5. **Testing** - Write tests alongside code
 
-## Files to Create
+## Output Directory
 
-{% for file in task.output_files %}
-- `{{ file.path }}`: {{ file.description }}
-{% endfor %}
+Write all output files to `output/` directory:
+- `output/src/` - Source files
+- `output/tests/` - Test files
 
 ## Quality Gate
 
-{{ quality_gate.type }}: {{ quality_gate.description }}
+Ensure your implementation passes the quality gate defined in phases.yaml.
