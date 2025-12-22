@@ -1,0 +1,121 @@
+# Post-Phase Verification System - Implementation Phases
+#
+# Implements ADR-002: Post-Phase Verification System
+# A hybrid system for verifying phase outputs:
+# 1. Self-verification tool for Claude
+# 2. External safety net with max 2 retries
+
+phases:
+  # Phase 1: Core Verification Logic
+  - id: "1"
+    name: "Core Verification"
+    type: development
+    description: |
+      Implement the core PhaseVerifier class that:
+      - Loads ADR and extracts expected files
+      - Verifies file existence in multiple candidate locations
+      - Performs Python syntax checking via AST
+      - Generates retry prompts for failed verifications
+    output:
+      - new/src/helix/evolution/verification.py
+      - new/tests/evolution/test_verification.py
+    quality_gate:
+      type: syntax_check
+      files:
+        - new/src/helix/evolution/verification.py
+        - new/tests/evolution/test_verification.py
+
+  # Phase 2: Claude Tool
+  - id: "2"
+    name: "Verification Tool"
+    type: development
+    description: |
+      Create the verify_phase_output tool that Claude can call:
+      - Simple CLI interface
+      - Returns structured JSON result
+      - Integrates with PhaseVerifier
+      - Can be run standalone for testing
+    input:
+      - phases/1/output
+    output:
+      - new/src/helix/tools/verify_phase.py
+      - new/tests/tools/test_verify_phase.py
+    quality_gate:
+      type: tests_pass
+      test_path: new/tests/tools/test_verify_phase.py
+
+  # Phase 3: Streaming Integration
+  - id: "3"
+    name: "Streaming Integration"
+    type: development
+    description: |
+      Integrate verification into streaming.py:
+      - Call PhaseVerifier after each phase
+      - Implement retry logic (max 2 retries)
+      - Emit verification events
+      - Write VERIFICATION_ERRORS.md for retries
+    input:
+      - phases/1/output
+      - phases/2/output
+    output:
+      - modified/src/helix/api/streaming.py
+    quality_gate:
+      type: syntax_check
+      files:
+        - modified/src/helix/api/streaming.py
+
+  # Phase 4: Template Updates
+  - id: "4"
+    name: "Template Updates"
+    type: development
+    description: |
+      Update developer templates to:
+      - Show expected output files from ADR
+      - Include verification instructions
+      - Document the verify_phase_output tool usage
+    input:
+      - phases/1/output
+    output:
+      - modified/templates/developer/_base.md
+      - modified/templates/developer/python.md
+    quality_gate:
+      type: files_exist
+
+  # Phase 5: Tests & Validation
+  - id: "5"
+    name: "Integration Tests"
+    type: development
+    description: |
+      Create comprehensive tests:
+      - Unit tests for PhaseVerifier
+      - Unit tests for verify_phase_output tool
+      - Integration test for streaming.py verification flow
+      - Test retry mechanism
+    input:
+      - phases/1/output
+      - phases/2/output
+      - phases/3/output
+    output:
+      - new/tests/evolution/test_verification_integration.py
+    quality_gate:
+      type: tests_pass
+      test_path: new/tests/
+
+  # Phase 6: Documentation
+  - id: "6"
+    name: "Documentation"
+    type: documentation
+    description: |
+      Update documentation:
+      - ARCHITECTURE-EVOLUTION.md: Add verification section
+      - CLAUDE.md: Update Quality Gates reference
+      - Add inline documentation to code
+    input:
+      - phases/1/output
+      - phases/2/output
+      - phases/3/output
+    output:
+      - modified/docs/ARCHITECTURE-EVOLUTION.md
+      - modified/CLAUDE.md
+    quality_gate:
+      type: files_exist

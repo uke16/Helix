@@ -10,13 +10,15 @@
 
 | Status | Bedeutung |
 |--------|-----------|
-| ✅ Akzeptiert | Entschieden, wird implementiert |
+| ✅ Akzeptiert | Entschieden, wird/ist implementiert |
 | 📋 Proposed | Ausgearbeitet, wartet auf Review |
 | 🚧 Draft | In Arbeit |
 
 ---
 
 ## Übersicht
+
+### Core Architecture (000-010)
 
 | Nr | ADR | Status | Kurzbeschreibung |
 |----|-----|--------|------------------|
@@ -31,6 +33,13 @@
 | 008 | [Spec Schema](008-implementation-spec-schema.md) | ✅ | YAML Schema, Validation |
 | 009 | [Bootstrap Project](009-bootstrap-project.md) | 📋 | HELIX v4 baut sich selbst |
 | 010 | [ADR Migration](010-adr-migration-from-v3.md) | 📋 | v3 → v4 Migration Guide |
+
+### Evolution System (011-020)
+
+| Nr | ADR | Status | Kurzbeschreibung |
+|----|-----|--------|------------------|
+| 011 | [Post-Phase Verification](011-post-phase-verification.md) | 📋 | Hybrid: Self-Verify + Safety Net, max 2 Retries |
+| 012 | [ADR as Single Source of Truth](012-adr-as-single-source-of-truth.md) | 📋 | ADR ersetzt spec.yaml, files.create/modify |
 
 ---
 
@@ -48,146 +57,84 @@
 │   │              PYTHON ORCHESTRATOR                           │    │
 │   │                                                            │    │
 │   │   • Lädt phases.yaml (ADR-006)                            │    │
-│   │   • Generiert CLAUDE.md aus Templates (ADR-001)           │    │
-│   │   • Führt Phasen sequentiell aus                          │    │
-│   │   • Prüft Quality Gates (ADR-002)                         │    │
-│   │   • Handled Escalation (ADR-004)                          │    │
-│   │   • Multi-Provider LLM (ADR-007)                          │    │
-│   └───────────────────────────────┬───────────────────────────┘    │
-│                                   │                                 │
-│           ┌───────────────────────┼───────────────────────┐        │
-│           │                       │                       │        │
-│           ▼                       ▼                       ▼        │
-│   ┌─────────────┐         ┌─────────────┐         ┌─────────────┐  │
-│   │  PHASE 1    │   QG1   │  PHASE 2    │   QG2   │  PHASE 3    │  │
-│   │ Consultant  │ ──────▶ │  Developer  │ ──────▶ │  Reviewer   │  │
-│   │             │         │             │         │             │  │
-│   │ Meta + Exp. │         │ CLAUDE.md   │         │ CLAUDE.md   │  │
-│   │ (ADR-005)   │         │ Templates   │         │ Templates   │  │
-│   └──────┬──────┘         └──────┬──────┘         └──────┬──────┘  │
-│          │                       │                       │         │
-│          │                       │                       │         │
-│   ┌──────▼──────┐         ┌──────▼──────┐         ┌──────▼──────┐  │
-│   │ Claude Code │         │ Claude Code │         │ Claude Code │  │
-│   │    CLI      │         │    CLI      │         │    CLI      │  │
-│   └──────┬──────┘         └──────┬──────┘         └──────┬──────┘  │
-│          │                       │                       │         │
-│          ▼                       ▼                       ▼         │
-│      spec.yaml              src/*.py               review.json     │
-│      phases.yaml           (Code)                (Structured)      │
-│      quality-gates.yaml                                            │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                         LOGGING (ADR-003)                           │
-│   Phase-Logs → Projekt-Logs → System-Logs                           │
+│   │   • Generiert CLAUDE.md (ADR-001)                         │    │
+│   │   • Führt Quality Gates aus (ADR-002)                     │    │
+│   │   • Post-Phase Verification (ADR-011)                     │    │
+│   └───────────────────────────────────────────────────────────┘    │
+│                            │                                        │
+│                            ▼                                        │
+│   ┌───────────────────────────────────────────────────────────┐    │
+│   │              CLAUDE CODE INSTANZ                           │    │
+│   │                                                            │    │
+│   │   • Liest CLAUDE.md                                       │    │
+│   │   • Arbeitet in phase/X/                                  │    │
+│   │   • Ruft verify_phase_output auf (ADR-011)               │    │
+│   │   • Schreibt nach output/ oder new/                      │    │
+│   └───────────────────────────────────────────────────────────┘    │
+│                            │                                        │
+│                            ▼                                        │
+│   ┌───────────────────────────────────────────────────────────┐    │
+│   │              EVOLUTION SYSTEM                              │    │
+│   │                                                            │    │
+│   │   • ADR als Single Source of Truth (ADR-012)             │    │
+│   │   • Deploy → Validate → Integrate                         │    │
+│   │   • ADR-System für Verification                           │    │
+│   └───────────────────────────────────────────────────────────┘    │
+│                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Kernkonzepte
-
-### 1. Claude Code macht das Agent-Harness
+## ADR Lifecycle
 
 ```
-WIR machen:                    CLAUDE CODE macht:
-─────────────                  ──────────────────
-• Verzeichnisse vorbereiten    • Agent Loop
-• CLAUDE.md generieren         • Tool Calling
-• Skills verlinken             • Error Handling
-• Quality Gates prüfen         • ReAct/CoT
-• Orchestrierung               • File Operations
-```
-
-### 2. Kommunikation über Dateien
-
-```
-Consultant ──▶ spec.yaml ──▶ Developer ──▶ src/*.py ──▶ Reviewer
-              phases.yaml
-```
-
-### 3. 2-Stufen Escalation (ADR-004)
-
-```
-3x Retry Fail
-     │
-     ▼
-STUFE 1: Consultant-Autonom (KEIN HIL)
-• Model wechseln
-• Plan reverten
-• Hints geben
-     │
-     ▼ (3x Fail)
-STUFE 2: Human-in-the-Loop
-• User entscheidet
-```
-
-### 4. Dynamische Phasen (ADR-006)
-
-Der Consultant definiert den Workflow:
-- Feature: Consultant → Dev → Review → Docs
-- Doku-Only: Consultant → Writer → Review
-- Research: Consultant → Researcher → Summary
-
----
-
-## Quick Start
-
-```bash
-# 1. Repository klonen / wechseln
-cd /home/aiuser01/helix-v4
-
-# 2. Dependencies installieren
-pip install -e ".[dev]"
-
-# 3. .env von v3 migrieren
-cp /home/aiuser01/helix-v3/.env .env
-
-# 4. Projekt erstellen
-helix new external/my-feature
-
-# 5. Projekt ausführen
-helix run external/my-feature
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  Draft   │───▶│ Proposed │───▶│ Accepted │───▶│Implemented│
+│   🚧     │    │    📋    │    │    ✅    │    │    ✅    │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘
 ```
 
 ---
 
-## Geplante ADRs
+## Neue ADRs erstellen
 
-| Nr | Titel | Beschreibung |
-|----|-------|--------------|
-| 011 | Open WebUI Integration | UI-Anbindung |
-| 012 | Skills Library | Skill-Katalog und Verwaltung |
-| 013 | Project State Machine | Detailliertes State-Management |
+1. Nächste freie Nummer verwenden (aktuell: 013)
+2. Format: `NNN-kurzer-name.md`
+3. YAML Header mit adr_id, title, status, files, depends_on
+4. Sections: Kontext, Entscheidung, Implementation, Akzeptanzkriterien
+5. INDEX.md aktualisieren
+
+### Template
+
+```yaml
+---
+adr_id: "NNN"
+title: "Feature Name"
+status: Proposed
+component_type: TOOL|NODE|AGENT|PROCESS|SERVICE
+classification: NEW|UPDATE|FIX|REFACTOR
+change_scope: major|minor|config|docs|hotfix
+
+files:
+  create: [...]
+  modify: [...]
+  docs: [...]
+
+depends_on: [...]
+---
+```
 
 ---
 
-## Obsolete v3 Konzepte
+## Abhängigkeiten
 
-Diese v3 ADRs sind durch die neue Architektur ersetzt:
-
-| v3 ADR | Titel | Ersetzt durch |
-|--------|-------|---------------|
-| 002, 008, 070 | LangGraph Orchestration | Python async |
-| 003, 082, 083 | EventBus | Datei-Kommunikation |
-| 046, 048, 051 | Tool Calling | Claude Code CLI |
-| 039, 115 | Error Handling | Claude Code |
-| 111 | Prompt Tooling | Templates |
-
-Vollständige Analyse: [ADR-010](010-adr-migration-from-v3.md)
-
----
-
-## Statistiken
-
-| Metrik | Wert |
-|--------|------|
-| Total ADRs | 11 |
-| Akzeptiert | 8 |
-| Proposed | 3 |
-| Zeilen Dokumentation | ~5000 |
-
----
-
-*Erstellt: 2025-12-21*  
-*Letzte Aktualisierung: 2025-12-21*
+```
+000 Vision
+ └── 001 Templates
+      ├── 002 Quality Gates ─── 011 Post-Phase Verification
+      ├── 003 Observability
+      ├── 006 Dynamic Phases
+      └── 008 Spec Schema ───── 012 ADR as Single Source
+           └── 009 Bootstrap
+```
