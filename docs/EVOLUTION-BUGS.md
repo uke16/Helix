@@ -6,58 +6,36 @@
 
 | Category | Count |
 |----------|-------|
-| Fixed | 10 |
-| Open Critical | 3 |
-| Open Medium | 2 |
+| Fixed | 12 |
+| Open Critical | 1 |
+| Open Medium | 1 |
 | Known/Won't Fix | 1 |
 
-## ✅ Fixed Bugs (1-10)
+## ✅ Fixed Bugs (1-12)
 
-- **Bug 1-5:** Template path issues
-- **Bug 6-8:** Template system integration
-- **Bug 10:** `/run` endpoint implemented
+### Bug 1-10: Template/Path/API issues
+All resolved in previous sessions.
+
+### Bug 11: /run ignores completed phases ✅ FIXED
+**Fix:** `run_evolution_pipeline` now reads `phases_completed` from status.json
+and only executes pending phases.
+
+```python
+# Calculate pending phases
+pending_phases = [pid for pid in all_phase_ids if pid not in phases_completed]
+if not pending_phases:
+    # Skip to deploy
+else:
+    await run_project_with_streaming(job, project_path, phase_filter=pending_phases)
+```
+
+### Bug 12: No guard for integrated projects ✅ FIXED
+**Fix:** `/run` endpoint returns error if project is already integrated:
+```json
+{"detail": "Project already integrated. Use force=true to re-run all phases."}
+```
 
 ## 🔴 Open Critical Bugs
-
-### Bug 11: /run ignores completed phases
-
-**Location:** `src/helix/api/streaming.py:235`
-
-**Problem:** `run_evolution_pipeline` calls `run_project_with_streaming(phase_filter=None)`,
-which runs ALL phases regardless of `status.json.phases_completed`.
-
-**Impact:** Re-running on integrated project rebuilds everything.
-
-**Fix:**
-```python
-pending = [p.id for p in phases if p.id not in project.phases_completed]
-await run_project_with_streaming(job, project_path, phase_filter=pending)
-```
-
-### Bug 16: Template/phases.yaml output path inconsistency
-
-**Location:** `templates/developer/_base.md` vs `phases.yaml`
-
-**Problem:**
-- Template says: "Write to `output/` directory"
-- phases.yaml says: `new/src/helix/adr/parser.py`
-
-**Evidence:**
-```
-Phase 2: wrote to new/     (followed phases.yaml)
-Phase 3: wrote to output/  (followed template)
-Phase 4: wrote to output/  (followed template)
-```
-
-**Workaround:** `consolidate_phase_outputs()` checks both directories.
-
-**Fix:** Template should show files from phases.yaml:
-```jinja2
-## Expected Output Files
-{% for file in phase.output %}
-- {{ file }}
-{% endfor %}
-```
 
 ### Bug 17: No post-phase file verification
 
@@ -77,49 +55,35 @@ Phase 4: wrote to output/  (followed template)
 1. Claude Code runs
 2. Check exit code
 3. Verify files from phases.yaml output exist
-4. Verify syntax
+4. Verify syntax (for code files)
 5. If missing: FAILED with detailed error
 ```
 
-**Fix:** See ADR-001 for ADR-based verification approach.
-
 ## 🟡 Open Medium Bugs
 
-### Bug 12: No guard for integrated projects
+### Bug 16: Template/phases.yaml output path inconsistency
 
-**Location:** `src/helix/api/routes/evolution.py`
+**Problem:**
+- Template says: "Write to `output/` directory"
+- phases.yaml defines: `new/src/helix/module.py`
 
-**Status:** Partially fixed (force parameter added, but not fully tested)
+**Workaround:** `consolidate_phase_outputs()` checks both directories.
 
-### Bug 18: Template missing phase info
-
-**Location:** `src/helix/api/streaming.py:75-90`
-
-**Problem:** Template context doesn't include `phase.output` paths.
-
-**Fix:** Add to context:
-```python
-context = {
-    ...
-    "phase_output": phase.output,
-    "phase_input": phase.input,
-}
-```
+**Proper Fix:** Template should show expected files from phases.yaml or ADR.
 
 ## ⚠️ Known Issues
 
 ### Bug 9: Pre-existing test failures
-
 44 fixture errors, 9 API mismatches - unrelated to Evolution system.
-These are in other modules and don't block Evolution functionality.
 
-## Architecture Improvements
+## Verification
 
-See [ADR-001: ADR as Single Source of Truth](../adr/001-adr-as-single-source-of-truth.md)
-for the planned architectural changes that will address bugs 16, 17, and 18.
+```bash
+# Test Bug 11 fix (partial completion)
+# Project with phases 1,2,3 and phase 1 completed:
+# → Only runs phases 2 and 3
 
-**Key Changes:**
-1. ADR replaces spec.yaml as Single Source of Truth
-2. Post-phase verification uses ADR.files
-3. Templates show expected files from ADR
-4. Acceptance criteria tracked through workflow
+# Test Bug 12 fix (integrated guard)
+curl -X POST http://localhost:8001/helix/evolution/projects/adr-system/run
+# → Returns: "Project already integrated. Use force=true to re-run all phases."
+```
