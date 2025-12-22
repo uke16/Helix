@@ -1,7 +1,7 @@
 ---
 adr_id: "012"
 title: "ADR als Single Source of Truth für Evolution Workflows"
-status: Proposed
+status: Implemented
 
 component_type: PROCESS
 classification: NEW
@@ -24,7 +24,7 @@ depends_on: []
 # ADR-001: ADR als Single Source of Truth für Evolution Workflows
 
 ## Status
-📋 Proposed
+✅ Implemented
 
 ---
 
@@ -73,7 +73,7 @@ Das bewährte ADR-086 Template definiert bereits alles was wir brauchen:
 # YAML Header
 adr_id: "XXX"
 title: "Feature Name"
-status: Proposed|Accepted|Implemented
+status: Implemented|Accepted|Implemented
 component_type: TOOL|NODE|AGENT|SERVICE|...
 classification: NEW|UPDATE|FIX|REFACTOR
 change_scope: major|minor|config|docs|hotfix
