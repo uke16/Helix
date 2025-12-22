@@ -38,7 +38,7 @@
 
 | Nr | ADR | Status | Kurzbeschreibung |
 |----|-----|--------|------------------|
-| 011 | [Post-Phase Verification](011-post-phase-verification.md) | 📋 | Hybrid: Self-Verify + Safety Net, max 2 Retries |
+| 011 | [Post-Phase Verification](011-post-phase-verification.md) | ✅ | Hybrid: Self-Verify + Safety Net, max 2 Retries |
 | 012 | [ADR as Single Source of Truth](012-adr-as-single-source-of-truth.md) | 📋 | ADR ersetzt spec.yaml, files.create/modify |
 
 ---

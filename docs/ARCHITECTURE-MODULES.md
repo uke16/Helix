@@ -594,3 +594,48 @@ tests/adr/
 ├── test_validator.py     # Validator tests (30 tests)
 └── test_gate.py          # Gate integration tests (22 tests)
 ```
+
+---
+
+## Verification System (`src/helix/evolution/verification.py`)
+
+**Purpose:** Post-phase output verification for Evolution projects.
+
+### Components
+
+#### PhaseVerifier
+
+Verifies that phase outputs match expectations.
+
+```python
+from helix.evolution import PhaseVerifier, VerificationResult
+
+verifier = PhaseVerifier(project_path)
+result = verifier.verify_phase_output(
+    phase_id="2",
+    phase_dir=Path("phases/2"),
+    expected_files=["src/module.py", "tests/test_module.py"]
+)
+
+if not result.success:
+    print(result.missing_files)
+    print(result.syntax_errors)
+```
+
+#### Verification Checks
+
+| Check | Method |
+|-------|--------|
+| File existence | Searches output/, new/, phase_dir |
+| Python syntax | AST parsing |
+
+### Integration
+
+- **streaming.py**: Automatic verification after each phase
+- **verify_phase tool**: CLI for Claude to self-verify
+- **Templates**: Instructions for verification
+
+### Related
+
+- [ADR-011: Post-Phase Verification](../adr/011-post-phase-verification.md)
+- [verify_phase.py](src/helix/tools/verify_phase.py)

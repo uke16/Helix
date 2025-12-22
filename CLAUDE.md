@@ -366,9 +366,9 @@ print(result.final_path)  # → adr/013-feature.md
 next_num = get_next_adr_number()  # → 13
 ```
 
-### Verify Phase Tool (coming in ADR-011)
+### Verify Phase Tool
 
-Verify phase outputs before completing a phase.
+Verify phase outputs before completing a phase. Checks that all expected files exist and have valid Python syntax.
 
 ```bash
 python -m helix.tools.verify_phase

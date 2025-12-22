@@ -94,6 +94,15 @@ Nach jeder Phase prüft HELIX ob die Arbeit erfolgreich war:
 
 → Siehe: [config/quality-gates.yaml](config/quality-gates.yaml)
 
+**Post-Phase Verification (ADR-011)**
+
+Nach jeder Claude Code Phase prüft HELIX automatisch:
+- Existieren alle erwarteten Output-Dateien?
+- Haben Python-Dateien gültige Syntax?
+
+Bei Fehlern wird max. 2x retry mit Fehlerkontext (`VERIFICATION_ERRORS.md`) durchgeführt.
+
+
 ### 4. Skills (Domain-Wissen)
 
 Skills sind strukturiertes Wissen das Claude Code Instanzen lesen können:
