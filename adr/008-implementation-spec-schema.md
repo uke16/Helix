@@ -1,10 +1,13 @@
 # ADR-008: Implementation Spec Schema
 
-**Status:** Akzeptiert  
+**Status:** Superseded by ADR-012  
 **Datum:** 2025-12-21  
 **Bezug:** ADR-000, ADR-005, ADR-006
 
 ---
+
+> **⚠️ SUPERSEDED:** This ADR is superseded by [ADR-012: ADR as Single Source of Truth](012-adr-as-single-source-of-truth.md).  
+> spec.yaml is now deprecated. Use ADR with YAML header instead.
 
 ## Kontext
 

@@ -30,7 +30,7 @@
 | 005 | [Consultant Topology](005-consultant-topology-agentic-meetings.md) | ✅ | Meta-Consultant + Domain-Experten |
 | 006 | [Dynamic Phase Definition](006-dynamic-phase-definition.md) | ✅ | phases.yaml, Projekt-Typen |
 | 007 | [Multi-Provider LLM](007-multi-provider-llm-configuration.md) | ✅ | OpenRouter, Model-Switch |
-| 008 | [Spec Schema](008-implementation-spec-schema.md) | ✅ | YAML Schema, Validation |
+| 008 | [Spec Schema](008-implementation-spec-schema.md) | ⚠️ | DEPRECATED - Superseded by ADR-012 |
 | 009 | [Bootstrap Project](009-bootstrap-project.md) | 📋 | HELIX v4 baut sich selbst |
 | 010 | [ADR Migration](010-adr-migration-from-v3.md) | 📋 | v3 → v4 Migration Guide |
 
