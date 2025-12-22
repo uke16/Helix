@@ -320,29 +320,31 @@ class EvolutionProject:
         )
         
         for phase_dir in phase_dirs:
-            output_dir = phase_dir / "output"
-            if not output_dir.exists():
-                continue
-            
-            # Copy all files from output/ to new/
-            for src_file in output_dir.rglob("*"):
-                if not src_file.is_file():
+            # Check both output/ and new/ directories (Bug 7 fix)
+            for subdir_name in ["output", "new"]:
+                output_dir = phase_dir / subdir_name
+                if not output_dir.exists():
                     continue
                 
-                # Skip __pycache__ and .pyc files
-                if "__pycache__" in str(src_file) or src_file.suffix == ".pyc":
-                    continue
-                
-                # Skip .pytest_cache
-                if ".pytest_cache" in str(src_file):
-                    continue
-                
-                rel_path = src_file.relative_to(output_dir)
-                dst_file = self._new_dir / rel_path
-                
-                dst_file.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(src_file, dst_file)
-                files_copied += 1
+                # Copy all files to project's new/ directory
+                for src_file in output_dir.rglob("*"):
+                    if not src_file.is_file():
+                        continue
+                    
+                    # Skip __pycache__ and .pyc files
+                    if "__pycache__" in str(src_file) or src_file.suffix == ".pyc":
+                        continue
+                    
+                    # Skip .pytest_cache
+                    if ".pytest_cache" in str(src_file):
+                        continue
+                    
+                    rel_path = src_file.relative_to(output_dir)
+                    dst_file = self._new_dir / rel_path
+                    
+                    dst_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_file, dst_file)
+                    files_copied += 1
         
         return files_copied
 

@@ -130,3 +130,20 @@ CLAUDE.md Generierung in streaming.py einbauen vor Phase-Execution
 - Mapping in streaming.py: development → developer/python, etc.
 
 ---
+
+---
+
+## Bug 7: Phase output directory mismatch
+
+**Problem:**
+- phases.yaml defines outputs like `new/src/helix/adr/parser.py`
+- Claude creates files in `phases/N/new/...`
+- consolidate_phase_outputs() looks for `phases/N/output/`
+
+**Expected:**
+- Should be consistent - either all use `new/` or all use `output/`
+
+**Fix:**
+Update consolidate_phase_outputs to also check `phases/*/new/` directories
+
+---
