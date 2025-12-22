@@ -145,6 +145,11 @@ class Deployer:
                     completed_at=datetime.now(),
                 )
 
+            # Consolidate phase outputs to new/ first
+            consolidated = project.consolidate_phase_outputs()
+            if consolidated > 0:
+                print(f"[DEPLOYER] Consolidated {consolidated} files from phases/*/output/")
+
             # Copy new files
             new_files = project.list_new_files()
             for rel_path in new_files:

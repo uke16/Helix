@@ -26,6 +26,7 @@ import yaml
 
 class EvolutionStatus(str, Enum):
     """Status of an evolution project."""
+    PLANNING = "planning"       # Initial planning phase
     PENDING = "pending"         # Waiting for development
     DEVELOPING = "developing"   # In development phases
     READY = "ready"             # Ready for deploy
@@ -291,6 +292,59 @@ class EvolutionProject:
         if self.path.exists():
             shutil.rmtree(self.path)
 
+
+    def consolidate_phase_outputs(self) -> int:
+        """Consolidate outputs from phases/*/output/ into new/ directory.
+        
+        This is called before deployment to gather all phase outputs.
+        Files from later phases overwrite earlier ones.
+        
+        Returns:
+            Number of files consolidated
+        """
+        import shutil
+        
+        phases_dir = self.path / "phases"
+        if not phases_dir.exists():
+            return 0
+        
+        # Ensure new/ exists
+        self._new_dir.mkdir(parents=True, exist_ok=True)
+        
+        files_copied = 0
+        
+        # Get all phase directories sorted by phase ID
+        phase_dirs = sorted(
+            [d for d in phases_dir.iterdir() if d.is_dir()],
+            key=lambda d: d.name
+        )
+        
+        for phase_dir in phase_dirs:
+            output_dir = phase_dir / "output"
+            if not output_dir.exists():
+                continue
+            
+            # Copy all files from output/ to new/
+            for src_file in output_dir.rglob("*"):
+                if not src_file.is_file():
+                    continue
+                
+                # Skip __pycache__ and .pyc files
+                if "__pycache__" in str(src_file) or src_file.suffix == ".pyc":
+                    continue
+                
+                # Skip .pytest_cache
+                if ".pytest_cache" in str(src_file):
+                    continue
+                
+                rel_path = src_file.relative_to(output_dir)
+                dst_file = self._new_dir / rel_path
+                
+                dst_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src_file, dst_file)
+                files_copied += 1
+        
+        return files_copied
 
 class EvolutionProjectManager:
     """Manager for evolution projects."""

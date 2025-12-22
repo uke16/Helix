@@ -14,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from helix.claude_runner import ClaudeRunner
 from helix.phase_loader import PhaseLoader
+import yaml
+from helix.template_engine import TemplateEngine
 from .models import PhaseEvent, JobStatus, PhaseStatus
 from .job_manager import job_manager, Job
 
@@ -72,6 +74,51 @@ async def run_project_with_streaming(
         # Run each phase
         for phase in phases:
             phase_dir = project_path / "phases" / phase.id
+            phase_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Generate CLAUDE.md if not exists
+            claude_md = phase_dir / "CLAUDE.md"
+            if not claude_md.exists():
+                print(f"[STREAMING] Generating CLAUDE.md for phase {phase.id}")
+                try:
+                    template_engine = TemplateEngine()
+                    spec_path = project_path / "spec.yaml"
+                    spec = {}
+                    if spec_path.exists():
+                        with open(spec_path) as spec_file:
+                            spec = yaml.safe_load(spec_file) or {}
+                    
+                    context = {
+                        "phase_id": phase.id,
+                        "phase_name": phase.name,
+                        "phase_type": phase.type,
+                        "phase_description": getattr(phase, 'description', '') or "",
+                        "project_path": str(project_path),
+                        **spec,
+                    }
+                    
+                    # Map phase type to template path
+                    phase_type = phase.type if phase.type else "development"
+                    type_to_template = {
+                        "development": "developer/python",
+                        "documentation": "documentation/technical",
+                        "review": "reviewer/code",
+                        "consultant": "consultant/session",
+                    }
+                    template_name = type_to_template.get(phase_type, "developer/python")
+                    
+                    # Check if spec has language preference
+                    if spec.get("meta", {}).get("language"):
+                        lang = spec["meta"]["language"]
+                        if phase_type == "development":
+                            template_name = f"developer/{lang}"
+                    
+                    claude_content = template_engine.render_claude_md(template_name, context)
+                    claude_md.write_text(claude_content, encoding="utf-8")
+                    print(f"[STREAMING] CLAUDE.md generated for {phase.id}")
+                except Exception as e:
+                    print(f"[STREAMING] Warning: Could not generate CLAUDE.md: {e}")
+            
             print(f"[STREAMING] Running phase {phase.id} in {phase_dir}")
             
             await job_manager.update_job(job.job_id, current_phase=phase.id)

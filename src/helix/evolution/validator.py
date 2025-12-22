@@ -343,7 +343,7 @@ class Validator:
         return ValidationResult(
             success=success,
             level=ValidationLevel.FULL,
-            message=f"Full validation: {total_passed} passed, {total_failed} failed",
+            message=f"Full validation: {total_passed} passed, {total_failed} failed" + (f", {len(all_errors)} errors" if all_errors else ""),
             passed=total_passed,
             failed=total_failed,
             errors=all_errors,
