@@ -94,6 +94,7 @@ async def run_project_with_streaming(
                         "phase_name": phase.name,
                         "phase_type": phase.type,
                         "phase_description": getattr(phase, 'description', '') or "",
+                        "phase_output": getattr(phase, 'output', []) or [],
                         "project_path": str(project_path),
                         **spec,
                     }
@@ -140,14 +141,83 @@ async def run_project_with_streaming(
                     data={"stream": stream, "text": line}
                 ))
             
-            # Run phase with streaming
-            print(f"[STREAMING] Starting run_phase_streaming for {phase.id}")
-            result = await runner.run_phase_streaming(
-                phase_dir=phase_dir,
-                on_output=on_output,
-                timeout=600,
-            )
-            print(f"[STREAMING] Phase {phase.id} completed: success={result.success}")
+            # Run phase with streaming (with retry on verification failure)
+            max_retries = 2
+            retry_count = 0
+            
+            while retry_count <= max_retries:
+                print(f"[STREAMING] Starting run_phase_streaming for {phase.id}" + 
+                      (f" (retry {retry_count})" if retry_count > 0 else ""))
+                
+                result = await runner.run_phase_streaming(
+                    phase_dir=phase_dir,
+                    on_output=on_output,
+                    timeout=600,
+                )
+                print(f"[STREAMING] Phase {phase.id} completed: success={result.success}")
+                
+                if not result.success:
+                    # Claude failed, no point in verifying
+                    break
+                
+                # === POST-PHASE VERIFICATION (ADR-011) ===
+                from helix.evolution.verification import PhaseVerifier
+                
+                # Get expected files from phase config
+                expected_files = getattr(phase, 'output', None)
+                if expected_files:
+                    verifier = PhaseVerifier(project_path)
+                    verify_result = verifier.verify_phase_output(
+                        phase_id=phase.id,
+                        phase_dir=phase_dir,
+                        expected_files=expected_files,
+                    )
+                    
+                    if not verify_result.success:
+                        # Emit verification failure event
+                        await job_manager.emit_event(job.job_id, PhaseEvent(
+                            event_type="verification_failed",
+                            phase_id=phase.id,
+                            data={
+                                "missing_files": verify_result.missing_files,
+                                "syntax_errors": verify_result.syntax_errors,
+                                "message": verify_result.message,
+                                "retry": retry_count + 1,
+                                "max_retries": max_retries,
+                            }
+                        ))
+                        
+                        if retry_count < max_retries:
+                            # Write error file for Claude to see
+                            verifier.write_retry_file(phase_dir, verify_result, retry_count + 1)
+                            print(f"[STREAMING] Verification failed, retrying ({retry_count + 1}/{max_retries})")
+                            
+                            # Emit retry event
+                            await job_manager.emit_event(job.job_id, PhaseEvent(
+                                event_type="phase_retry",
+                                phase_id=phase.id,
+                                data={"retry_number": retry_count + 1, "max_retries": max_retries}
+                            ))
+                            
+                            retry_count += 1
+                            continue
+                        else:
+                            # Max retries reached
+                            print(f"[STREAMING] Verification failed after {max_retries} retries")
+                            result.success = False
+                            result.stderr = verify_result.message
+                            break
+                    else:
+                        # Verification passed
+                        await job_manager.emit_event(job.job_id, PhaseEvent(
+                            event_type="verification_passed",
+                            phase_id=phase.id,
+                            data={"found_files": verify_result.found_files}
+                        ))
+                
+                # Success - exit retry loop
+                break
+            # === END VERIFICATION ===
             
             # Record result
             status = PhaseStatus.COMPLETED if result.success else PhaseStatus.FAILED

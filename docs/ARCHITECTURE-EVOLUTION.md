@@ -191,3 +191,85 @@ PRODUCTION = Path("/home/aiuser01/helix-v4")
 - [ADR-001: ADR as Single Source of Truth](../adr/001-adr-as-single-source-of-truth.md)
 - [EVOLUTION-WORKFLOW.md](EVOLUTION-WORKFLOW.md)
 - [ADR Template](ADR-TEMPLATE.md)
+
+---
+
+## Post-Phase Verification (ADR-011)
+
+After each Claude Code phase completes, the system automatically verifies outputs.
+
+### Verification Flow
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  PHASE EXECUTION WITH VERIFICATION                                       │
+│                                                                          │
+│  Claude Code runs                                                        │
+│       ↓                                                                  │
+│  Exit code = 0?                                                          │
+│       ↓                                                                  │
+│  ┌──────────────────────────────────────────┐                           │
+│  │  PhaseVerifier.verify_phase_output()     │                           │
+│  │                                          │                           │
+│  │  Checks:                                 │                           │
+│  │  • All expected files exist?             │                           │
+│  │  • Python syntax valid?                  │                           │
+│  └──────────────────────────────────────────┘                           │
+│       ↓                                                                  │
+│  Verification passed? ─────YES────→ Next Phase                          │
+│       │                                                                  │
+│       NO                                                                 │
+│       ↓                                                                  │
+│  Write VERIFICATION_ERRORS.md                                            │
+│       ↓                                                                  │
+│  Retry count < 2? ─────YES────→ Re-run Claude Code                      │
+│       │                                                                  │
+│       NO                                                                 │
+│       ↓                                                                  │
+│  PHASE FAILED                                                            │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `PhaseVerifier` | `src/helix/evolution/verification.py` | Core verification logic |
+| `verify_phase_output` | `src/helix/tools/verify_phase.py` | CLI tool for Claude |
+| Integration | `src/helix/api/streaming.py` | Automatic post-phase check |
+
+### Verification Checks
+
+1. **File Existence**: All files in `phase.output` must exist
+2. **Path Resolution**: Checks multiple locations (`output/`, `new/`, phase dir)
+3. **Syntax Validation**: Python files checked via AST
+
+### Retry Mechanism
+
+- **Max 2 retries** per phase
+- On failure: `VERIFICATION_ERRORS.md` written with details
+- Claude reads error file and fixes issues
+- After 2 failed retries: phase marked as FAILED
+
+### Events Emitted
+
+| Event | When |
+|-------|------|
+| `verification_passed` | All checks passed |
+| `verification_failed` | Missing files or syntax errors |
+| `phase_retry` | Retrying after verification failure |
+
+### Usage
+
+Claude can manually verify before completing:
+
+```bash
+python -m helix.tools.verify_phase
+```
+
+Or with explicit files:
+
+```bash
+python -m helix.tools.verify_phase -e src/module.py tests/test_module.py
+```

@@ -13,6 +13,20 @@ Phase: {{ phase_name }} ({{ phase_id }})
 
 Read the instructions in this directory and implement accordingly.
 
+{% if phase_output %}
+## Expected Output Files
+
+You MUST create these files (defined in phases.yaml):
+
+{% for file in phase_output %}
+- `{{ file }}`
+{% endfor %}
+
+Write these to the `output/` directory. For example:
+- `new/src/module.py` → `output/src/module.py`
+- `new/tests/test_module.py` → `output/tests/test_module.py`
+{% endif %}
+
 ## General Rules
 
 1. **Type Hints** - Use Python 3.10+ syntax
@@ -26,6 +40,23 @@ Read the instructions in this directory and implement accordingly.
 Write all output files to `output/` directory:
 - `output/src/` - Source files
 - `output/tests/` - Test files
+
+## Before You Finish
+
+**IMPORTANT**: Before ending your session, verify your output:
+
+1. Check that ALL expected files listed above exist
+2. Ensure all Python files have valid syntax
+
+You can run the verification tool:
+```bash
+python -m helix.tools.verify_phase
+```
+
+If verification fails, fix the issues before completing.
+
+If there is a `VERIFICATION_ERRORS.md` file in this directory,
+read it and fix all listed issues first!
 
 ## Quality Gate
 

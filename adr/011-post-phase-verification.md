@@ -1,7 +1,7 @@
 ---
 adr_id: "011"
 title: "Post-Phase Verification System"
-status: Proposed
+status: Implemented
 
 component_type: PROCESS
 classification: NEW
