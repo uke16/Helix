@@ -19,7 +19,7 @@ from pathlib import Path
 
 # Set up import paths
 _test_dir = Path(__file__).parent
-_new_src = _test_dir.parent / "src"
+_new_src = _test_dir.parent.parent / "src"
 
 # Add new src so helix.adr is found
 if str(_new_src) not in sys.path:
