@@ -63,3 +63,31 @@
 - Nur wenn Validate erfolgreich
 - Kopiert von Test nach Production
 - Git commit + tag
+
+---
+
+## Bug 10: Kein automatischer End-to-End Flow 🔴 CRITICAL
+
+**Problem:**
+Der Evolution Workflow erfordert 4 separate manuelle API Calls:
+1. `POST /helix/execute` - Phasen ausführen
+2. `POST /helix/evolution/.../deploy` - Nach Test kopieren
+3. `POST /helix/evolution/.../validate` - Tests laufen
+4. `POST /helix/evolution/.../integrate` - Nach Prod kopieren
+
+**Erwartet:**
+Ein einziger Aufruf der alles macht:
+```
+POST /helix/evolution/projects/{name}/run
+```
+
+Der automatisch:
+1. Alle Phasen ausführt
+2. Deploy macht
+3. Validate macht
+4. Bei Erfolg: Integrate (oder User-Bestätigung anfordern)
+5. Bei Fehler: Status auf FAILED, Rollback wenn nötig
+
+**Impact:** CRITICAL - Das ist der Kern des Self-Evolution Systems
+
+**Fix:** Neuen Endpoint `/run` implementieren der den kompletten Flow orchestriert

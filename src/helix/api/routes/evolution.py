@@ -13,7 +13,7 @@ Endpoints:
 - GET  /helix/evolution/sync-rag/status    - Get RAG sync status
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -253,4 +253,56 @@ async def evolution_health():
             "healthy": test_health.success,
             "message": test_health.message,
         },
+    }
+
+
+@router.post("/projects/{name}/run")
+async def run_evolution_project(
+    name: str,
+    background_tasks: BackgroundTasks,
+    auto_integrate: bool = False,
+):
+    """Run complete evolution workflow for a project.
+    
+    This is the main entry point after the Consultant creates a project.
+    It orchestrates the entire evolution pipeline:
+    
+    1. Execute: Run all phases (Developer, Reviewer, Documentation)
+    2. Deploy: Copy to test system
+    3. Validate: Run tests
+    4. Integrate: Copy to production (if auto_integrate=True and tests pass)
+    
+    Args:
+        name: Project name
+        auto_integrate: If True, automatically integrate on successful validation
+        
+    Returns:
+        Job ID for tracking progress via SSE
+    """
+    from ..streaming import run_evolution_pipeline
+    from ..job_manager import job_manager
+    
+    manager = EvolutionProjectManager()
+    project = manager.get_project(name)
+    
+    if project is None:
+        raise HTTPException(status_code=404, detail=f"Project not found: {name}")
+    
+    # Create job for tracking
+    job = await job_manager.create_job()
+    
+    # Start pipeline in background
+    background_tasks.add_task(
+        run_evolution_pipeline,
+        job,
+        project,
+        auto_integrate,
+    )
+    
+    return {
+        "job_id": job.job_id,
+        "project": name,
+        "status": "started",
+        "message": "Evolution pipeline started. Use /helix/jobs/{job_id} to track progress.",
+        "auto_integrate": auto_integrate,
     }
