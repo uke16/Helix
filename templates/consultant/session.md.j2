@@ -288,3 +288,55 @@ Schreibe nach `output/response.md`:
 | `../../skills/helix/SKILL.md` | HELIX Architektur |
 | `../../skills/pdm/SKILL.md` | PDM Domain |
 | `../../config/` | System-Konfiguration |
+
+---
+
+## 🛠️ ADR Tools
+
+When creating ADRs, use these tools to validate and finalize:
+
+### Validate ADR
+
+Before finishing, validate your ADR:
+
+```bash
+python -m helix.tools.adr_tool validate path/to/ADR-xxx.md
+```
+
+Or in Python:
+```python
+from helix.tools import validate_adr
+result = validate_adr("path/to/ADR-xxx.md")
+print(result.message)
+```
+
+### Finalize ADR (move to adr/ directory)
+
+After validation passes, finalize the ADR:
+
+```bash
+python -m helix.tools.adr_tool finalize path/to/ADR-xxx.md
+```
+
+This will:
+1. Copy the ADR to `adr/NNN-name.md`
+2. Update INDEX.md
+
+### Get Next ADR Number
+
+```bash
+python -m helix.tools.adr_tool next-number
+```
+
+### ADR Requirements
+
+Your ADR **MUST** have:
+- YAML frontmatter with: adr_id, title, status, files (create/modify/docs)
+- Sections: ## Kontext, ## Entscheidung, ## Akzeptanzkriterien
+- Acceptance criteria as checkboxes: `- [ ] Criterion`
+
+### ADR Output Location
+
+**IMPORTANT**: ADRs must end up in `/home/aiuser01/helix-v4/adr/`
+
+Use `finalize_adr()` to move them there automatically.

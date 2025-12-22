@@ -327,3 +327,51 @@ Wenn du ein neues Feature oder eine Änderung implementierst:
 
 Claude Code Instanzen lesen die Dokumentation um zu verstehen wie sie arbeiten sollen.
 Features die nicht dokumentiert sind, werden von zukünftigen Instanzen ignoriert.
+
+---
+
+## Available Tools
+
+HELIX provides tools that Claude Code instances can call during development.
+
+### ADR Tool (`helix.tools.adr_tool`)
+
+Validate and finalize Architecture Decision Records.
+
+```bash
+# Validate an ADR
+python -m helix.tools.adr_tool validate path/to/ADR.md
+
+# Finalize (move to adr/ and update INDEX)
+python -m helix.tools.adr_tool finalize path/to/ADR.md
+
+# Get next available ADR number
+python -m helix.tools.adr_tool next-number
+```
+
+**Python API:**
+```python
+from helix.tools import validate_adr, finalize_adr, get_next_adr_number
+
+# Validate
+result = validate_adr("ADR-feature.md")
+if not result.success:
+    print(result.errors)
+
+# Finalize
+result = finalize_adr("ADR-feature.md")
+print(result.final_path)  # → adr/013-feature.md
+
+# Next number
+next_num = get_next_adr_number()  # → 13
+```
+
+### Verify Phase Tool (coming in ADR-011)
+
+Verify phase outputs before completing a phase.
+
+```bash
+python -m helix.tools.verify_phase
+```
+
+---
