@@ -117,6 +117,14 @@ async def get_project(name: str):
     if project is None:
         raise HTTPException(status_code=404, detail=f"Project not found: {name}")
     
+    # Bug 12 fix: Guard against re-running integrated projects
+    from helix.evolution.project import EvolutionStatus
+    if project.get_status() == EvolutionStatus.INTEGRATED and not force:
+        raise HTTPException(
+            status_code=400, 
+            detail="Project already integrated. Use force=true to re-run all phases."
+        )
+    
     return ProjectResponse(**project.to_dict())
 
 
@@ -128,6 +136,14 @@ async def deploy_project(name: str, request: DeployRequest = DeployRequest()):
     
     if project is None:
         raise HTTPException(status_code=404, detail=f"Project not found: {name}")
+    
+    # Bug 12 fix: Guard against re-running integrated projects
+    from helix.evolution.project import EvolutionStatus
+    if project.get_status() == EvolutionStatus.INTEGRATED and not force:
+        raise HTTPException(
+            status_code=400, 
+            detail="Project already integrated. Use force=true to re-run all phases."
+        )
     
     deployer = Deployer()
     
@@ -152,6 +168,14 @@ async def validate_project(name: str):
     
     if project is None:
         raise HTTPException(status_code=404, detail=f"Project not found: {name}")
+    
+    # Bug 12 fix: Guard against re-running integrated projects
+    from helix.evolution.project import EvolutionStatus
+    if project.get_status() == EvolutionStatus.INTEGRATED and not force:
+        raise HTTPException(
+            status_code=400, 
+            detail="Project already integrated. Use force=true to re-run all phases."
+        )
     
     # Check project is deployed
     if project.get_status() != EvolutionStatus.DEPLOYED:
@@ -181,6 +205,14 @@ async def integrate_project(name: str):
     
     if project is None:
         raise HTTPException(status_code=404, detail=f"Project not found: {name}")
+    
+    # Bug 12 fix: Guard against re-running integrated projects
+    from helix.evolution.project import EvolutionStatus
+    if project.get_status() == EvolutionStatus.INTEGRATED and not force:
+        raise HTTPException(
+            status_code=400, 
+            detail="Project already integrated. Use force=true to re-run all phases."
+        )
     
     integrator = Integrator()
     result = await integrator.full_integration(project)
@@ -261,6 +293,7 @@ async def run_evolution_project(
     name: str,
     background_tasks: BackgroundTasks,
     auto_integrate: bool = False,
+    force: bool = False,
 ):
     """Run complete evolution workflow for a project.
     
@@ -287,6 +320,14 @@ async def run_evolution_project(
     
     if project is None:
         raise HTTPException(status_code=404, detail=f"Project not found: {name}")
+    
+    # Bug 12 fix: Guard against re-running integrated projects
+    from helix.evolution.project import EvolutionStatus
+    if project.get_status() == EvolutionStatus.INTEGRATED and not force:
+        raise HTTPException(
+            status_code=400, 
+            detail="Project already integrated. Use force=true to re-run all phases."
+        )
     
     # Create job for tracking
     job = await job_manager.create_job()

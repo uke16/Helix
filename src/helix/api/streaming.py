@@ -245,14 +245,32 @@ async def run_evolution_pipeline(
             data={"project": project.name, "auto_integrate": auto_integrate}
         ))
         
-        # Step 1: Execute all phases
-        await job_manager.emit_event(job.job_id, PhaseEvent(
-            event_type="step_started",
-            data={"step": "execute", "message": "Executing all phases..."}
-        ))
+        # Step 1: Execute pending phases only (Bug 11 fix)
+        status_data = project.get_status_data()
+        phases_completed = status_data.get("phases_completed", [])
         
-        project_path = project.path
-        await run_project_with_streaming(job, project_path, phase_filter=None)
+        # Load all phase IDs from phases.yaml
+        loader = PhaseLoader()
+        all_phases = loader.load_phases(project.path)
+        all_phase_ids = [p.id for p in all_phases]
+        
+        # Calculate pending phases
+        pending_phases = [pid for pid in all_phase_ids if pid not in phases_completed]
+        
+        if not pending_phases:
+            # All phases already complete - skip to deploy
+            await job_manager.emit_event(job.job_id, PhaseEvent(
+                event_type="step_skipped",
+                data={"step": "execute", "message": "All phases already completed, skipping to deploy"}
+            ))
+        else:
+            await job_manager.emit_event(job.job_id, PhaseEvent(
+                event_type="step_started",
+                data={"step": "execute", "message": f"Executing {len(pending_phases)} pending phases: {pending_phases}"}
+            ))
+            
+            project_path = project.path
+            await run_project_with_streaming(job, project_path, phase_filter=pending_phases)
         
         # Check if execution succeeded
         job_info = await job_manager.get_job(job.job_id)

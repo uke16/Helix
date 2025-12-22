@@ -448,3 +448,149 @@ helix-v4 (Production)        helix-v4-test (Test)
 | `/helix/evolution/projects/{name}/integrate` | POST | Integrate to production |
 | `/helix/evolution/sync-rag` | POST | Sync RAG databases |
 | `/helix/evolution/health` | GET | Evolution system health |
+
+---
+
+## ADR System (`src/helix/adr/`)
+
+**Purpose:** Parse and validate Architecture Decision Records (ADRs).
+
+ADRs serve as the **Single Source of Truth** for evolution projects,
+defining what files to create, what to modify, and acceptance criteria.
+
+```
+src/helix/adr/
+├── __init__.py          # Public API exports
+├── parser.py            # ADRParser - parse ADR files
+├── validator.py         # ADRValidator - validate against template
+└── gate.py              # ADRQualityGate - integration with QualityGateRunner
+```
+
+### Components
+
+#### ADRParser (`parser.py`)
+
+Parses ADR Markdown files with YAML frontmatter.
+
+```python
+from helix.adr import ADRParser, ADRDocument
+
+parser = ADRParser()
+
+# Parse from file
+adr = parser.parse_file(Path("adr/001-feature.md"))
+
+# Parse from string
+adr = parser.parse_string(content)
+
+# Access parsed data
+print(adr.metadata.title)              # "Feature Name"
+print(adr.metadata.status)             # ADRStatus.PROPOSED
+print(adr.metadata.component_type)     # ComponentType.SERVICE
+print(adr.metadata.files.create)       # ["src/module.py", ...]
+print(adr.metadata.files.modify)       # ["src/__init__.py", ...]
+print(adr.sections["Kontext"].content) # Section content
+print(adr.acceptance_criteria)         # [AcceptanceCriterion(...), ...]
+```
+
+**Data Classes:**
+
+| Class | Purpose |
+|-------|---------|
+| `ADRDocument` | Complete parsed ADR |
+| `ADRMetadata` | YAML header data |
+| `ADRSection` | Markdown section |
+| `ADRFiles` | files.create/modify/docs |
+| `AcceptanceCriterion` | Checkbox item |
+
+**Enums:**
+
+| Enum | Values |
+|------|--------|
+| `ADRStatus` | Proposed, Accepted, Implemented, Superseded, Rejected |
+| `ComponentType` | TOOL, NODE, AGENT, PROCESS, SERVICE, SKILL, PROMPT, CONFIG, DOCS, MISC |
+| `Classification` | NEW, UPDATE, FIX, REFACTOR, DEPRECATE |
+| `ChangeScope` | major, minor, config, docs, hotfix |
+
+#### ADRValidator (`validator.py`)
+
+Validates ADRs against template requirements.
+
+```python
+from helix.adr.validator import ADRValidator, ValidationResult
+
+validator = ADRValidator()
+result = validator.validate_file(Path("adr/001-feature.md"))
+
+if result.valid:
+    print("ADR is valid")
+else:
+    for error in result.errors:
+        print(f"Error: {error.message}")
+    for warning in result.warnings:
+        print(f"Warning: {warning.message}")
+```
+
+**Validation Checks:**
+
+| Check | Severity |
+|-------|----------|
+| Valid YAML frontmatter | Error |
+| Required fields (adr_id, title, status) | Error |
+| Required sections (Kontext, Entscheidung, ...) | Error |
+| Files section not empty | Error |
+| Acceptance criteria present | Error |
+| Empty sections | Warning |
+| Few acceptance criteria (<3) | Warning |
+
+#### ADRQualityGate (`gate.py`)
+
+Integration with HELIX quality gate system.
+
+```python
+from helix.adr.gate import ADRQualityGate, register_adr_gate
+from helix.quality_gates import QualityGateRunner
+
+# Register with runner
+runner = QualityGateRunner()
+register_adr_gate(runner)
+
+# Use in quality gate config
+# phases.yaml:
+#   quality_gate:
+#     type: adr_valid
+#     adr_path: ADR-feature.md
+```
+
+### Integration Points
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Consultant    │────▶│   ADR System    │────▶│  Quality Gates  │
+│                 │     │                 │     │                 │
+│ Creates ADR     │     │ Validates ADR   │     │ Uses ADR.files  │
+│                 │     │ Parses metadata │     │ for verification│
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                               │
+                               ▼
+                        ┌─────────────────┐
+                        │    Templates    │
+                        │                 │
+                        │ Shows expected  │
+                        │ files from ADR  │
+                        └─────────────────┘
+```
+
+### Tests
+
+```bash
+# Run ADR system tests
+python3 -m pytest tests/adr/ -v
+
+# Test files
+tests/adr/
+├── conftest.py           # Shared fixtures
+├── test_parser.py        # Parser tests (34 tests)
+├── test_validator.py     # Validator tests (30 tests)
+└── test_gate.py          # Gate integration tests (22 tests)
+```
