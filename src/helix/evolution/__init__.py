@@ -6,18 +6,27 @@ Components:
 - Integrator: Integrate to production
 - PhaseVerifier: Verify phase outputs (ADR-011)
 - EvolutionProjectManager: Manage evolution projects
+- RAGSync: Sync evolution docs to RAG system
 """
 
-from .project import EvolutionProject, EvolutionProjectManager
+from .project import (
+    EvolutionProject,
+    EvolutionProjectManager,
+    EvolutionStatus,
+    EvolutionError,
+)
 from .deployer import Deployer
 from .validator import Validator
 from .integrator import Integrator
 from .verification import PhaseVerifier, VerificationResult
+from .rag_sync import RAGSync
 
 __all__ = [
     # Project Management
     "EvolutionProject",
     "EvolutionProjectManager",
+    "EvolutionStatus",
+    "EvolutionError",
     # Deploy/Validate/Integrate
     "Deployer",
     "Validator",
@@ -25,4 +34,6 @@ __all__ = [
     # Verification (ADR-011)
     "PhaseVerifier",
     "VerificationResult",
+    # RAG Integration
+    "RAGSync",
 ]
