@@ -1,17 +1,10 @@
 {
   "name": "adr-system",
-  "status": "deployed",
-  "current_phase": "2",
+  "status": "integrated",
+  "current_phase": "5",
   "created_at": "2024-12-22T01:00:00Z",
-  "updated_at": "2025-12-22T12:12:35.527736",
-  "phases_completed": [
-    "1",
-    "2"
-  ],
-  "phases_pending": [
-    "3",
-    "4",
-    "5"
-  ],
-  "error": null
+  "updated_at": "2024-12-22T16:00:00Z",
+  "phases_completed": ["1", "2", "3", "4", "5"],
+  "phases_pending": [],
+  "integrated_at": "2024-12-22T16:00:00Z"
 }
