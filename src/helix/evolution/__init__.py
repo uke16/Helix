@@ -25,10 +25,29 @@ from .project import (
     EvolutionStatus,
     EvolutionError,
 )
+from .deployer import (
+    Deployer,
+    DeployResult,
+)
+from .validator import (
+    Validator,
+    ValidationResult,
+    ValidationLevel,
+    quick_validate,
+)
 
 __all__ = [
+    # Project management
     "EvolutionProject",
     "EvolutionProjectManager",
     "EvolutionStatus",
     "EvolutionError",
+    # Deployment
+    "Deployer",
+    "DeployResult",
+    # Validation
+    "Validator",
+    "ValidationResult",
+    "ValidationLevel",
+    "quick_validate",
 ]
