@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Ensure src is in path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from .routes import openai, helix, stream
+from .routes import openai, helix, stream, evolution
 
 
 @asynccontextmanager
@@ -62,6 +62,7 @@ app.add_middleware(
 app.include_router(openai.router)
 app.include_router(helix.router)
 app.include_router(stream.router)
+app.include_router(evolution.router)
 
 
 @app.get("/")
