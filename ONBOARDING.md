@@ -216,3 +216,54 @@ Wenn du als Claude Code Instanz in diesem Projekt arbeitest:
 5. **Schreibe in output/**: Deine Ergebnisse gehören in `output/`
 
 → Siehe: [skills/helix/workflows.md](skills/helix/workflows.md)
+
+---
+
+## 7. Self-Evolution System (Phase 14)
+
+HELIX can safely evolve itself through an isolated test system.
+
+### Architecture
+
+```
+Production (helix-v4)          Test (helix-v4-test)
+Port 8001                      Port 9001
+├── projects/evolution/        ├── (deployed changes)
+│   └── {project}/             └── Isolated DB ports
+│       ├── spec.yaml
+│       ├── new/
+│       └── modified/
+```
+
+### Evolution Workflow
+
+```bash
+# 1. Create evolution project
+POST /helix/evolution/projects
+  {name: "new-feature", spec: {...}}
+
+# 2. Deploy to test system
+POST /helix/evolution/projects/{name}/deploy
+
+# 3. Validate (syntax, unit tests, E2E)
+POST /helix/evolution/projects/{name}/validate
+
+# 4. Integrate to production (on success)
+POST /helix/evolution/projects/{name}/integrate
+
+# 5. Sync RAG databases
+POST /helix/evolution/sync-rag
+```
+
+### Control Script
+
+```bash
+./control/helix-control.sh status    # Check both systems
+./control/helix-control.sh start     # Start production
+./control/helix-control.sh restart   # Restart after changes
+```
+
+### Key Principle: "Zettel statt Telefon"
+
+Claude Code instances are short-lived. Communication happens through files
+(spec.yaml, status.json), not real-time dialogue.

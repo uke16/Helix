@@ -185,3 +185,56 @@ Wenn du als **Developer** arbeitest:
 - **HELIX Konzept**: Lies [ONBOARDING.md](ONBOARDING.md)
 - **Architektur**: Lies [docs/ARCHITECTURE-MODULES.md](docs/ARCHITECTURE-MODULES.md)
 - **Skills**: Schau in `skills/` für Domain-Wissen
+
+---
+
+## Evolution Projects
+
+HELIX supports self-evolution through isolated test system validation.
+
+### Project Type: evolution
+
+Evolution projects live in `projects/evolution/{name}/`:
+
+```
+projects/evolution/new-feature/
+├── spec.yaml        # Project specification
+├── phases.yaml      # Development phases
+├── status.json      # Current status
+├── new/             # New files to create
+│   └── src/helix/... 
+└── modified/        # Modified files
+    └── src/helix/...
+```
+
+### Status Flow
+
+```
+PENDING → DEVELOPING → READY → DEPLOYED → VALIDATED → INTEGRATED
+                              ↓           ↓
+                           FAILED ← ← ← ROLLBACK
+```
+
+### Evolution API
+
+```bash
+# List projects
+curl http://localhost:8001/helix/evolution/projects
+
+# Deploy to test
+curl -X POST http://localhost:8001/helix/evolution/projects/{name}/deploy
+
+# Validate
+curl -X POST http://localhost:8001/helix/evolution/projects/{name}/validate
+
+# Integrate
+curl -X POST http://localhost:8001/helix/evolution/projects/{name}/integrate
+```
+
+### Safety Guarantees
+
+1. Changes always deploy to test system first
+2. Full validation (syntax, unit, E2E) before integration
+3. Automatic rollback on failure
+4. Git tag backup before integration
+5. RAG database 1:1 copy for realistic testing

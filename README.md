@@ -15,6 +15,15 @@ als bewährtes Agent-Harness und fokussieren uns auf das, was HELIX einzigartig 
 - **Meeting-System** (Consultant-User Kollaboration)
 - **Workflow-Orchestrierung** (Phasen, Transitions, Escalation)
 
+## Key Features
+
+- **Multi-Agent Orchestration** - Consultant, Developer, Reviewer workflow
+- **Claude Code SDK Integration** - Proven agent harness
+- **OpenAI-Compatible API** - Easy integration with any client
+- **Self-Evolution System** - HELIX can safely evolve itself through isolated test validation
+- **Quality Gates** - Deterministic checks between phases
+- **RAG Integration** - Vector search with Qdrant
+
 ## Kernprinzip
 
 ```

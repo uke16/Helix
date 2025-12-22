@@ -256,3 +256,65 @@ def test_orchestrator_handles_gate_failure():
 ---
 
 *Erstellt: 2025-12-21*
+
+---
+
+## src/helix/evolution/ - Self-Evolution System
+
+**Purpose:** Enable HELIX to safely evolve itself through an isolated test system.
+
+### Modules
+
+| Module | Description |
+|--------|-------------|
+| `project.py` | EvolutionProject & EvolutionProjectManager - Manages evolution projects |
+| `deployer.py` | Deployer - Deploys changes to test system |
+| `validator.py` | Validator - Runs syntax checks, unit tests, E2E tests |
+| `integrator.py` | Integrator - Integrates validated changes into production |
+| `rag_sync.py` | RAGSync - Syncs Qdrant databases between production and test |
+
+### Key Classes
+
+```python
+from helix.evolution import (
+    EvolutionProject,
+    EvolutionProjectManager,
+    EvolutionStatus,
+    Deployer,
+    Validator,
+    Integrator,
+    RAGSync,
+)
+```
+
+### Architecture
+
+```
+helix-v4 (Production)        helix-v4-test (Test)
+├── src/helix/               ├── src/helix/
+├── projects/evolution/      ├── (deployed files)
+│   └── {project}/           └── control/helix-control.sh
+│       ├── new/
+│       └── modified/
+```
+
+### Workflow
+
+1. Create evolution project with spec.yaml
+2. Development phases generate files in new/ and modified/
+3. Deployer copies files to test system
+4. Validator runs tests on test system
+5. Integrator copies validated files to production
+6. RAGSync ensures test system has production data
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/helix/evolution/projects` | GET | List all evolution projects |
+| `/helix/evolution/projects/{name}` | GET | Get project details |
+| `/helix/evolution/projects/{name}/deploy` | POST | Deploy to test |
+| `/helix/evolution/projects/{name}/validate` | POST | Run validation |
+| `/helix/evolution/projects/{name}/integrate` | POST | Integrate to production |
+| `/helix/evolution/sync-rag` | POST | Sync RAG databases |
+| `/helix/evolution/health` | GET | Evolution system health |
