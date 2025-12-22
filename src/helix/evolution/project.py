@@ -4,7 +4,7 @@ Manages the lifecycle of HELIX self-evolution projects.
 Projects are stored in projects/evolution/ with the structure:
 
     projects/evolution/{project_name}/
-    ├── spec.yaml           # Project specification
+    ├── ADR-*.md            # Architecture Decision Record (Single Source of Truth)
     ├── phases.yaml         # Development phases
     ├── status.json         # Current status and metadata
     ├── new/                # New files (mirrored structure)
@@ -166,8 +166,50 @@ class EvolutionProject:
         with open(self._status_file) as f:
             return json.load(f)
 
+    def get_adr(self):
+        """Get project ADR (Architecture Decision Record).
+        
+        Returns:
+            Parsed ADR document or None if not found.
+        """
+        adr_files = list(self.path.glob("ADR-*.md"))
+        if not adr_files:
+            adr_files = list(self.path.glob("[0-9][0-9][0-9]-*.md"))
+        
+        if not adr_files:
+            return None
+        
+        try:
+            from helix.adr import ADRParser
+            parser = ADRParser()
+            return parser.parse_file(adr_files[0])
+        except Exception:
+            return None
+    
     def get_spec(self) -> Optional[dict]:
-        """Get project specification."""
+        """Get project specification from ADR or spec.yaml.
+        
+        Prefers ADR (new way), falls back to spec.yaml (legacy).
+        """
+        # Try ADR first
+        adr = self.get_adr()
+        if adr:
+            return {
+                "meta": {
+                    "id": adr.metadata.adr_id,
+                    "name": adr.metadata.title,
+                    "domain": adr.metadata.domain,
+                    "language": adr.metadata.language,
+                },
+                "context": {
+                    "skills": adr.metadata.skills,
+                },
+                "output": {
+                    "files": list(adr.metadata.files.create),
+                },
+            }
+        
+        # Fallback to spec.yaml (legacy)
         if not self._spec_file.exists():
             return None
         

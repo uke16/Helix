@@ -39,7 +39,7 @@ def handle_error(func):
 def run(project_path: str, phase: Optional[str], model: str, dry_run: bool) -> None:
     """Run a HELIX project workflow.
 
-    PROJECT_PATH is the path to the project directory containing spec.yaml and phases.yaml.
+    PROJECT_PATH is the path to the project directory containing ADR and phases.yaml.
     """
     from helix.orchestrator import Orchestrator
     from helix.observability import HelixLogger
@@ -467,7 +467,7 @@ def discuss(project_path: str, request: Optional[str], model: str) -> None:
     PROJECT_PATH is the path to the project directory.
 
     The consultant will analyze the request, consult domain experts,
-    and generate spec.yaml, phases.yaml, and ADR documents.
+    and generate ADR and phases.yaml.
     """
     from helix.consultant import ConsultantMeeting, ExpertManager
     from helix.llm_client import LLMClient

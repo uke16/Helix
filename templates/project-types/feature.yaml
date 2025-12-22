@@ -7,7 +7,7 @@ phases:
     type: meeting
     template: consultant/meta-consultant.md
     output:
-      - spec.yaml
+      - ADR-*.md
       - adr/*.md
 
   - id: 02-development

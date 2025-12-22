@@ -187,9 +187,25 @@ class SessionManager:
         return None
     
     def has_spec(self, session_id: str) -> bool:
-        """Check if spec.yaml has been generated."""
-        spec_file = self.base_path / session_id / "output" / "spec.yaml"
+        """Check if ADR or spec.yaml has been generated.
+        
+        Checks for ADR first (new way), then spec.yaml (legacy).
+        """
+        output_dir = self.base_path / session_id / "output"
+        
+        # Check for ADR first
+        adr_files = list(output_dir.glob("ADR-*.md"))
+        if adr_files:
+            return True
+        
+        # Fallback to spec.yaml (legacy)
+        spec_file = output_dir / "spec.yaml"
         return spec_file.exists()
+    
+    def has_adr(self, session_id: str) -> bool:
+        """Check if an ADR has been generated."""
+        output_dir = self.base_path / session_id / "output"
+        return bool(list(output_dir.glob("ADR-*.md")))
     
     def extract_state_from_messages(self, messages: list[dict]) -> dict[str, Any]:
         """Extract conversation state from message history.

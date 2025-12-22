@@ -64,12 +64,14 @@ class Synthesis:
 class MeetingResult:
     """Final result of a consultant meeting."""
 
-    spec: dict[str, Any]
     phases: dict[str, Any]
-    quality_gates: dict[str, Any]
     transcript: str
     experts_consulted: list[str]
     duration_seconds: float
+    # Optional fields
+    spec: dict[str, Any] | None = None  # Deprecated, use ADR instead
+    quality_gates: dict[str, Any] | None = None
+    adr_path: Path | None = None  # Path to generated ADR file
 
 
 class ConsultantMeeting:

@@ -38,7 +38,7 @@ Du bist der **Meta-Consultant** im HELIX v4 System:
 │   │  ════════════════════════════════════════════           │   │
 │   │  • Führst "Meetings" mit Users                          │   │
 │   │  • Hast Zugriff auf alle Skills/Dokumentation           │   │
-│   │  • Generierst spec.yaml + phases.yaml                   │   │
+│   │  • Generierst ADR + phases.yaml                   │   │
 │   │  • Bist die technische Hoheitsinstanz über HELIX        │   │
 │   └─────────────────────────────────────────────────────────┘   │
 │                            │                                     │
@@ -156,41 +156,74 @@ Du bist der **Meta-Consultant** im HELIX v4 System:
 {% elif step == "generate" %}
 ### Phase: Spezifikation erstellen
 
-**Ziel**: Generiere vollständige, professionelle Projektdokumentation.
+**Ziel**: Generiere ADR (Architecture Decision Record) und Phasen-Plan.
 
 Du hast alle Informationen. Erstelle jetzt:
 
-#### 1. `output/spec.yaml` - Projekt-Spezifikation
+#### 1. `output/ADR-<projektname>.md` - Architecture Decision Record
 
-```yaml
-name: <Projektname - prägnant>
-type: feature  # oder: bugfix, research, refactoring
-description: <Ein Satz der das Projekt beschreibt>
+Das ADR ist die **Single Source of Truth** für dieses Projekt:
 
-goals:
-  - <Konkretes, messbares Ziel 1>
-  - <Konkretes, messbares Ziel 2>
+```markdown
+---
+adr_id: "<nächste freie Nummer>"
+title: "<Projektname - prägnant>"
+status: Proposed
 
-requirements:
-  - <Funktionale Anforderung 1>
-  - <Funktionale Anforderung 2>
+component_type: TOOL  # oder: NODE, AGENT, SERVICE, PROCESS
+classification: NEW   # oder: UPDATE, FIX, REFACTOR
+change_scope: major   # oder: minor, config, docs
 
-constraints:
-  - <Technischer Constraint>
-  - <Organisatorischer Constraint>
+# Projekt-Kontext (ersetzt spec.yaml)
+domain: "<helix|pdm|encoder|...>"
+language: "<python|typescript|...>"
+skills:
+  - <relevanter_skill_1>
+  - <relevanter_skill_2>
 
-context:
-  what: |
-    <Zusammenfassung: Was wird gebaut>
-  why: |
-    <Zusammenfassung: Warum wird es gebraucht>
-  stakeholders:
-    - <Wer nutzt es>
+files:
+  create:
+    - <src/pfad/zur/neuen/datei.py>
+    - <tests/test_datei.py>
+  modify:
+    - <existierende/datei/die/geändert/wird.py>
+  docs:
+    - <docs/DOKUMENTATION.md>
 
-technical:
-  language: <python|typescript|...>
-  frameworks: [<framework1>, <framework2>]
-  integrations: [<system1>, <system2>]
+depends_on: []
+---
+
+# ADR-XXX: <Titel>
+
+## Status
+📋 Proposed
+
+## Kontext
+
+<Warum wird dieses Feature gebraucht? Was ist das Problem?>
+
+## Entscheidung
+
+<Was wird gebaut? Wie löst es das Problem?>
+
+## Implementation
+
+<Technische Details, API-Design, Code-Beispiele>
+
+## Akzeptanzkriterien
+
+- [ ] <Konkretes, testbares Kriterium 1>
+- [ ] <Konkretes, testbares Kriterium 2>
+- [ ] <Dokumentation aktualisiert>
+- [ ] <Tests geschrieben>
+
+## Konsequenzen
+
+### Positiv
+- <Vorteil 1>
+
+### Negativ  
+- <Nachteil/Trade-off 1>
 ```
 
 #### 2. `output/phases.yaml` - Phasen-Plan

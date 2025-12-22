@@ -83,11 +83,28 @@ async def run_project_with_streaming(
                 print(f"[STREAMING] Generating CLAUDE.md for phase {phase.id}")
                 try:
                     template_engine = TemplateEngine()
-                    spec_path = project_path / "spec.yaml"
-                    spec = {}
-                    if spec_path.exists():
-                        with open(spec_path) as spec_file:
-                            spec = yaml.safe_load(spec_file) or {}
+                    
+                    # Load ADR for project context (replaces spec.yaml)
+                    adr_language = "python"
+                    adr_domain = None
+                    adr_files_create = []
+                    adr_files_modify = []
+                    
+                    adr_files = list(project_path.glob("ADR-*.md"))
+                    if not adr_files:
+                        adr_files = list(project_path.glob("[0-9][0-9][0-9]-*.md"))
+                    
+                    if adr_files:
+                        try:
+                            from helix.adr import ADRParser
+                            parser = ADRParser()
+                            adr = parser.parse_file(adr_files[0])
+                            adr_language = adr.metadata.language or "python"
+                            adr_domain = adr.metadata.domain
+                            adr_files_create = list(adr.metadata.files.create)
+                            adr_files_modify = list(adr.metadata.files.modify)
+                        except Exception as e:
+                            print(f"[STREAMING] Warning: Could not parse ADR: {e}")
                     
                     context = {
                         "phase_id": phase.id,
@@ -96,7 +113,11 @@ async def run_project_with_streaming(
                         "phase_description": getattr(phase, 'description', '') or "",
                         "phase_output": getattr(phase, 'output', []) or [],
                         "project_path": str(project_path),
-                        **spec,
+                        # ADR-based context
+                        "adr_language": adr_language,
+                        "adr_domain": adr_domain,
+                        "adr_files_create": adr_files_create,
+                        "adr_files_modify": adr_files_modify,
                     }
                     
                     # Map phase type to template path
@@ -109,11 +130,10 @@ async def run_project_with_streaming(
                     }
                     template_name = type_to_template.get(phase_type, "developer/python")
                     
-                    # Check if spec has language preference
-                    if spec.get("meta", {}).get("language"):
-                        lang = spec["meta"]["language"]
+                    # Use language from ADR for template selection
+                    if adr_language and adr_language != "python":
                         if phase_type == "development":
-                            template_name = f"developer/{lang}"
+                            template_name = f"developer/{adr_language}"
                     
                     claude_content = template_engine.render_claude_md(template_name, context)
                     claude_md.write_text(claude_content, encoding="utf-8")

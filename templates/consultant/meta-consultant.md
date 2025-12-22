@@ -20,7 +20,7 @@ Domain: {{ project.domain }}
 1. **Understand** - Ask clarifying questions about the request
 2. **Analyze** - Identify implications, dependencies, constraints
 3. **Consult Experts** - Select relevant domain experts for input
-4. **Document** - Create ADR and spec.yaml when discussion concludes
+4. **Document** - Create ADR and phases.yaml when discussion concludes
 
 ## Domain Experts Available
 
@@ -31,8 +31,7 @@ Domain: {{ project.domain }}
 ## Output Format
 
 When creating documentation:
-- ADR: `/projects/{{ project.id }}/adr/NNN-title.md`
-- Spec: `/projects/{{ project.id }}/spec.yaml`
+- ADR: `/projects/{{ project.id }}/ADR-*.md`
 
 ## Discussion Guidelines
 

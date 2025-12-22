@@ -115,6 +115,9 @@ class ADRMetadata:
         change_scope: Scope of change (major, minor, etc.)
         files: Files affected by the ADR
         depends_on: List of ADR IDs this depends on
+        domain: Domain for skill loading (e.g., "helix", "pdm")
+        language: Programming language (e.g., "python", "typescript")
+        skills: Explicit list of skills to include
     """
     adr_id: str
     title: str
@@ -125,6 +128,10 @@ class ADRMetadata:
     change_scope: Optional[ChangeScope] = None
     files: ADRFiles = field(default_factory=ADRFiles)
     depends_on: list[str] = field(default_factory=list)
+    # Project context (replaces spec.yaml meta section)
+    domain: Optional[str] = None
+    language: str = "python"
+    skills: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -492,6 +499,18 @@ class ADRParser:
         # Parse depends_on
         depends_on = self._ensure_list(yaml_data.get("depends_on", []))
 
+        # Parse project context (replaces spec.yaml)
+        # Can be at top level or in 'meta' section
+        meta = yaml_data.get("meta", {})
+        if not isinstance(meta, dict):
+            meta = {}
+        
+        domain = yaml_data.get("domain") or meta.get("domain")
+        language = yaml_data.get("language") or meta.get("language", "python")
+        skills = self._ensure_list(
+            yaml_data.get("skills") or meta.get("skills", [])
+        )
+
         return ADRMetadata(
             adr_id=str(adr_id),
             title=str(title),
@@ -501,7 +520,10 @@ class ADRParser:
             classification=classification,
             change_scope=change_scope,
             files=files,
-            depends_on=depends_on
+            depends_on=depends_on,
+            domain=domain,
+            language=str(language),
+            skills=skills,
         )
 
     def _ensure_list(self, value) -> list[str]:

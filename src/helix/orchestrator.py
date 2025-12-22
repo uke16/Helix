@@ -312,7 +312,11 @@ class Orchestrator:
         claude_md_path.write_text(content, encoding="utf-8")
 
     def _load_project_spec(self, project_dir: Path) -> dict[str, Any] | None:
-        """Load the project spec.yaml.
+        """Load project specification from ADR or spec.yaml.
+
+        Priority:
+        1. ADR-*.md files (new way - ADR as Single Source of Truth)
+        2. spec.yaml (legacy fallback)
 
         Args:
             project_dir: Path to the project directory.
@@ -320,6 +324,43 @@ class Orchestrator:
         Returns:
             Spec dictionary or None if not found.
         """
+        # Try ADR first (Single Source of Truth)
+        adr_files = list(project_dir.glob("ADR-*.md"))
+        if not adr_files:
+            adr_files = list(project_dir.glob("[0-9][0-9][0-9]-*.md"))
+        
+        if adr_files:
+            try:
+                from helix.adr import ADRParser
+                parser = ADRParser()
+                adr = parser.parse_file(adr_files[0])
+                
+                # Convert ADR to spec-compatible dict
+                return {
+                    "meta": {
+                        "id": adr.metadata.adr_id,
+                        "name": adr.metadata.title,
+                        "domain": adr.metadata.domain,
+                        "language": adr.metadata.language,
+                    },
+                    "context": {
+                        "skills": adr.metadata.skills,
+                    },
+                    "output": {
+                        "files": list(adr.metadata.files.create) + list(adr.metadata.files.modify),
+                    },
+                    "implementation": {
+                        "summary": adr.sections.get("kontext", adr.sections.get("context", type("", (), {"content": ""})())).content if adr.sections else "",
+                    },
+                    # Keep reference to original ADR
+                    "_adr": adr,
+                    "_adr_path": str(adr_files[0]),
+                }
+            except Exception as e:
+                # Log error but continue to spec.yaml fallback
+                print(f"[ORCHESTRATOR] Warning: Could not parse ADR: {e}")
+        
+        # Fallback to spec.yaml (legacy)
         spec_path = project_dir / "spec.yaml"
         if not spec_path.exists():
             return None
