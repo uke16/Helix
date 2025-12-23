@@ -1,0 +1,108 @@
+# docs/sources/tools.yaml
+# PRIMARY SOURCE for Tool Documentation in HELIX v4
+#
+# This file defines all available tools for Claude Code instances.
+# All documentation is generated from this file.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "Tool Definitions for HELIX v4"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+tools:
+  - id: adr_tool
+    name: "ADR Tool"
+    module: "helix.tools.adr_tool"
+    description: "Validate and finalize Architecture Decision Records"
+
+    cli_commands:
+      - command: "python -m helix.tools.adr_tool validate path/to/ADR.md"
+        description: "Validate an ADR"
+      - command: "python -m helix.tools.adr_tool finalize path/to/ADR.md"
+        description: "Finalize (move to adr/ and update INDEX)"
+      - command: "python -m helix.tools.adr_tool next-number"
+        description: "Get next available ADR number"
+
+    python_api:
+      imports: |
+        from helix.tools import validate_adr, finalize_adr, get_next_adr_number
+
+      examples:
+        - name: "Validate"
+          code: |
+            result = validate_adr("ADR-feature.md")
+            if not result.success:
+                print(result.errors)
+
+        - name: "Finalize"
+          code: |
+            result = finalize_adr("ADR-feature.md")
+            print(result.final_path)  # → adr/013-feature.md
+
+        - name: "Next number"
+          code: |
+            next_num = get_next_adr_number()  # → 13
+
+    see_also:
+      - docs/ADR-TEMPLATE.md
+      - skills/helix/adr/SKILL.md
+
+  - id: docs_compiler
+    name: "Docs Compiler"
+    module: "helix.tools.docs_compiler"
+    description: "Compile documentation from YAML sources and Jinja2 templates"
+
+    cli_commands:
+      - command: "python -m helix.tools.docs_compiler compile"
+        description: "Generate docs"
+      - command: "python -m helix.tools.docs_compiler validate"
+        description: "Check without writing"
+      - command: "python -m helix.tools.docs_compiler sources"
+        description: "List sources"
+      - command: "python -m helix.tools.docs_compiler diff"
+        description: "Show changes"
+
+    python_api:
+      imports: |
+        from helix.tools.docs_compiler import DocsCompiler
+
+      examples:
+        - name: "Compile"
+          code: |
+            compiler = DocsCompiler()
+            result = compiler.compile()
+            print(f"Generated: {result.files}")
+
+        - name: "Validate"
+          code: |
+            compiler = DocsCompiler()
+            issues = compiler.validate()
+            if issues:
+                print(issues)
+
+    sources_location: "docs/sources/*.yaml"
+    templates_location: "docs/templates/*.j2"
+
+    see_also:
+      - docs/SELF-DOCUMENTATION.md
+
+  - id: verify_phase
+    name: "Verify Phase Tool"
+    module: "helix.tools.verify_phase"
+    description: "Verify phase outputs before completing a phase"
+
+    cli_commands:
+      - command: "python -m helix.tools.verify_phase"
+        description: "Verify current phase outputs"
+
+    checks:
+      - "All expected files exist"
+      - "Python files have valid syntax"
+      - "YAML files are parseable"
+      - "Markdown has valid structure"
+
+    usage_context: "Called automatically by orchestrator, can also be run manually"

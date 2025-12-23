@@ -35,19 +35,11 @@ Schau in deinem Arbeitsverzeichnis nach:
 3. Relevante Skills in `skills/`
 
 ### Skills nach Bedarf:
-
-
 - `skills/helix/SKILL.md` - Orchestration & evolution
-
 - `skills/pdm/SKILL.md` - Product data management
-
 - `skills/encoder/SKILL.md` - Encoder products
-
 - `skills/infrastructure/SKILL.md` - System infrastructure
-
 - `skills/api/SKILL.md` - API development
-
-
 
 ---
 
@@ -69,7 +61,7 @@ Dein Output wird automatisch validiert:
 - Ist der Code syntaktisch korrekt?
 - Laufen die Tests?
 
--> Schau in `phases.yaml` welche Output-Dateien erwartet werden.
+→ Schau in `phases.yaml` welche Output-Dateien erwartet werden.
 
 ---
 
@@ -81,30 +73,11 @@ HELIX verwendet Quality Gates um die Qualität deiner Arbeit zu validieren.
 
 | Gate Type | Beschreibung | Verwendung |
 |-----------|--------------|------------|
-
-
 | `files_exist` | Checks if output files exist | development, documentation |
-
 | `syntax_check` | Validates code syntax | development |
-
 | `tests_pass` | Runs tests and checks for success | testing |
-
 | `review_approved` | LLM reviews output for quality | review |
-
 | `adr_valid` | Validates ADR document structure | consultant, review |
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### Gate: `adr_valid`
 
@@ -120,62 +93,39 @@ quality_gate:
 **Was wird geprüft:**
 
 1. **YAML Header** (Pflichtfelder)
-
-   - `adr_id`
-
-   - `title`
-
-   - `status`
-
+   - `adr_id` - Eindeutige ID
+   - `title` - Beschreibender Titel
+   - `status` - Proposed|Accepted|Implemented|Superseded|Rejected
 
 2. **Markdown Sections** (alle müssen vorhanden sein)
-
-   - `## Kontext`
-
-   - `## Entscheidung`
-
-   - `## Implementation`
-
-   - `## Dokumentation`
-
-   - `## Akzeptanzkriterien`
-
-   - `## Konsequenzen`
-
+   - `## Kontext` - Warum diese Änderung?
+   - `## Entscheidung` - Was wird entschieden?
+   - `## Implementation` - Konkrete Umsetzung
+   - `## Dokumentation` - Zu aktualisierende Dokumente
+   - `## Akzeptanzkriterien` - Checkbox-Liste
+   - `## Konsequenzen` - Vorteile/Nachteile
 
 3. **Akzeptanzkriterien**
    - Mindestens ein `- [ ]` oder `- [x]` Checkbox vorhanden
 
--> Siehe: [docs/ADR-TEMPLATE.md](docs/ADR-TEMPLATE.md) für das vollständige Template.
+**Fehler vs. Warnungen:**
 
+- **Fehler** (Gate schlägt fehl): Fehlende Pflichtfelder/Sections
+- **Warnungen** (Gate besteht): Fehlende empfohlene Felder, wenige Kriterien
 
+**Beispiel-Verwendung:**
 
+```yaml
+phases:
+  - id: "3"
+    name: ADR Review
+    type: review
+    quality_gate:
+      type: adr_valid
+      file: output/feature-adr.md
+```
 
----
-
-## Phase Types
-
-HELIX unterstützt verschiedene Phase-Typen:
-
-| Type | Rolle | Outputs |
-|------|-------|---------|
-
-
-| `consultant` | Consultant | adr, spec, phases |
-
-| `development` | Developer | code, tests |
-
-| `testing` | Developer | test_results, coverage |
-
-| `review` | Reviewer | review_report, approval |
-
-| `documentation` | Documentation | docs, diagrams |
-
-| `integration` | Developer | merged_code, backup |
-
-
-
--> Details: [skills/helix/SKILL.md](skills/helix/SKILL.md)
+→ Siehe: [docs/ADR-TEMPLATE.md](docs/ADR-TEMPLATE.md) für das vollständige Template.
 
 ---
 
@@ -183,8 +133,8 @@ HELIX unterstützt verschiedene Phase-Typen:
 
 ```
 helix-v4/
-├── CLAUDE.md              <- Diese Datei
-├── ONBOARDING.md          <- Konzept-Erklärung
+├── CLAUDE.md              ← Diese Datei
+├── ONBOARDING.md          ← Konzept-Erklärung
 │
 ├── src/helix/             # Python Orchestrator
 ├── config/                # Konfiguration
@@ -203,6 +153,11 @@ helix-v4/
 │           ├── spec.yaml
 │           ├── phases.yaml
 │           └── phases/
+│               ├── 01-analysis/
+│               │   ├── CLAUDE.md
+│               │   └── output/
+│               ├── 02-implementation/
+│               └── 03-testing/
 ```
 
 ---
@@ -217,7 +172,45 @@ Wenn du als **Consultant** arbeitest:
 3. Stelle klärende Fragen (Was? Warum? Constraints?)
 4. Generiere `output/spec.yaml` und `output/phases.yaml`
 
--> Details: [skills/helix/SKILL.md](skills/helix/SKILL.md)
+### Fragen-Schema
+```markdown
+## Klärende Fragen
+
+### Was genau soll gebaut werden?
+[Warte auf User-Antwort]
+
+### Warum wird das benötigt?
+[Warte auf User-Antwort]
+
+### Welche Constraints gibt es?
+[Warte auf User-Antwort]
+```
+
+### Output generieren
+Wenn du genug Informationen hast:
+
+**spec.yaml:**
+```yaml
+name: Feature Name
+type: feature
+description: Kurze Beschreibung
+goals:
+  - Ziel 1
+  - Ziel 2
+requirements:
+  - Anforderung 1
+constraints:
+  - Constraint 1
+```
+
+**phases.yaml:**
+```yaml
+phases:
+  - id: 01-analysis
+    name: Analyse
+    type: development
+    # ...
+```
 
 ---
 
@@ -241,39 +234,26 @@ Wenn du als **Developer** arbeitest:
 ## Wichtige Hinweise
 
 ### DO:
-- Lies CLAUDE.md in deinem Verzeichnis
-- Lies relevante Skills
-- Schreibe nach output/
-- Erstelle vollständige, lauffähige Dateien
-- Dokumentiere was du getan hast
+- ✅ Lies CLAUDE.md in deinem Verzeichnis
+- ✅ Lies relevante Skills
+- ✅ Schreibe nach output/
+- ✅ Erstelle vollständige, lauffähige Dateien
+- ✅ Dokumentiere was du getan hast
 
 ### DON'T:
-- Ändere keine Dateien außerhalb deines Verzeichnisses
-- Lösche keine existierenden Dateien
-- Installiere keine System-Pakete
-- Mache keine Netzwerk-Requests ohne Grund
+- ❌ Ändere keine Dateien außerhalb deines Verzeichnisses
+- ❌ Lösche keine existierenden Dateien
+- ❌ Installiere keine System-Pakete
+- ❌ Mache keine Netzwerk-Requests ohne Grund
 
 ---
 
-## Escalation
+## Hilfe
 
-
-Bei Fehlern eskaliert HELIX automatisch:
-
-| Level | Name | Aktion |
-|-------|------|--------|
-
-| 1 | Phase Retry | retry_phase |
-
-| 2 | Domain Expert | escalate_to_domain |
-
-| 3 | Architecture Review | architecture_review |
-
-| 4 | Human Intervention | pause_for_human |
-
-
-
--> Details: [skills/helix/SKILL.md](skills/helix/SKILL.md)
+- **HELIX Konzept**: Lies [ONBOARDING.md](ONBOARDING.md)
+- **Architektur**: Lies [docs/ARCHITECTURE-MODULES.md](docs/ARCHITECTURE-MODULES.md)
+- **ADR Template**: Lies [docs/ADR-TEMPLATE.md](docs/ADR-TEMPLATE.md)
+- **Skills**: Schau in `skills/` für Domain-Wissen
 
 ---
 
@@ -291,16 +271,42 @@ projects/evolution/new-feature/
 ├── phases.yaml      # Development phases
 ├── status.json      # Current status
 ├── new/             # New files to create
+│   └── src/helix/...
 └── modified/        # Modified files
+    └── src/helix/...
 ```
 
 ### Status Flow
 
 ```
-PENDING -> DEVELOPING -> READY -> DEPLOYED -> VALIDATED -> INTEGRATED
-                               |           |
-                            FAILED <- <- ROLLBACK
+PENDING → DEVELOPING → READY → DEPLOYED → VALIDATED → INTEGRATED
+                              ↓           ↓
+                           FAILED ← ← ← ROLLBACK
 ```
+
+### Evolution API
+
+```bash
+# List projects
+curl http://localhost:8001/helix/evolution/projects
+
+# Deploy to test
+curl -X POST http://localhost:8001/helix/evolution/projects/{name}/deploy
+
+# Validate
+curl -X POST http://localhost:8001/helix/evolution/projects/{name}/validate
+
+# Integrate
+curl -X POST http://localhost:8001/helix/evolution/projects/{name}/integrate
+
+```
+
+### Safety Guarantees
+1. Changes always deploy to test system first
+2. Full validation (syntax, unit, E2E) before integration
+3. Automatic rollback on failure
+4. Git tag backup before integration
+5. RAG database 1:1 copy for realistic testing
 
 ---
 
@@ -308,48 +314,97 @@ PENDING -> DEVELOPING -> READY -> DEPLOYED -> VALIDATED -> INTEGRATED
 
 > **Jede Änderung dokumentiert sich selbst.**
 
-Wenn du ein neues Feature implementierst, müssen aktualisiert werden:
-- Top-Level (README, ONBOARDING, CLAUDE.md)
-- Architecture Docs (docs/*.md)
-- Skills (skills/*/SKILL.md)
-- Docstrings (im Code)
+Wenn du ein neues Feature oder eine Änderung implementierst:
 
--> Lies: [docs/SELF-DOCUMENTATION.md](docs/SELF-DOCUMENTATION.md)
+1. **CONCEPT.md** muss eine "Dokumentation" Section haben
+2. **phases.yaml** braucht eine Documentation-Phase
+3. **Alle 4 Ebenen** müssen aktualisiert werden:
+   - Top-Level (README, ONBOARDING, CLAUDE.md)
+   - Architecture Docs (docs/*.md)
+   - Skills (skills/*/SKILL.md)
+   - Docstrings (im Code)
+
+→ **Lies:** [docs/SELF-DOCUMENTATION.md](docs/SELF-DOCUMENTATION.md)
+
+### Warum?
+
+Claude Code Instanzen lesen die Dokumentation um zu verstehen wie sie arbeiten sollen.
+Features die nicht dokumentiert sind, werden von zukünftigen Instanzen ignoriert.
 
 ---
 
 ## Available Tools
 
+HELIX provides tools that Claude Code instances can call during development.
+
 ### ADR Tool (`helix.tools.adr_tool`)
 
+Validate and finalize Architecture Decision Records
+
 ```bash
+# Validate an ADR
 python -m helix.tools.adr_tool validate path/to/ADR.md
+# Finalize (move to adr/ and update INDEX)
 python -m helix.tools.adr_tool finalize path/to/ADR.md
+# Get next available ADR number
 python -m helix.tools.adr_tool next-number
+```
+
+**Python API:**
+```python
+from helix.tools import validate_adr, finalize_adr, get_next_adr_number
+
+# Validate
+result = validate_adr("ADR-feature.md")
+if not result.success:
+    print(result.errors)
+
+# Finalize
+result = finalize_adr("ADR-feature.md")
+print(result.final_path)  # → adr/013-feature.md
+
+# Next number
+next_num = get_next_adr_number()  # → 13
 ```
 
 ### Docs Compiler (`helix.tools.docs_compiler`)
 
+Compile documentation from YAML sources and Jinja2 templates
+
 ```bash
-python -m helix.tools.docs_compiler compile    # Generate docs
-python -m helix.tools.docs_compiler validate   # Check without writing
-python -m helix.tools.docs_compiler sources    # List sources
-python -m helix.tools.docs_compiler diff       # Show changes
+# Generate docs
+python -m helix.tools.docs_compiler compile
+# Check without writing
+python -m helix.tools.docs_compiler validate
+# List sources
+python -m helix.tools.docs_compiler sources
+# Show changes
+python -m helix.tools.docs_compiler diff
 ```
 
-### Verify Phase Tool
+**Python API:**
+```python
+from helix.tools.docs_compiler import DocsCompiler
+
+# Compile
+compiler = DocsCompiler()
+result = compiler.compile()
+print(f"Generated: {result.files}")
+
+# Validate
+compiler = DocsCompiler()
+issues = compiler.validate()
+if issues:
+    print(issues)
+```
+
+### Verify Phase Tool (`helix.tools.verify_phase`)
+
+Verify phase outputs before completing a phase
 
 ```bash
+# Verify current phase outputs
 python -m helix.tools.verify_phase
 ```
-
----
-
-## Hilfe
-
-- **HELIX Konzept**: [ONBOARDING.md](ONBOARDING.md)
-- **Architektur**: [docs/ARCHITECTURE-MODULES.md](docs/ARCHITECTURE-MODULES.md)
-- **ADR Template**: [docs/ADR-TEMPLATE.md](docs/ADR-TEMPLATE.md)
-- **Skills**: `skills/` für Domain-Wissen
 
 ---

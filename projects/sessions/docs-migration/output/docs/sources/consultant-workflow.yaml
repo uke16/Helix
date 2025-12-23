@@ -1,0 +1,77 @@
+# docs/sources/consultant-workflow.yaml
+# PRIMARY SOURCE for Consultant Workflow in HELIX v4
+#
+# This file defines the consultant meeting workflow, questions, and output templates.
+# All documentation is generated from this file.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "Consultant Workflow Definitions for HELIX v4"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+workflow:
+  description: "Der Consultant führt Requirements-Meetings und generiert Projektspezifikationen"
+
+  steps:
+    - step: 1
+      action: "Lies den User-Request in `input/request.md`"
+    - step: 2
+      action: "Lies relevante Skills (`skills/pdm/`, etc.)"
+    - step: 3
+      action: "Stelle klärende Fragen (Was? Warum? Constraints?)"
+    - step: 4
+      action: "Generiere `output/spec.yaml` und `output/phases.yaml`"
+
+  clarifying_questions:
+    description: "Schema für klärende Fragen"
+    format: markdown
+    questions:
+      - header: "Was genau soll gebaut werden?"
+        placeholder: "[Warte auf User-Antwort]"
+        purpose: "Scope und Features verstehen"
+
+      - header: "Warum wird das benötigt?"
+        placeholder: "[Warte auf User-Antwort]"
+        purpose: "Business Value und Motivation verstehen"
+
+      - header: "Welche Constraints gibt es?"
+        placeholder: "[Warte auf User-Antwort]"
+        purpose: "Technische und organisatorische Einschränkungen"
+
+  output_templates:
+    spec_yaml:
+      description: "Projekt-Spezifikation"
+      template: |
+        name: Feature Name
+        type: feature
+        description: Kurze Beschreibung
+        goals:
+          - Ziel 1
+          - Ziel 2
+        requirements:
+          - Anforderung 1
+        constraints:
+          - Constraint 1
+
+    phases_yaml:
+      description: "Phase-Konfiguration"
+      template: |
+        phases:
+          - id: 01-analysis
+            name: Analyse
+            type: development
+            # ...
+
+  quality_gates:
+    - adr_valid
+    - files_exist
+
+  tips:
+    - "Stelle offene Fragen um den Scope zu verstehen"
+    - "Kläre technische Constraints früh ab"
+    - "Dokumentiere Entscheidungen im ADR"
+    - "Verwende existierende Skills als Referenz"

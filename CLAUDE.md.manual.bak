@@ -1,6 +1,3 @@
-{# CLAUDE.md.j2 - Main template for root CLAUDE.md #}
-{# Target: ~400 lines, complete overview matching manual version #}
-
 # HELIX v4 - Instructions for Claude Code
 
 > **Du arbeitest im HELIX v4 Projekt** - einem AI Development Orchestration System.
@@ -35,17 +32,11 @@ Schau in deinem Arbeitsverzeichnis nach:
 3. Relevante Skills in `skills/`
 
 ### Skills nach Bedarf:
-{%- if domains is defined and domains.domains is defined %}
-{%- for domain in domains.domains %}
-- `{{ domain.skills[0].path }}` - {{ domain.description_short }}
-{%- endfor %}
-{%- else %}
 - `skills/helix/SKILL.md` - Wie HELIX funktioniert
 - `skills/helix/adr/SKILL.md` - Wie man ADRs schreibt
 - `skills/pdm/SKILL.md` - PDM System (Stücklisten, Artikel)
 - `skills/encoder/SKILL.md` - POSITAL Encoder Produkte
 - `skills/infrastructure/SKILL.md` - Docker, PostgreSQL, etc.
-{%- endif %}
 
 ---
 
@@ -79,21 +70,11 @@ HELIX verwendet Quality Gates um die Qualität deiner Arbeit zu validieren.
 
 | Gate Type | Beschreibung | Verwendung |
 |-----------|--------------|------------|
-{%- if quality_gates is defined and quality_gates.gates is defined %}
-{%- for gate in quality_gates.gates %}
-| `{{ gate.id }}` | {{ gate.description_short }} | {{ gate.phase_usage | join(', ') }} |
-{%- endfor %}
-{%- else %}
 | `files_exist` | Prüft ob Dateien existieren | Basis-Validierung |
 | `syntax_check` | Prüft Python/TS/Go Syntax | Code-Phasen |
 | `tests_pass` | Führt pytest/jest aus | Test-Phasen |
 | `review_approved` | LLM-Review des Outputs | Review-Phasen |
 | `adr_valid` | Validiert ADR-Dokumente | ADR-Erstellung |
-{%- endif %}
-
-{%- if quality_gates is defined and quality_gates.gates is defined %}
-{%- for gate in quality_gates.gates %}
-{%- if gate.id == 'adr_valid' %}
 
 ### Gate: `adr_valid`
 
@@ -109,14 +90,17 @@ quality_gate:
 **Was wird geprüft:**
 
 1. **YAML Header** (Pflichtfelder)
-{%- for field in gate.required_yaml_fields %}
-   - `{{ field }}` - {% if field == 'adr_id' %}Eindeutige ID{% elif field == 'title' %}Beschreibender Titel{% elif field == 'status' %}Proposed|Accepted|Implemented|Superseded|Rejected{% endif %}
-{%- endfor %}
+   - `adr_id` - Eindeutige ID
+   - `title` - Beschreibender Titel
+   - `status` - Proposed|Accepted|Implemented|Superseded|Rejected
 
 2. **Markdown Sections** (alle müssen vorhanden sein)
-{%- for section in gate.required_sections %}
-   - `{{ section }}` - {% if 'Kontext' in section %}Warum diese Änderung?{% elif 'Entscheidung' in section %}Was wird entschieden?{% elif 'Implementation' in section %}Konkrete Umsetzung{% elif 'Dokumentation' in section %}Zu aktualisierende Dokumente{% elif 'Akzeptanzkriterien' in section %}Checkbox-Liste{% elif 'Konsequenzen' in section %}Vorteile/Nachteile{% endif %}
-{%- endfor %}
+   - `## Kontext` - Warum diese Änderung?
+   - `## Entscheidung` - Was wird entschieden?
+   - `## Implementation` - Konkrete Umsetzung
+   - `## Dokumentation` - Zu aktualisierende Dokumente
+   - `## Akzeptanzkriterien` - Checkbox-Liste
+   - `## Konsequenzen` - Vorteile/Nachteile
 
 3. **Akzeptanzkriterien**
    - Mindestens ein `- [ ]` oder `- [x]` Checkbox vorhanden
@@ -139,9 +123,6 @@ phases:
 ```
 
 → Siehe: [docs/ADR-TEMPLATE.md](docs/ADR-TEMPLATE.md) für das vollständige Template.
-{%- endif %}
-{%- endfor %}
-{%- endif %}
 
 ---
 
@@ -183,27 +164,14 @@ helix-v4/
 Wenn du als **Consultant** arbeitest:
 
 ### Deine Aufgabe
-{%- if consultant_workflow is defined and consultant_workflow.workflow is defined %}
-{%- for step in consultant_workflow.workflow.steps %}
-{{ step.step }}. {{ step.action }}
-{%- endfor %}
-{%- else %}
 1. Lies den User-Request in `input/request.md`
 2. Lies relevante Skills (`skills/pdm/`, etc.)
 3. Stelle klärende Fragen (Was? Warum? Constraints?)
 4. Generiere `output/spec.yaml` und `output/phases.yaml`
-{%- endif %}
 
 ### Fragen-Schema
 ```markdown
 ## Klärende Fragen
-{%- if consultant_workflow is defined and consultant_workflow.workflow.clarifying_questions is defined %}
-{%- for q in consultant_workflow.workflow.clarifying_questions.questions %}
-
-### {{ q.header }}
-{{ q.placeholder }}
-{%- endfor %}
-{%- else %}
 
 ### Was genau soll gebaut werden?
 [Warte auf User-Antwort]
@@ -213,7 +181,6 @@ Wenn du als **Consultant** arbeitest:
 
 ### Welche Constraints gibt es?
 [Warte auf User-Antwort]
-{%- endif %}
 ```
 
 ### Output generieren
@@ -221,9 +188,6 @@ Wenn du genug Informationen hast:
 
 **spec.yaml:**
 ```yaml
-{%- if consultant_workflow is defined and consultant_workflow.workflow.output_templates is defined %}
-{{ consultant_workflow.workflow.output_templates.spec_yaml.template | trim }}
-{%- else %}
 name: Feature Name
 type: feature
 description: Kurze Beschreibung
@@ -234,20 +198,15 @@ requirements:
   - Anforderung 1
 constraints:
   - Constraint 1
-{%- endif %}
 ```
 
 **phases.yaml:**
 ```yaml
-{%- if consultant_workflow is defined and consultant_workflow.workflow.output_templates is defined %}
-{{ consultant_workflow.workflow.output_templates.phases_yaml.template | trim }}
-{%- else %}
 phases:
   - id: 01-analysis
     name: Analyse
     type: development
     # ...
-{%- endif %}
 ```
 
 ---
@@ -317,24 +276,14 @@ projects/evolution/new-feature/
 ### Status Flow
 
 ```
-{%- if evolution is defined and evolution.evolution.status_flow is defined %}
-{{ evolution.evolution.status_flow.diagram | trim }}
-{%- else %}
 PENDING → DEVELOPING → READY → DEPLOYED → VALIDATED → INTEGRATED
                               ↓           ↓
                            FAILED ← ← ← ROLLBACK
-{%- endif %}
 ```
 
 ### Evolution API
 
 ```bash
-{%- if evolution is defined and evolution.evolution.api is defined %}
-{%- for endpoint in evolution.evolution.api.endpoints %}
-# {{ endpoint.name }}
-{{ endpoint.curl }}
-{% endfor %}
-{%- else %}
 # List projects
 curl http://localhost:8001/helix/evolution/projects
 
@@ -346,21 +295,15 @@ curl -X POST http://localhost:8001/helix/evolution/projects/{name}/validate
 
 # Integrate
 curl -X POST http://localhost:8001/helix/evolution/projects/{name}/integrate
-{%- endif %}
 ```
 
 ### Safety Guarantees
-{%- if evolution is defined and evolution.evolution.safety_guarantees is defined %}
-{%- for item in evolution.evolution.safety_guarantees %}
-{{ item.number }}. {{ item.guarantee }}
-{%- endfor %}
-{%- else %}
+
 1. Changes always deploy to test system first
 2. Full validation (syntax, unit, E2E) before integration
 3. Automatic rollback on failure
 4. Git tag backup before integration
 5. RAG database 1:1 copy for realistic testing
-{%- endif %}
 
 ---
 
@@ -390,34 +333,6 @@ Features die nicht dokumentiert sind, werden von zukünftigen Instanzen ignorier
 ## Available Tools
 
 HELIX provides tools that Claude Code instances can call during development.
-
-{%- if tools is defined and tools.tools is defined %}
-{%- for tool in tools.tools %}
-
-### {{ tool.name }} (`{{ tool.module }}`)
-
-{{ tool.description }}
-
-```bash
-{%- for cmd in tool.cli_commands %}
-# {{ cmd.description }}
-{{ cmd.command }}
-{%- endfor %}
-```
-{%- if tool.python_api is defined %}
-
-**Python API:**
-```python
-{{ tool.python_api.imports | trim }}
-{%- for example in tool.python_api.examples %}
-
-# {{ example.name }}
-{{ example.code | trim }}
-{%- endfor %}
-```
-{%- endif %}
-{%- endfor %}
-{%- else %}
 
 ### ADR Tool (`helix.tools.adr_tool`)
 
@@ -451,15 +366,6 @@ print(result.final_path)  # → adr/013-feature.md
 next_num = get_next_adr_number()  # → 13
 ```
 
-### Docs Compiler (`helix.tools.docs_compiler`)
-
-```bash
-python -m helix.tools.docs_compiler compile    # Generate docs
-python -m helix.tools.docs_compiler validate   # Check without writing
-python -m helix.tools.docs_compiler sources    # List sources
-python -m helix.tools.docs_compiler diff       # Show changes
-```
-
 ### Verify Phase Tool
 
 Verify phase outputs before completing a phase. Checks that all expected files exist and have valid Python syntax.
@@ -467,6 +373,5 @@ Verify phase outputs before completing a phase. Checks that all expected files e
 ```bash
 python -m helix.tools.verify_phase
 ```
-{%- endif %}
 
 ---
