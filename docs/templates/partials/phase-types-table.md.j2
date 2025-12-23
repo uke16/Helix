@@ -1,0 +1,35 @@
+{#
+  phase-types-table.md.j2
+
+  Renders a summary table of all Phase Types.
+  Used in CLAUDE.md for the overview section.
+
+  Required context:
+    - phase_types: dict with 'phase_types' list from phase-types.yaml
+#}
+## Phase Types
+
+HELIX unterstutzt verschiedene Phase-Typen fur unterschiedliche Aufgaben:
+
+| Type | Name | Rolle | Outputs | Quality Gates |
+|------|------|-------|---------|---------------|
+{% for phase in phase_types.phase_types -%}
+| `{{ phase.id }}` | {{ phase.name }} | {{ phase.role }} | {{ phase.outputs | map(attribute='type') | join(', ') }} | {{ phase.quality_gates | join(', ') }} |
+{% endfor %}
+
+### Phase Workflow
+
+Jede Phase folgt einem standardisierten Workflow:
+
+{% for phase in phase_types.phase_types %}
+#### {{ phase.name }} (`{{ phase.id }}`)
+
+{{ phase.description_short }}
+
+**Schritte:**
+{% for step in phase.workflow %}
+{{ loop.index }}. **{{ step.step }}**: {{ step.action }}
+{% endfor %}
+
+{% endfor %}
+> Details: `skills/helix/SKILL.md`

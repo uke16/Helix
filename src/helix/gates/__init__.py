@@ -37,3 +37,6 @@ __all__ = [
     "check_approval",
     "ApprovalGateResult",
 ]
+
+# ADR-014: Documentation compilation gate
+from .docs_compiled import check_docs_compiled, DocsCompiledResult

@@ -1,0 +1,79 @@
+{#
+  escalation-summary.md.j2
+
+  Renders a summary of the Escalation Strategy.
+  Used in CLAUDE.md for quick reference and SKILL.md for details.
+
+  Required context:
+    - escalation: dict with 'escalation' and 'failure_types' from escalation.yaml
+#}
+## Escalation
+
+Bei Fehlern eskaliert HELIX automatisch durch verschiedene Level:
+
+### Escalation Levels
+
+| Level | Name | Aktion | Automatisch |
+|-------|------|--------|-------------|
+{% for level in escalation.escalation.levels -%}
+| {{ level.level }} | {{ level.name }} | `{{ level.action }}` | {{ 'Ja' if level.automatic else 'Nein' }} |
+{% endfor %}
+
+**Max Retries:** {{ escalation.escalation.max_retries }}
+**Timeout pro Level:** {{ escalation.escalation.timeout_per_level }}s
+
+### Level Details
+
+{% for level in escalation.escalation.levels %}
+#### Level {{ level.level }}: {{ level.name }}
+
+{{ level.description }}
+
+**Trigger:**
+{% for trigger in level.trigger %}
+- {{ trigger }}
+{% endfor %}
+
+**Strategie:**
+{% for step in level.strategy %}
+{{ loop.index }}. **{{ step.step }}**: {{ step.action }}
+{% endfor %}
+
+{% if level.domain_mapping is defined %}
+**Domain Mapping:**
+| Error Pattern | Domain |
+|---------------|--------|
+{% for mapping in level.domain_mapping -%}
+| `{{ mapping.error_pattern }}` | {{ mapping.domain }} |
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+
+### Failure Types
+
+| Typ | Beschreibung | Default Action | Retries |
+|-----|--------------|----------------|---------|
+{% for failure in escalation.failure_types -%}
+| `{{ failure.type }}` | {{ failure.description }} | `{{ failure.default_action }}` | {{ failure.retry_count }} |
+{% endfor %}
+
+### Recovery Procedures
+
+{% for recovery in escalation.recovery %}
+#### {{ recovery.name }}
+
+{{ recovery.description }}
+
+**Steps:**
+{% for step in recovery.steps %}
+{{ loop.index }}. {{ step }}
+{% endfor %}
+{% if recovery.requires_confirmation is defined and recovery.requires_confirmation %}
+
+> **Achtung:** Erfordert User-Bestatigung!
+{% endif %}
+
+{% endfor %}
+
+> Details: `skills/helix/SKILL.md`

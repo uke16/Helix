@@ -1,0 +1,49 @@
+{#
+  domains-list.md.j2
+
+  Renders a list of all Domains with their associated Skills.
+  Used in CLAUDE.md and SKILL.md for domain overview.
+
+  Required context:
+    - domains: dict with 'domains' list from domains.yaml
+#}
+## Domains
+
+HELIX organisiert Wissen in Domains mit zugehorigen Skills:
+
+| Domain | Beschreibung | Skills |
+|--------|--------------|--------|
+{% for domain in domains.domains -%}
+| `{{ domain.id }}` | {{ domain.description_short }} | {{ domain.skills | map(attribute='name') | join(', ') }} |
+{% endfor %}
+
+### Wann welches Skill lesen
+
+{% for domain in domains.domains %}
+#### {{ domain.name }} (`{{ domain.id }}`)
+
+{{ domain.description }}
+
+**Skills:**
+{% for skill in domain.skills %}
+- [{{ skill.name }}]({{ skill.path }}) - {{ skill.covers | join(', ') }}
+{% endfor %}
+
+**Key Concepts:**
+{% for concept in domain.key_concepts %}
+- **{{ concept.name }}**: {{ concept.description }}
+{% endfor %}
+
+**Wann lesen:** {{ domain.when_to_read }}
+
+{% endfor %}
+
+### Domain Selection Rules
+
+{% if domains.selection_rules is defined %}
+{% for rule in domains.selection_rules %}
+- **{{ rule.condition }}**: {{ rule.domains | join(', ') }}
+{% endfor %}
+{% endif %}
+
+> Details: `skills/helix/SKILL.md`
