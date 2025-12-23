@@ -1,0 +1,271 @@
+# docs/sources/phase-types.yaml
+# PRIMARY SOURCE for Phase Type definitions in HELIX v4
+#
+# This file defines all available phase types for project workflows.
+# All documentation is generated from this file.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "Phase Type Definitions for HELIX v4"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+phase_types:
+  - id: consultant
+    name: "Consultant Meeting"
+    description: "Interactive session to gather requirements and create ADR/spec documents"
+    description_short: "ADR creation via consultant agent"
+    role: Consultant
+
+    outputs:
+      - type: adr
+        description: "Architecture Decision Record"
+      - type: spec
+        description: "Project specification (spec.yaml)"
+      - type: phases
+        description: "Phase configuration (phases.yaml)"
+
+    workflow:
+      - step: Read user request
+        action: "Parse input/request.md"
+      - step: Load domain skills
+        action: "Read relevant skills/*.md"
+      - step: Clarify requirements
+        action: "Interactive Q&A with user"
+      - step: Generate outputs
+        action: "Create spec.yaml, phases.yaml, ADR"
+
+    quality_gates:
+      - adr_valid
+      - files_exist
+
+    example:
+      yaml: |
+        phases:
+          - id: "1"
+            name: "Requirements Gathering"
+            type: consultant
+            quality_gate:
+              type: adr_valid
+              file: output/feature-adr.md
+      explanation: "Consultant phase creates an ADR that must be valid"
+
+  - id: development
+    name: "Development"
+    description: "Code implementation based on specification and previous phase outputs"
+    description_short: "Code implementation"
+    role: Developer
+
+    outputs:
+      - type: code
+        description: "Source code files (*.py, *.ts, etc.)"
+      - type: tests
+        description: "Unit tests (test_*.py)"
+
+    workflow:
+      - step: Read specification
+        action: "Parse spec.yaml and phase CLAUDE.md"
+      - step: Read previous outputs
+        action: "Load input/ from previous phases"
+      - step: Implement
+        action: "Write code to output/"
+      - step: Self-verify
+        action: "Run syntax checks"
+
+    quality_gates:
+      - files_exist
+      - syntax_check
+
+    example:
+      yaml: |
+        phases:
+          - id: "2"
+            name: "Implementation"
+            type: development
+            quality_gate:
+              type: syntax_check
+              file_patterns:
+                - "output/**/*.py"
+      explanation: "Development phase with syntax validation"
+
+  - id: testing
+    name: "Testing"
+    description: "Execute test suites and validate functionality"
+    description_short: "Test execution"
+    role: Developer
+
+    outputs:
+      - type: test_results
+        description: "Test execution logs and reports"
+      - type: coverage
+        description: "Coverage reports (optional)"
+
+    workflow:
+      - step: Setup environment
+        action: "Install dependencies if needed"
+      - step: Run tests
+        action: "Execute pytest/jest"
+      - step: Analyze results
+        action: "Check for failures"
+      - step: Fix failures
+        action: "Update code if tests fail"
+
+    quality_gates:
+      - tests_pass
+
+    example:
+      yaml: |
+        phases:
+          - id: "3"
+            name: "Testing"
+            type: testing
+            quality_gate:
+              type: tests_pass
+              test_command: "pytest -v"
+              timeout: 300
+      explanation: "Testing phase runs pytest and requires all tests to pass"
+
+  - id: review
+    name: "Review"
+    description: "LLM-based or human review of phase outputs"
+    description_short: "Code/architecture review"
+    role: Reviewer
+
+    outputs:
+      - type: review_report
+        description: "Review findings and recommendations"
+      - type: approval
+        description: "Approval status (approved/rejected)"
+
+    workflow:
+      - step: Load artifacts
+        action: "Read files to be reviewed"
+      - step: Apply criteria
+        action: "Check against review criteria"
+      - step: Document findings
+        action: "Write review report"
+      - step: Decide
+        action: "Approve or reject with reasons"
+
+    quality_gates:
+      - review_approved
+
+    review_types:
+      - id: code
+        focus: "Code quality, bugs, security"
+      - id: architecture
+        focus: "Design decisions, patterns, scalability"
+      - id: documentation
+        focus: "Completeness, accuracy, examples"
+
+    example:
+      yaml: |
+        phases:
+          - id: "4"
+            name: "Code Review"
+            type: review
+            quality_gate:
+              type: review_approved
+              review_type: code
+              criteria:
+                - "No hardcoded credentials"
+                - "Type hints present"
+      explanation: "Review phase with custom criteria"
+
+  - id: documentation
+    name: "Documentation"
+    description: "Create or update technical documentation"
+    description_short: "Documentation writing"
+    role: Documentation
+
+    outputs:
+      - type: docs
+        description: "Markdown documentation files"
+      - type: diagrams
+        description: "Architecture diagrams (optional)"
+
+    workflow:
+      - step: Analyze implementation
+        action: "Read code and outputs from previous phases"
+      - step: Update docs
+        action: "Write/update documentation files"
+      - step: Validate links
+        action: "Check all references are valid"
+      - step: Compile
+        action: "Run docs compiler if applicable"
+
+    quality_gates:
+      - files_exist
+      - docs_compiled
+
+    documentation_levels:
+      - level: 1
+        name: "Top-Level"
+        files: ["README.md", "CLAUDE.md", "ONBOARDING.md"]
+      - level: 2
+        name: "Architecture"
+        files: ["docs/*.md"]
+      - level: 3
+        name: "Skills"
+        files: ["skills/*/SKILL.md"]
+      - level: 4
+        name: "Code"
+        files: ["Docstrings in *.py"]
+
+    example:
+      yaml: |
+        phases:
+          - id: "5"
+            name: "Documentation"
+            type: documentation
+            quality_gate:
+              type: files_exist
+              required_files:
+                - output/SKILL.md
+                - output/API.md
+      explanation: "Documentation phase creates skill and API docs"
+
+  - id: integration
+    name: "Integration"
+    description: "Merge changes into main codebase with safety checks"
+    description_short: "Safe code integration"
+    role: Developer
+
+    outputs:
+      - type: merged_code
+        description: "Code integrated into target location"
+      - type: backup
+        description: "Git tag or backup before integration"
+
+    workflow:
+      - step: Validate
+        action: "Run full test suite"
+      - step: Backup
+        action: "Create git tag"
+      - step: Merge
+        action: "Copy files to target locations"
+      - step: Verify
+        action: "Run tests again post-merge"
+
+    quality_gates:
+      - tests_pass
+      - files_exist
+
+    safety_checks:
+      - "Create backup tag before integration"
+      - "Run full test suite"
+      - "Automatic rollback on failure"
+
+    example:
+      yaml: |
+        phases:
+          - id: "6"
+            name: "Integration"
+            type: integration
+            quality_gate:
+              type: tests_pass
+              test_command: "pytest tests/ -v"
+      explanation: "Integration phase with full test validation"

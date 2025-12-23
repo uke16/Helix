@@ -1,0 +1,187 @@
+# docs/sources/domains.yaml
+# PRIMARY SOURCE for Domain definitions in HELIX v4
+#
+# This file defines all knowledge domains and their associated skills.
+# All documentation is generated from this file.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "Domain Definitions for HELIX v4"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+domains:
+  - id: helix
+    name: "HELIX Core"
+    description: "Core orchestration system, phase management, and self-evolution capabilities"
+    description_short: "Orchestration & evolution"
+
+    skills:
+      - path: skills/helix/SKILL.md
+        name: "HELIX Core"
+        covers: ["Orchestration", "Phases", "Quality Gates"]
+      - path: skills/helix/adr/SKILL.md
+        name: "ADR Writing"
+        covers: ["ADR Template", "Validation", "Finalization"]
+      - path: skills/helix/evolution/SKILL.md
+        name: "Evolution"
+        covers: ["Test System", "Deployment", "Rollback"]
+
+    key_concepts:
+      - name: "Phase Orchestration"
+        description: "Managing sequential development phases with dependencies"
+      - name: "Quality Gates"
+        description: "Automated validation of phase outputs"
+      - name: "Self-Evolution"
+        description: "Safe modification of HELIX itself via test system"
+
+    source_modules:
+      - src/helix/orchestrator.py
+      - src/helix/quality_gates/
+      - src/helix/evolution/
+
+    when_to_read: "Always read for any HELIX development task"
+
+  - id: pdm
+    name: "PDM System"
+    description: "Product Data Management - articles, BOMs, attributes, and catalog structures"
+    description_short: "Product data management"
+
+    skills:
+      - path: skills/pdm/SKILL.md
+        name: "PDM Core"
+        covers: ["Articles", "BOMs", "Attributes"]
+      - path: skills/pdm/catalog/SKILL.md
+        name: "Catalog"
+        covers: ["Categories", "Navigation", "Search"]
+
+    key_concepts:
+      - name: "Article"
+        description: "Product with attributes, variants, and relationships"
+      - name: "BOM (Bill of Materials)"
+        description: "Hierarchical structure of components"
+      - name: "Attributes"
+        description: "Product properties (technical specs, prices, etc.)"
+
+    database_tables:
+      - article
+      - article_attribute
+      - bom
+      - bom_position
+      - catalog_category
+
+    when_to_read: "When working with product data, catalogs, or BOMs"
+
+  - id: encoder
+    name: "POSITAL Encoder"
+    description: "POSITAL encoder products - specifications, configurations, and integrations"
+    description_short: "Encoder products"
+
+    skills:
+      - path: skills/encoder/SKILL.md
+        name: "Encoder Basics"
+        covers: ["Product Types", "Specifications", "Configurations"]
+      - path: skills/encoder/integration/SKILL.md
+        name: "Integration"
+        covers: ["APIs", "Data Formats", "Connectors"]
+
+    key_concepts:
+      - name: "Encoder Types"
+        description: "Absolute, Incremental, Magnetic, Optical"
+      - name: "Configuration"
+        description: "Resolution, interface, mechanical options"
+      - name: "Ordering Code"
+        description: "Product identification and specification encoding"
+
+    product_categories:
+      - "Absolute Encoders"
+      - "Incremental Encoders"
+      - "Kit Encoders"
+      - "Tilt Sensors"
+
+    when_to_read: "When working with encoder specifications or configurations"
+
+  - id: infrastructure
+    name: "Infrastructure"
+    description: "Docker, PostgreSQL, deployment, and system administration"
+    description_short: "System infrastructure"
+
+    skills:
+      - path: skills/infrastructure/SKILL.md
+        name: "Infrastructure Core"
+        covers: ["Docker", "PostgreSQL", "Deployment"]
+      - path: skills/infrastructure/docker/SKILL.md
+        name: "Docker"
+        covers: ["Containers", "Compose", "Networks"]
+      - path: skills/infrastructure/postgres/SKILL.md
+        name: "PostgreSQL"
+        covers: ["Queries", "Migrations", "Performance"]
+
+    key_concepts:
+      - name: "Containerization"
+        description: "Docker-based deployment and isolation"
+      - name: "Database Management"
+        description: "PostgreSQL administration and optimization"
+      - name: "Service Orchestration"
+        description: "Docker Compose for multi-service deployments"
+
+    technologies:
+      - name: Docker
+        version: "24.x"
+      - name: PostgreSQL
+        version: "15.x"
+      - name: Docker Compose
+        version: "2.x"
+
+    when_to_read: "When working with deployment, databases, or containers"
+
+  - id: api
+    name: "API Layer"
+    description: "REST APIs, FastAPI endpoints, authentication, and integrations"
+    description_short: "API development"
+
+    skills:
+      - path: skills/api/SKILL.md
+        name: "API Core"
+        covers: ["FastAPI", "Endpoints", "Authentication"]
+      - path: skills/api/rest/SKILL.md
+        name: "REST Patterns"
+        covers: ["Resources", "Methods", "Status Codes"]
+
+    key_concepts:
+      - name: "REST API"
+        description: "RESTful API design patterns"
+      - name: "FastAPI"
+        description: "Python web framework for APIs"
+      - name: "Authentication"
+        description: "Token-based auth, permissions"
+
+    frameworks:
+      - name: FastAPI
+        version: "0.100+"
+      - name: Pydantic
+        version: "2.x"
+      - name: SQLAlchemy
+        version: "2.x"
+
+    when_to_read: "When developing or modifying API endpoints"
+
+# Domain selection logic for Claude Code instances
+selection_rules:
+  - condition: "Project involves HELIX itself"
+    domains: [helix]
+
+  - condition: "Project involves product data"
+    domains: [pdm, encoder]
+
+  - condition: "Project involves API development"
+    domains: [api, infrastructure]
+
+  - condition: "Project involves deployment"
+    domains: [infrastructure]
+
+  - condition: "Default for unknown projects"
+    domains: [helix]

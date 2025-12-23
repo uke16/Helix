@@ -1,0 +1,487 @@
+{# SKILL.md.j2 - Template for skills/helix/SKILL.md #}
+{# Target: ~600 lines, detailed documentation with examples #}
+
+# HELIX Core Skill
+
+> Detaillierte Dokumentation des HELIX Orchestration Systems.
+>
+> Lies diese Datei wenn du an HELIX selbst arbeitest oder die Details verstehen musst.
+
+---
+
+## Übersicht
+
+HELIX v4 ist ein AI Development Orchestration System, das Claude Code Instanzen
+koordiniert um Software zu entwickeln. Es organisiert Arbeit in Phasen mit
+Quality Gates zur automatischen Validierung.
+
+### Kernkonzepte
+
+1. **Phasen** - Sequentielle Entwicklungsschritte
+2. **Quality Gates** - Automatische Validierung von Outputs
+3. **Skills** - Domain-spezifisches Wissen
+4. **Evolution** - Sichere Selbst-Modifikation
+
+---
+
+## Phase Types
+
+HELIX unterstützt verschiedene Phase-Typen für unterschiedliche Aufgaben:
+
+{% if phase_types is defined and phase_types.phase_types is defined %}
+{% for phase in phase_types.phase_types %}
+### {{ phase.name }} (`{{ phase.id }}`)
+
+{{ phase.description }}
+
+**Rolle:** {{ phase.role }}
+
+**Outputs:**
+{% for output in phase.outputs %}
+- `{{ output.type }}` - {{ output.description }}
+{% endfor %}
+
+**Workflow:**
+{% for step in phase.workflow %}
+{{ loop.index }}. **{{ step.step }}**: {{ step.action }}
+{% endfor %}
+
+**Quality Gates:** {{ phase.quality_gates | join(', ') }}
+
+**Beispiel:**
+
+```yaml
+{{ phase.example.yaml }}```
+
+{{ phase.example.explanation }}
+
+---
+
+{% endfor %}
+{% else %}
+| Type | Role | Description |
+|------|------|-------------|
+| `consultant` | Consultant | Requirements gathering, ADR creation |
+| `development` | Developer | Code implementation |
+| `testing` | Developer | Test execution |
+| `review` | Reviewer | Code/architecture review |
+| `documentation` | Documentation | Documentation writing |
+
+{% endif %}
+
+## Quality Gates
+
+Quality Gates validieren automatisch die Outputs einer Phase.
+
+### Kategorien
+
+- **Deterministic** - Automatisch prüfbar, immer gleiches Ergebnis
+- **LLM-based** - Nutzt LLM zur Bewertung
+
+{% if quality_gates is defined and quality_gates.gates is defined %}
+{% for gate in quality_gates.gates %}
+---
+
+### `{{ gate.id }}` - {{ gate.name }}
+
+{{ gate.description }}
+
+**Kategorie:** {{ gate.category }}
+**Verwendung:** {{ gate.phase_usage | join(', ') }}
+
+#### Parameter
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+{% for param in gate.params %}
+| `{{ param.name }}` | `{{ param.type }}` | {{ 'Yes' if param.required else 'No' }} | {{ param.description }} |
+{% endfor %}
+
+#### Beispiel
+
+```yaml
+{{ gate.example.yaml }}```
+
+{{ gate.example.explanation }}
+
+{% if gate.validation_checks is defined %}
+#### Validierung
+
+**Errors (Gate schlägt fehl):**
+{% for check in gate.validation_checks.errors %}
+- {{ check }}
+{% endfor %}
+
+**Warnings (Gate besteht):**
+{% for check in gate.validation_checks.warnings %}
+- {{ check }}
+{% endfor %}
+{% endif %}
+
+{% if gate.default_criteria is defined %}
+#### Default Criteria
+
+{% for review_type, criteria in gate.default_criteria.items() %}
+**{{ review_type | capitalize }}:**
+{% for criterion in criteria %}
+- {{ criterion }}
+{% endfor %}
+
+{% endfor %}
+{% endif %}
+
+#### Implementation
+
+- Module: `{{ gate.implementation.module }}`
+- Class: `{{ gate.implementation.class }}`
+- Method: `{{ gate.implementation.method }}`
+
+{% if gate.see_also is defined %}
+**Siehe auch:**
+{% for ref in gate.see_also %}
+- {{ ref }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% else %}
+| Gate | Category | Description |
+|------|----------|-------------|
+| `files_exist` | deterministic | Checks output files exist |
+| `syntax_check` | deterministic | Validates code syntax |
+| `tests_pass` | deterministic | Runs test suite |
+| `review_approved` | llm_based | LLM reviews output |
+| `adr_valid` | deterministic | Validates ADR structure |
+
+{% endif %}
+
+---
+
+## Domains
+
+HELIX organisiert Wissen in Domains mit zugehörigen Skills:
+
+{% if domains is defined and domains.domains is defined %}
+{% for domain in domains.domains %}
+### {{ domain.name }} (`{{ domain.id }}`)
+
+{{ domain.description }}
+
+**Skills:**
+{% for skill in domain.skills %}
+- [{{ skill.name }}]({{ skill.path }}) - {{ skill.covers | join(', ') }}
+{% endfor %}
+
+**Key Concepts:**
+{% for concept in domain.key_concepts %}
+- **{{ concept.name }}**: {{ concept.description }}
+{% endfor %}
+
+**Wann lesen:** {{ domain.when_to_read }}
+
+---
+
+{% endfor %}
+{% else %}
+| Domain | Description | Skills |
+|--------|-------------|--------|
+| `helix` | Core orchestration | SKILL.md, adr/SKILL.md, evolution/SKILL.md |
+| `pdm` | Product Data Management | SKILL.md |
+| `encoder` | POSITAL encoders | SKILL.md |
+| `infrastructure` | Docker, PostgreSQL | SKILL.md |
+| `api` | REST APIs, FastAPI | SKILL.md |
+
+{% endif %}
+
+---
+
+## Escalation
+
+{% if escalation is defined and escalation.escalation is defined %}
+HELIX hat eine automatische Escalation-Strategie bei Fehlern:
+
+**Max Retries:** {{ escalation.escalation.max_retries }}
+**Timeout per Level:** {{ escalation.escalation.timeout_per_level }}s
+
+{% for level in escalation.escalation.levels %}
+### Level {{ level.level }}: {{ level.name }}
+
+{{ level.description }}
+
+**Aktion:** `{{ level.action }}`
+**Automatisch:** {{ 'Ja' if level.automatic else 'Nein' }}
+
+**Trigger:**
+{% for trigger in level.trigger %}
+- {{ trigger }}
+{% endfor %}
+
+**Strategie:**
+{% for step in level.strategy %}
+{{ loop.index }}. **{{ step.step }}**: {{ step.action }}
+{% endfor %}
+
+{% if level.domain_mapping is defined %}
+**Domain Mapping:**
+
+| Error Pattern | Domain |
+|---------------|--------|
+{% for mapping in level.domain_mapping %}
+| `{{ mapping.error_pattern }}` | {{ mapping.domain }} |
+{% endfor %}
+{% endif %}
+
+**Beispiel:** {{ level.example.scenario }} -> {{ level.example.action }}
+
+---
+
+{% endfor %}
+
+### Failure Types
+
+{% for failure in escalation.failure_types %}
+#### {{ failure.type | capitalize }}
+
+{{ failure.description }}
+
+**Beispiele:**
+{% for example in failure.examples %}
+- {{ example }}
+{% endfor %}
+
+**Default Action:** `{{ failure.default_action }}`
+**Retry Count:** {{ failure.retry_count }}
+
+{% endfor %}
+
+### Recovery Procedures
+
+{% for recovery in escalation.recovery %}
+#### {{ recovery.name }}
+
+{{ recovery.description }}
+
+**Steps:**
+{% for step in recovery.steps %}
+{{ loop.index }}. {{ step }}
+{% endfor %}
+
+{% endfor %}
+
+{% else %}
+| Level | Name | Description |
+|-------|------|-------------|
+| 1 | Phase Retry | Retry with enhanced context |
+| 2 | Domain Expert | Escalate to domain specialist |
+| 3 | Architecture Review | Request design decision |
+| 4 | Human Intervention | Pause for human help |
+
+{% endif %}
+
+---
+
+## Evolution System
+
+HELIX kann sich selbst sicher modifizieren über das Evolution-System.
+
+### Status Flow
+
+```
+PENDING -> DEVELOPING -> READY -> DEPLOYED -> VALIDATED -> INTEGRATED
+                               |           |
+                            FAILED <- <- ROLLBACK
+```
+
+### Project Structure
+
+```
+projects/evolution/{name}/
+├── spec.yaml        # Project specification
+├── phases.yaml      # Development phases
+├── status.json      # Current status
+├── new/             # New files to create
+│   └── src/helix/...
+└── modified/        # Modified files
+    └── src/helix/...
+```
+
+### Evolution API
+
+```bash
+# List projects
+curl http://localhost:8001/helix/evolution/projects
+
+# Deploy to test
+curl -X POST http://localhost:8001/helix/evolution/projects/{name}/deploy
+
+# Validate
+curl -X POST http://localhost:8001/helix/evolution/projects/{name}/validate
+
+# Integrate
+curl -X POST http://localhost:8001/helix/evolution/projects/{name}/integrate
+```
+
+### Safety Guarantees
+
+1. Changes always deploy to test system first
+2. Full validation (syntax, unit, E2E) before integration
+3. Automatic rollback on failure
+4. Git tag backup before integration
+5. RAG database 1:1 copy for realistic testing
+
+---
+
+## Documentation Tools
+
+### Docs Compiler
+
+Kompiliert Dokumentation aus YAML-Sources und Code-Docstrings.
+
+```bash
+# Generate all docs
+python -m helix.tools.docs_compiler compile
+
+# Validate without writing
+python -m helix.tools.docs_compiler validate
+
+# List source files
+python -m helix.tools.docs_compiler sources
+
+# Show what would change
+python -m helix.tools.docs_compiler diff
+```
+
+**Python API:**
+
+```python
+from helix.tools.docs_compiler import DocCompiler
+
+compiler = DocCompiler()
+result = compiler.compile()
+
+if result.success:
+    print(f"Generated {len(result.files_written)} files")
+else:
+    for error in result.errors:
+        print(f"ERROR: {error}")
+```
+
+### ADR Tool
+
+Validiert und finalisiert Architecture Decision Records.
+
+```bash
+# Validate an ADR
+python -m helix.tools.adr_tool validate path/to/ADR.md
+
+# Finalize (move to adr/ and update INDEX)
+python -m helix.tools.adr_tool finalize path/to/ADR.md
+
+# Get next available ADR number
+python -m helix.tools.adr_tool next-number
+```
+
+**Python API:**
+
+```python
+from helix.tools import validate_adr, finalize_adr, get_next_adr_number
+
+# Validate
+result = validate_adr("ADR-feature.md")
+if not result.success:
+    print(result.errors)
+
+# Finalize
+result = finalize_adr("ADR-feature.md")
+print(result.final_path)  # -> adr/013-feature.md
+
+# Next number
+next_num = get_next_adr_number()  # -> 13
+```
+
+---
+
+## Code References
+
+### Key Modules
+
+{% if modules is defined %}
+{% for module in modules[:10] %}
+{% if module.docstring %}
+#### `{{ module.path }}`
+
+{{ module.docstring | truncate(200) }}
+
+{% for cls in module.classes[:3] %}
+{% if cls.docstring %}
+- **{{ cls.name }}** (Line {{ cls.lineno }}): {{ cls.docstring | truncate(100) }}
+{% endif %}
+{% endfor %}
+
+{% endif %}
+{% endfor %}
+{% else %}
+- `src/helix/orchestrator.py` - Phase orchestration
+- `src/helix/quality_gates/` - Quality gate implementations
+- `src/helix/evolution/` - Evolution system
+- `src/helix/tools/` - CLI tools
+{% endif %}
+
+---
+
+## Best Practices
+
+### Für Consultants
+
+1. **Klärende Fragen stellen** bevor du implementierst
+2. **Relevante Skills lesen** für Domain-Wissen
+3. **spec.yaml vollständig** mit allen Anforderungen
+4. **phases.yaml realistisch** mit passenden Quality Gates
+
+### Für Developers
+
+1. **Phase CLAUDE.md lesen** für spezifische Anweisungen
+2. **Input-Dateien analysieren** vor Implementation
+3. **Type Hints und Docstrings** für alle Public APIs
+4. **Tests schreiben** wo sinnvoll
+
+### Für Reviewers
+
+1. **Kriterien definieren** für Reviews
+2. **Konstruktives Feedback** mit konkreten Verbesserungen
+3. **Approve oder Reject** mit klarer Begründung
+
+---
+
+## Troubleshooting
+
+### Quality Gate schlägt fehl
+
+1. Lies die Fehlermeldung genau
+2. Check die Gate-Konfiguration in phases.yaml
+3. Prüfe ob alle erwarteten Dateien existieren
+4. Führe Syntax-Check manuell aus
+
+### Phase-Timeout
+
+1. Erhöhe Timeout in phases.yaml
+2. Prüfe ob langwierige Operationen nötig sind
+3. Consider Breaking in smaller phases
+
+### Escalation zu Human Intervention
+
+1. Lies den Status-Report genau
+2. Prüfe alle vorherigen Schritte
+3. Entscheide über nächste Aktion
+4. Dokumentiere Entscheidung
+
+---
+
+## Weiterführende Links
+
+- [ONBOARDING.md](../../ONBOARDING.md) - Konzept-Erklärung
+- [docs/ARCHITECTURE-MODULES.md](../../docs/ARCHITECTURE-MODULES.md) - Technische Architektur
+- [docs/ADR-TEMPLATE.md](../../docs/ADR-TEMPLATE.md) - ADR Template
+- [docs/SELF-DOCUMENTATION.md](../../docs/SELF-DOCUMENTATION.md) - Dokumentationsprinzipien
+
+---

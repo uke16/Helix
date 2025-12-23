@@ -1,0 +1,221 @@
+# docs/sources/escalation.yaml
+# PRIMARY SOURCE for Escalation Strategy definitions in HELIX v4
+#
+# This file defines how HELIX handles failures and escalation paths.
+# All documentation is generated from this file.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "Escalation Strategy Definitions for HELIX v4"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+escalation:
+  max_retries: 3
+  timeout_per_level: 300  # seconds
+
+  levels:
+    - level: 1
+      name: "Phase Retry"
+      description: "Retry the failed phase with enhanced context"
+      action: retry_phase
+      automatic: true
+
+      trigger:
+        - "Quality gate soft failure"
+        - "Transient errors"
+        - "Missing file warnings"
+
+      strategy:
+        - step: Analyze failure
+          action: "Parse error messages and logs"
+        - step: Enhance context
+          action: "Add failure info to phase CLAUDE.md"
+        - step: Retry
+          action: "Re-run phase with same agent"
+
+      max_attempts: 2
+      backoff_seconds: 10
+
+      example:
+        scenario: "syntax_check fails on one file"
+        action: "Retry phase, agent sees error and fixes it"
+
+    - level: 2
+      name: "Domain Expert"
+      description: "Escalate to domain-specific expert agent"
+      action: escalate_to_domain
+      automatic: true
+
+      trigger:
+        - "Level 1 exhausted"
+        - "Domain-specific error patterns"
+        - "Complex technical issues"
+
+      strategy:
+        - step: Identify domain
+          action: "Match error to domain skills"
+        - step: Load expert
+          action: "Spawn agent with domain skills"
+        - step: Consult
+          action: "Expert reviews and suggests fixes"
+        - step: Apply
+          action: "Original agent applies suggestions"
+
+      domain_mapping:
+        - error_pattern: "database|sql|postgres"
+          domain: infrastructure
+        - error_pattern: "api|endpoint|fastapi"
+          domain: api
+        - error_pattern: "article|bom|attribute"
+          domain: pdm
+        - error_pattern: "encoder|sensor"
+          domain: encoder
+        - error_pattern: "phase|gate|orchestrat"
+          domain: helix
+
+      example:
+        scenario: "Database migration fails"
+        action: "Escalate to infrastructure domain expert"
+
+    - level: 3
+      name: "Architecture Review"
+      description: "Request architectural decision review"
+      action: architecture_review
+      automatic: false
+
+      trigger:
+        - "Level 2 exhausted"
+        - "Fundamental design issues"
+        - "Cross-domain conflicts"
+
+      strategy:
+        - step: Summarize issue
+          action: "Generate problem summary"
+        - step: List options
+          action: "Propose alternative approaches"
+        - step: Request decision
+          action: "Present to user for decision"
+        - step: Document
+          action: "Create ADR if needed"
+
+      requires:
+        - "Problem summary document"
+        - "At least 2 alternative approaches"
+        - "Impact analysis for each option"
+
+      example:
+        scenario: "Feature conflicts with existing architecture"
+        action: "Present options to user, create ADR for decision"
+
+    - level: 4
+      name: "Human Intervention"
+      description: "Pause execution and request human help"
+      action: pause_for_human
+      automatic: false
+
+      trigger:
+        - "All automatic levels exhausted"
+        - "Critical security issue"
+        - "Data integrity risk"
+        - "External dependency failure"
+
+      strategy:
+        - step: Pause
+          action: "Stop all phase execution"
+        - step: Notify
+          action: "Send notification to user"
+        - step: Document
+          action: "Write detailed status report"
+        - step: Wait
+          action: "Await user instructions"
+
+      notification:
+        channels:
+          - "Console output"
+          - "Status file update"
+        content:
+          - "Summary of issue"
+          - "Steps attempted"
+          - "Current state"
+          - "Suggested actions"
+
+      example:
+        scenario: "External API permanently unavailable"
+        action: "Pause and ask user how to proceed"
+
+# Failure classification
+failure_types:
+  - type: transient
+    description: "Temporary failures that may resolve on retry"
+    examples:
+      - "Network timeout"
+      - "Rate limiting"
+      - "Temporary file lock"
+    default_action: retry_phase
+    retry_count: 3
+
+  - type: fixable
+    description: "Issues the agent can fix with more context"
+    examples:
+      - "Syntax error in generated code"
+      - "Missing import statement"
+      - "Wrong parameter type"
+    default_action: retry_phase
+    retry_count: 2
+
+  - type: domain_specific
+    description: "Issues requiring domain expertise"
+    examples:
+      - "Database schema mismatch"
+      - "API contract violation"
+      - "Business logic error"
+    default_action: escalate_to_domain
+    retry_count: 1
+
+  - type: architectural
+    description: "Fundamental design issues"
+    examples:
+      - "Pattern conflict"
+      - "Scalability limitation"
+      - "Security architecture flaw"
+    default_action: architecture_review
+    retry_count: 0
+
+  - type: critical
+    description: "Issues requiring immediate human attention"
+    examples:
+      - "Data loss risk"
+      - "Security breach"
+      - "Production impact"
+    default_action: pause_for_human
+    retry_count: 0
+
+# Recovery procedures
+recovery:
+  - name: "Rollback Phase"
+    description: "Restore phase to pre-execution state"
+    steps:
+      - "Clear output/ directory"
+      - "Reset phase status to pending"
+      - "Log rollback event"
+
+  - name: "Checkpoint Restore"
+    description: "Restore project to last successful checkpoint"
+    steps:
+      - "Identify last successful phase"
+      - "Clear all subsequent outputs"
+      - "Reset phase statuses"
+      - "Log restore event"
+
+  - name: "Full Reset"
+    description: "Reset entire project to initial state"
+    steps:
+      - "Backup all outputs"
+      - "Clear all phase outputs"
+      - "Reset all statuses"
+      - "Notify user"
+    requires_confirmation: true
