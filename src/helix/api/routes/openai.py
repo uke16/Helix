@@ -151,6 +151,7 @@ async def _generate_session_claude_md(
         original_request=state.original_request,
         context=context,
         project_name=state.project_name or "Neues Projekt",
+        helix_root="/home/aiuser01/helix-v4",
     )
     
     session_path = session_manager.get_session_path(session_id)

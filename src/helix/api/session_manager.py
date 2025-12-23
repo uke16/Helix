@@ -251,7 +251,19 @@ class SessionManager:
         # Check if user said "start" or similar
         if user_messages:
             last_msg = user_messages[-1].get('content', '').lower()
-            if any(word in last_msg for word in ['start', 'starte', 'ja', 'yes', 'los', 'go']):
+            
+            # Finalize triggers - user wants ADR created and finalized
+            finalize_triggers = [
+                'mach ein adr', 'mach adr', 'erstelle das adr', 'erstelle adr',
+                'adr erstellen', 'create adr', 'finalisiere', 'finalize',
+                'leg das ab', 'schreib das adr', 'adr schreiben',
+                'ok mach', 'ja mach', 'mach draus', 'draus machen',
+            ]
+            if any(trigger in last_msg for trigger in finalize_triggers):
+                state["step"] = "finalize"
+            
+            # Execute triggers
+            elif any(word in last_msg for word in ['start', 'starte', 'ja', 'yes', 'los', 'go']):
                 if state["step"] == "generate":
                     state["step"] = "execute"
         

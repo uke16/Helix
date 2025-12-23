@@ -296,6 +296,53 @@ Schreibe nach `output/response.md`:
 - Hinweis auf Session-ID für Tracking
 - Was der User erwarten kann
 
+{% elif step == "finalize" %}
+### Phase: ADR Finalisieren
+
+Du hast das ADR erstellt. Jetzt finalisiere es:
+
+#### Schritt 1: Validieren
+
+```bash
+PYTHONPATH={{ helix_root }}/src python3 -m helix.tools.adr_tool validate output/ADR-*.md
+```
+
+**Quality Gate**: Das ADR muss valide sein bevor es finalisiert werden kann!
+
+#### Schritt 2: Finalisieren
+
+```bash
+PYTHONPATH={{ helix_root }}/src python3 -m helix.tools.adr_tool finalize output/ADR-*.md
+```
+
+Das Tool:
+- Verschiebt das ADR nach `adr/XXX-titel.md`
+- Vergibt die nächste freie Nummer
+- Gibt den finalen Pfad zurück
+
+#### Schritt 3: INDEX.md aktualisieren
+
+Füge einen Eintrag in `{{ helix_root }}/adr/INDEX.md` hinzu:
+
+```markdown
+| XXX | [Titel](XXX-titel.md) | 📋 | Kurzbeschreibung |
+```
+
+#### Schritt 4: Bestätigung
+
+Zeige dem User:
+```
+✅ ADR-XXX erstellt und finalisiert!
+
+Pfad: adr/XXX-titel.md
+Status: 📋 Proposed
+
+Nächste Schritte:
+- ADR reviewen
+- Bei Bedarf anpassen
+- Status auf "Accepted" setzen wenn genehmigt
+```
+
 {% endif %}
 
 ---
