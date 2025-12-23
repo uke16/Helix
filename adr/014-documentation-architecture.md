@@ -475,3 +475,167 @@ Diese Änderung erfordert neue und aktualisierte Dokumentation:
 
 *ADR erstellt vom HELIX Meta-Consultant*
 *Vollständiges Konzept: [output/docs-architecture.md](docs-architecture.md)*
+
+---
+
+## Migration-Plan
+
+### Übersicht
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  MIGRATION: 14 Tage in 5 Phasen                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Phase 1: Infrastruktur (Tag 1-2)                                       │
+│  └── Verzeichnisse, Compiler-Grundgerüst, CLI                           │
+│                                                                          │
+│  Phase 2: Quality Gates (Tag 3-4)                                       │
+│  └── Erste Source-Datei, erste Templates, erste Generierung             │
+│                                                                          │
+│  Phase 3: Weitere Sources (Tag 5-7)                                     │
+│  └── phase-types, domains, escalation                                   │
+│                                                                          │
+│  Phase 4: Enforcement (Tag 8-10)                                        │
+│  └── Quality Gates, Pre-Commit, CI/CD                                   │
+│                                                                          │
+│  Phase 5: Cleanup (Tag 11-14)                                           │
+│  └── Redundanzen entfernen, Validierung                                 │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Phase 1: Infrastruktur (Tag 1-2)
+
+| Schritt | Aktion | Befehl/Datei | Ergebnis |
+|---------|--------|--------------|----------|
+| 1.1 | Verzeichnisse erstellen | `mkdir -p docs/sources docs/templates/partials` | Basis-Struktur |
+| 1.2 | Compiler implementieren | `src/helix/tools/docs_compiler.py` | Tool-Grundgerüst |
+| 1.3 | CLI Entry-Point | `__main__.py` hinzufügen | `python -m helix.tools.docs` |
+| 1.4 | Basis-Test | `python -m helix.tools.docs --help` | CLI funktioniert |
+
+**Validierung Phase 1:**
+```bash
+python -m helix.tools.docs --help
+# Sollte: compile, validate, sources Befehle zeigen
+```
+
+### Phase 2: Quality Gates Migration (Tag 3-4)
+
+| Schritt | Aktion | Details |
+|---------|--------|---------|
+| 2.1 | Source extrahieren | Quality Gates aus CLAUDE.md → `docs/sources/quality-gates.yaml` |
+| 2.2 | Tabellen-Template | `docs/templates/partials/quality-gates-table.md.j2` |
+| 2.3 | Detail-Template | `docs/templates/partials/quality-gates-detail.md.j2` |
+| 2.4 | CLAUDE.md Template | `docs/templates/CLAUDE.md.j2` |
+| 2.5 | Erste Kompilierung | `python -m helix.tools.docs compile` |
+
+**Source-Datei Beispiel (`docs/sources/quality-gates.yaml`):**
+```yaml
+gates:
+  - id: files_exist
+    name: "Files Exist"
+    description: "Prüft ob alle erwarteten Output-Dateien existieren"
+    category: deterministic
+    params:
+      - name: required_files
+        type: list[str]
+        required: true
+    example: |
+      quality_gate:
+        type: files_exist
+        required_files:
+          - output/result.md
+```
+
+**Validierung Phase 2:**
+```bash
+python -m helix.tools.docs compile
+diff CLAUDE.md CLAUDE.md.backup  # Sollte: nur Formatierung unterschiedlich
+```
+
+### Phase 3: Weitere Sources (Tag 5-7)
+
+| Schritt | Source-Datei | Inhalt |
+|---------|--------------|--------|
+| 3.1 | `docs/sources/phase-types.yaml` | consultant, development, testing, review, documentation |
+| 3.2 | `docs/sources/domains.yaml` | helix, pdm, encoder, infrastructure |
+| 3.3 | `docs/sources/escalation.yaml` | Escalation-Level und Strategien |
+| 3.4 | SKILL.md Template | `docs/templates/SKILL.md.j2` |
+
+**Validierung Phase 3:**
+```bash
+python -m helix.tools.docs compile
+ls -la CLAUDE.md skills/helix/SKILL.md  # Beide generiert
+```
+
+### Phase 4: Enforcement (Tag 8-10)
+
+| Schritt | Aktion | Implementation |
+|---------|--------|----------------|
+| 4.1 | Quality Gate `docstrings_complete` | `src/helix/quality_gates/docstrings.py` |
+| 4.2 | Quality Gate `docs_compiled` | `src/helix/quality_gates/docs.py` |
+| 4.3 | Coverage Tool | `src/helix/tools/docs_coverage.py` |
+| 4.4 | Pre-Commit Hook | `.git/hooks/pre-commit` |
+| 4.5 | CI/CD Workflow | `.github/workflows/docs.yml` (optional) |
+
+**Pre-Commit Hook:**
+```bash
+#!/bin/bash
+# Prüft Docstrings für geänderte .py Dateien
+# Regeneriert Docs wenn Sources geändert
+
+python -m helix.tools.docs validate || exit 1
+```
+
+**Validierung Phase 4:**
+```bash
+# Test: Commit ohne Docstring sollte fehlschlagen
+echo "def test(): pass" > /tmp/test.py
+git add /tmp/test.py && git commit -m "test"  # Sollte: blockiert
+```
+
+### Phase 5: Cleanup & Validierung (Tag 11-14)
+
+| Schritt | Aktion | Prüfung |
+|---------|--------|---------|
+| 5.1 | Redundanzen identifizieren | `grep -r "quality.*gate" docs/ skills/` |
+| 5.2 | Redundanzen entfernen | Manuelle Sections in generierten Dateien entfernen |
+| 5.3 | CLAUDE.md ersetzen | `mv CLAUDE.md.generated CLAUDE.md` |
+| 5.4 | Skills ersetzen | Skills auf generierte Version umstellen |
+| 5.5 | Vollvalidierung | `python -m helix.tools.docs_coverage` |
+
+**Finale Validierung:**
+```bash
+# Alles sollte grün sein
+python -m helix.tools.docs validate
+python -m helix.tools.docs_coverage
+git diff  # Keine unerwarteten Änderungen
+```
+
+### Rollback-Plan
+
+Falls Probleme auftreten:
+
+```bash
+# 1. Backup wiederherstellen
+git checkout HEAD~1 -- CLAUDE.md skills/
+
+# 2. Generierung deaktivieren
+rm .git/hooks/pre-commit
+
+# 3. Problem analysieren
+python -m helix.tools.docs validate --verbose
+```
+
+### Erfolgskriterien
+
+| Kriterium | Messung | Zielwert |
+|-----------|---------|----------|
+| Docstring Coverage | `docs_coverage` | 100% |
+| YAML Coverage | `docs_coverage` | 100% |
+| Stale References | `docs_coverage` | 0 |
+| Generated Docs Current | `docs validate` | ✅ |
+| Pre-Commit funktioniert | Test-Commit | ✅ |
+| Redundanzen eliminiert | `grep` Analyse | 0 |
+
