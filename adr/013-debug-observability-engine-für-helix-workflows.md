@@ -1,7 +1,7 @@
 ---
 adr_id: "013"
 title: "Debug & Observability Engine für HELIX Workflows"
-status: Proposed
+status: Implemented
 component_type: SERVICE
 classification: NEW
 change_scope: major
