@@ -1,0 +1,86 @@
+{#
+  quality-gates-detail.md.j2
+
+  Renders detailed documentation for each Quality Gate.
+  Used in skills/helix/SKILL.md for the full reference.
+
+  Required context:
+    - quality_gates: dict with 'gates' list from quality-gates.yaml
+#}
+## Quality Gates
+
+HELIX verwendet Quality Gates um die Qualitat der Arbeit zu validieren.
+Jede Phase kann ein Quality Gate definieren, das nach Abschluss gepruft wird.
+
+### Kategorien
+
+| Kategorie | Beschreibung |
+|-----------|--------------|
+| `deterministic` | Automatische Prufung ohne LLM (schnell, gunstig) |
+| `llm_based` | LLM-gestutzte Prufung (flexibel, teurer) |
+
+---
+
+{% for gate in quality_gates.gates %}
+### {{ gate.name }} (`{{ gate.id }}`)
+
+{{ gate.description }}
+
+**Kategorie:** `{{ gate.category }}`
+**Verwendung in Phasen:** {{ gate.phase_usage | join(", ") }}
+
+#### Parameter
+
+| Name | Typ | Pflicht | Default | Beschreibung |
+|------|-----|---------|---------|--------------|
+{% for param in gate.params -%}
+| `{{ param.name }}` | `{{ param.type }}` | {{ "Ja" if param.required else "Nein" }} | {{ param.default | default("-", true) }} | {{ param.description }} |
+{% endfor %}
+
+#### Beispiel
+
+```yaml
+{{ gate.example.yaml | trim }}
+```
+
+{{ gate.example.explanation }}
+
+{% if gate.validation_checks is defined %}
+#### Validierungsprufungen
+
+**Fehler (Gate schlagt fehl):**
+{% for check in gate.validation_checks.errors %}
+- {{ check }}
+{% endfor %}
+
+**Warnungen (Gate besteht):**
+{% for check in gate.validation_checks.warnings %}
+- {{ check }}
+{% endfor %}
+{% endif %}
+
+{% if gate.default_criteria is defined %}
+#### Standard-Kriterien
+
+{% for review_type, criteria in gate.default_criteria.items() %}
+**{{ review_type | capitalize }}:**
+{% for criterion in criteria %}
+- {{ criterion }}
+{% endfor %}
+
+{% endfor %}
+{% endif %}
+
+{% if gate.see_also is defined %}
+#### Siehe auch
+
+{% for ref in gate.see_also %}
+- [{{ ref }}]({{ ref }})
+{% endfor %}
+{% endif %}
+
+**Implementation:** `{{ gate.implementation.module }}.{{ gate.implementation.class }}.{{ gate.implementation.method }}`
+
+---
+
+{% endfor %}

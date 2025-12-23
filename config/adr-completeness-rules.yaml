@@ -1,0 +1,171 @@
+# ADR Completeness Rules
+# Kontextabhängige Validierungsregeln für Architecture Decision Records
+#
+# Diese Regeln werden durch den CompletenessValidator geladen und gegen ADRs
+# geprüft. Regeln werden nur ausgeführt wenn die `when`-Bedingung erfüllt ist.
+#
+# Version: 1.0
+# ADR: ADR-015
+
+_meta:
+  version: "1.0"
+  description: "Kontextabhängige ADR-Validierungsregeln"
+
+# Basis-Regeln (immer aktiv)
+base_rules:
+  required_sections:
+    - Kontext
+    - Entscheidung
+    - Implementation
+    - Dokumentation
+    - Akzeptanzkriterien
+    - Konsequenzen
+
+  min_acceptance_criteria: 3
+  min_section_length: 50  # Zeichen
+
+# Kontextabhängige Regeln
+contextual_rules:
+
+  # Regel 1: Major Changes brauchen Migration
+  - id: major-needs-migration
+    name: "Major Changes erfordern Migrationsplan"
+    when:
+      change_scope: major
+    require:
+      sections:
+        - name: "Migration"
+          min_length: 100
+          required_elements:
+            - "Phase"
+            - "Schritt|Step|Tag|Day"
+      acceptance_criteria_keywords:
+        - "migration"
+        - "rollback"
+    severity: error
+    message: "change_scope=major erfordert einen Migrations-Plan"
+
+  # Regel 2: Major Changes brauchen Rollback-Plan
+  - id: major-needs-rollback
+    name: "Major Changes erfordern Rollback-Plan"
+    when:
+      change_scope: major
+    require:
+      content_patterns:
+        - pattern: "(rollback|zurückrollen|revert|wiederherstellen)"
+          location: any
+          min_matches: 1
+    severity: warning
+    message: "Major changes sollten einen Rollback-Plan dokumentieren"
+
+  # Regel 3: Neue Features brauchen Beispiele
+  - id: new-needs-examples
+    name: "Neue Features brauchen Usage Examples"
+    when:
+      classification: NEW
+      files_create_not_empty: true
+    require:
+      sections:
+        - name: "Implementation"
+          required_elements:
+            - "```"
+            - "Beispiel|Example|Usage"
+    severity: warning
+    message: "Neue Features sollten Beispiele enthalten"
+
+  # Regel 4: Breaking Changes brauchen Upgrade-Guide
+  - id: breaking-needs-upgrade
+    name: "Breaking Changes brauchen Upgrade-Guide"
+    when:
+      any:
+        - content_contains: "breaking change"
+        - content_contains: "nicht abwärtskompatibel"
+        - content_contains: "inkompatibel"
+        - content_contains: "breaking"
+    require:
+      sections:
+        - name: "Migration"
+          min_length: 50
+      content_patterns:
+        - pattern: "(vorher|nachher|alt|neu|before|after|old|new)"
+          min_matches: 2
+    severity: error
+    message: "Breaking Changes erfordern einen Upgrade-Guide"
+
+  # Regel 5: Dependencies brauchen Referenzen
+  - id: deps-need-references
+    name: "Abhängigkeiten brauchen Referenzen"
+    when:
+      depends_on_not_empty: true
+    require:
+      content_patterns:
+        - pattern: "ADR-\\d{3}"
+          location: content
+          min_matches: 1
+    severity: warning
+    message: "Abhängige ADRs sollten im Content erwähnt werden"
+
+  # Regel 6: Tools brauchen CLI-Dokumentation
+  - id: tools-need-cli
+    name: "Neue Tools brauchen CLI-Dokumentation"
+    when:
+      component_type: TOOL
+      classification: NEW
+    require:
+      content_patterns:
+        - pattern: "(python -m|CLI|--help|command|Befehl)"
+          location: implementation
+          min_matches: 1
+    severity: warning
+    message: "Tools sollten CLI-Verwendung dokumentieren"
+
+  # Regel 7: Services brauchen API-Dokumentation
+  - id: service-needs-api
+    name: "Services brauchen API-Dokumentation"
+    when:
+      component_type: SERVICE
+    require:
+      content_patterns:
+        - pattern: "(GET|POST|PUT|DELETE|endpoint|API|/api/)"
+          min_matches: 1
+    severity: warning
+    message: "Services sollten API-Endpoints dokumentieren"
+
+  # Regel 8: Config-Änderungen brauchen Schema
+  - id: config-needs-schema
+    name: "Config-Änderungen brauchen Schema"
+    when:
+      change_scope: config
+    require:
+      content_patterns:
+        - pattern: "```ya?ml"
+          min_matches: 1
+    severity: warning
+    message: "Config-Änderungen sollten YAML-Schema zeigen"
+
+  # Regel 9: Neue Dateien brauchen Pfadangaben
+  - id: files-need-paths
+    name: "Neue Dateien brauchen explizite Pfade"
+    when:
+      files_create_not_empty: true
+    require:
+      content_patterns:
+        - pattern: "(src/|config/|docs/|skills/|templates/)"
+          location: implementation
+          min_matches: 1
+    severity: warning
+    message: "Implementation sollte Dateipfade für neue Dateien enthalten"
+
+  # Regel 10: Akzeptanzkriterien mit Checkboxen
+  - id: has-acceptance-criteria
+    name: "Akzeptanzkriterien müssen Checkboxen haben"
+    when:
+      # Diese Regel gilt immer (leere when = immer)
+      all: []
+    require:
+      content_patterns:
+        - pattern: "- \\[[ x]\\]"
+          location: akzeptanzkriterien
+          min_matches: 3
+    severity: error
+    message: "Akzeptanzkriterien müssen mindestens 3 Checkboxen enthalten"

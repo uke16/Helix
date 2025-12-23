@@ -1,0 +1,236 @@
+# docs/sources/quality-gates.yaml
+# PRIMARY SOURCE for all Quality Gate documentation in HELIX v4
+#
+# This file is the single source of truth for Quality Gate definitions.
+# All documentation is generated from this file.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "Quality Gate Definitions for HELIX v4"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+    - docs/ARCHITECTURE-MODULES.md
+
+gates:
+  - id: files_exist
+    name: "Files Exist"
+    description: "Checks that all expected output files exist after a phase completes"
+    description_short: "Checks if output files exist"
+    category: deterministic
+    phase_usage:
+      - development
+      - documentation
+
+    params:
+      - name: required_files
+        type: list[str]
+        required: true
+        description: "List of expected file paths relative to phase output directory"
+
+    example:
+      yaml: |
+        quality_gate:
+          type: files_exist
+          required_files:
+            - output/result.md
+            - output/schema.py
+      explanation: "Validates that both files exist after the phase completes"
+
+    implementation:
+      module: helix.quality_gates
+      class: QualityGateRunner
+      method: check_files_exist
+
+  - id: syntax_check
+    name: "Syntax Check"
+    description: "Validates Python/TypeScript/Go syntax of source files using AST parsing"
+    description_short: "Validates code syntax"
+    category: deterministic
+    phase_usage:
+      - development
+
+    params:
+      - name: file_patterns
+        type: list[str]
+        required: false
+        default: ["**/*.py"]
+        description: "Glob patterns for files to check"
+      - name: languages
+        type: list[str]
+        required: false
+        default: ["python"]
+        description: "Languages to check (python, typescript, go)"
+
+    example:
+      yaml: |
+        quality_gate:
+          type: syntax_check
+          file_patterns:
+            - "src/**/*.py"
+            - "tests/**/*.py"
+      explanation: "Validates Python syntax for all .py files in src/ and tests/"
+
+    implementation:
+      module: helix.quality_gates
+      class: QualityGateRunner
+      method: check_syntax
+
+  - id: tests_pass
+    name: "Tests Pass"
+    description: "Executes test suite (pytest/jest) and verifies all tests pass"
+    description_short: "Runs tests and checks for success"
+    category: deterministic
+    phase_usage:
+      - testing
+
+    params:
+      - name: test_command
+        type: str
+        required: false
+        default: "pytest"
+        description: "Test command to execute"
+      - name: working_dir
+        type: str
+        required: false
+        description: "Working directory for test execution"
+      - name: timeout
+        type: int
+        required: false
+        default: 300
+        description: "Timeout in seconds for test execution"
+
+    example:
+      yaml: |
+        quality_gate:
+          type: tests_pass
+          test_command: "pytest -v --tb=short"
+          timeout: 600
+      explanation: "Runs pytest with verbose output and 10 minute timeout"
+
+    implementation:
+      module: helix.quality_gates
+      class: QualityGateRunner
+      method: check_tests_pass
+
+  - id: review_approved
+    name: "Review Approved"
+    description: "LLM-based review of phase output against specified criteria"
+    description_short: "LLM reviews output for quality"
+    category: llm_based
+    phase_usage:
+      - review
+
+    params:
+      - name: review_type
+        type: str
+        required: true
+        enum:
+          - code
+          - architecture
+          - documentation
+        description: "Type of review to perform"
+      - name: criteria
+        type: list[str]
+        required: false
+        description: "Additional review criteria beyond defaults"
+      - name: files
+        type: list[str]
+        required: false
+        description: "Specific files to review (defaults to all output files)"
+
+    example:
+      yaml: |
+        quality_gate:
+          type: review_approved
+          review_type: code
+          criteria:
+            - "No hardcoded credentials"
+            - "Type hints present on all functions"
+            - "Docstrings for public API"
+      explanation: "LLM reviews code for security and documentation standards"
+
+    default_criteria:
+      code:
+        - "Code follows project conventions"
+        - "No obvious bugs or logic errors"
+        - "Error handling is appropriate"
+      architecture:
+        - "Design aligns with ADR decisions"
+        - "No unnecessary complexity"
+        - "Interfaces are well-defined"
+      documentation:
+        - "Content is accurate and complete"
+        - "Examples are working"
+        - "Links are valid"
+
+    implementation:
+      module: helix.quality_gates
+      class: QualityGateRunner
+      method: check_review_approved
+
+  - id: adr_valid
+    name: "ADR Valid"
+    description: "Validates Architecture Decision Records against the ADR template (ADR-086 format)"
+    description_short: "Validates ADR document structure"
+    category: deterministic
+    phase_usage:
+      - consultant
+      - review
+
+    params:
+      - name: file
+        type: str
+        required: true
+        description: "Path to the ADR file to validate"
+
+    example:
+      yaml: |
+        quality_gate:
+          type: adr_valid
+          file: output/feature-adr.md
+      explanation: "Validates that the ADR follows the required template structure"
+
+    validation_checks:
+      errors:
+        - "YAML frontmatter present and valid"
+        - "Required fields: adr_id, title, status"
+        - "Required sections: Kontext, Entscheidung, Implementation, Dokumentation, Akzeptanzkriterien, Konsequenzen"
+        - "At least one acceptance criterion (checkbox)"
+      warnings:
+        - "Recommended fields: component_type, classification, change_scope"
+        - "Less than 3 acceptance criteria"
+        - "Missing depends_on for major changes"
+
+    required_sections:
+      - "## Kontext"
+      - "## Entscheidung"
+      - "## Implementation"
+      - "## Dokumentation"
+      - "## Akzeptanzkriterien"
+      - "## Konsequenzen"
+
+    required_yaml_fields:
+      - adr_id
+      - title
+      - status
+
+    recommended_yaml_fields:
+      - component_type
+      - classification
+      - change_scope
+      - domain
+      - language
+      - skills
+      - files
+
+    implementation:
+      module: helix.adr.gate
+      class: ADRQualityGate
+      method: check
+
+    see_also:
+      - docs/ADR-TEMPLATE.md
+      - skills/helix/adr/SKILL.md

@@ -49,3 +49,7 @@ __all__ = [
     "Classification",
     "ChangeScope",
 ]
+
+# ADR-015: Completeness Validation
+from .completeness import CompletenessValidator, CompletenessRule, CompletenessResult
+from .concept_diff import ConceptDiffer, ConceptDiffResult

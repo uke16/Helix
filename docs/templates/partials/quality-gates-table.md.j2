@@ -1,0 +1,18 @@
+{#
+  quality-gates-table.md.j2
+
+  Renders a summary table of all Quality Gates.
+  Used in CLAUDE.md for the overview section.
+
+  Required context:
+    - quality_gates: dict with 'gates' list from quality-gates.yaml
+#}
+## Quality Gates
+
+| Gate | Beschreibung | Kategorie | Verwendung |
+|------|--------------|-----------|------------|
+{% for gate in quality_gates.gates -%}
+| `{{ gate.id }}` | {{ gate.description_short }} | {{ gate.category }} | {{ gate.phase_usage | join(", ") }} |
+{% endfor %}
+
+> Details: `skills/helix/SKILL.md`
