@@ -9,21 +9,20 @@
 
 ## Kritische Bugs 🔴
 
-### BUG-001: CompletenessValidator Regex findet Checkboxen nicht
+### BUG-001: CompletenessValidator findet keine Checkboxen ✅ FIXED
 
 **Datei:** `src/helix/adr/completeness.py`
 
-**Problem:**
-```python
-# Regel in config/adr-completeness-rules.yaml:
-- id: has-acceptance-criteria
-  require:
-    pattern: "- \\[[ x]\\]"  # Sucht nach "- [ ]" oder "- [x]"
-```
+**Ursprüngliche Diagnose:** Regex `- \[[ x]\]` funktioniert nicht
+**Echtes Problem:** `_get_search_text()` gab nur Parent-Section content zurück (leer wenn Sub-Sections existieren)
 
-Der Regex `- \[[ x]\]` funktioniert nicht korrekt:
-- Findet `- [ ]` nicht (Leerzeichen in Checkbox)
-- Findet `- [x]` nicht (x in Checkbox)
+**Root Cause:**
+- Section "Akzeptanzkriterien" hat `content = None` (korrekt!)
+- Checkboxen sind in Sub-Sections: "1. Funktionalität", "2. Qualität", etc.
+- `_get_search_text()` musste Sub-Sections einschließen
+
+**Fix:** `_get_search_text()` extrahiert jetzt den gesamten Section-Bereich aus raw_content,
+inklusive aller Sub-Sections bis zur nächsten gleichwertigen Section.
 
 **Reproduzieren:**
 ```bash
@@ -51,7 +50,7 @@ pattern: "- \\[([ xX])\\]"  # Explicit: Leerzeichen, x, oder X
 
 ---
 
-### BUG-002: ADR Section-Content-Detection meldet 0 chars für gefüllte Sections
+### BUG-002: ADR Section-Content-Detection meldet 0 chars ✅ FIXED (via BUG-001)
 
 **Datei:** `src/helix/tools/adr_tool.py`
 

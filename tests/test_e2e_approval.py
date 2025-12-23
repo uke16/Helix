@@ -53,7 +53,7 @@ class MockADRMetadata:
     title: str = "Test ADR"
     status: str = "Proposed"
     change_scope: str = "minor"
-    classification: str = "ENHANCEMENT"
+    classification: str = "NEW"
     component_type: str = "TOOL"
     domain: str = "helix"
     depends_on: list = None
@@ -77,7 +77,7 @@ adr_id: "TEST-001"
 title: "Test ADR - Minimal"
 status: Proposed
 change_scope: minor
-classification: ENHANCEMENT
+classification: NEW
 ---
 
 # ADR-TEST-001: Test ADR - Minimal

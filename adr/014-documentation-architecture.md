@@ -1,7 +1,7 @@
 ---
 adr_id: "014"
 title: "Documentation Architecture - Generated Docs with Enforcement"
-status: Proposed
+status: Implemented
 
 component_type: PROCESS
 classification: NEW

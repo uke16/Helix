@@ -483,7 +483,7 @@ class CompletenessValidator:
             location: Where to search ("any", "header", "content", or section name)
 
         Returns:
-            Text to search in
+            Text to search in (includes sub-sections for section locations)
         """
         if location == "any":
             return adr.raw_content
@@ -492,9 +492,42 @@ class CompletenessValidator:
         if location == "content":
             return adr.raw_content
 
-        # Location is a section name
+        # Location is a section name - include sub-sections
         section = self._find_section(adr, location)
-        return section.content if section else ""
+        if not section:
+            return ""
+        
+        # Find section by searching for the header in raw_content
+        # (line_start in ADRSection may be incorrect for some documents)
+        lines = adr.raw_content.split('\n')
+        
+        # Find the actual line where this section header appears
+        header_pattern = f"{'#' * section.level} {section.name}"
+        start_line = None
+        for i, line in enumerate(lines):
+            if line.strip() == header_pattern or section.name in line:
+                if line.startswith('#'):
+                    start_line = i
+                    break
+        
+        if start_line is None:
+            # Fallback: use section.line_start
+            start_line = section.line_start
+        
+        end_line = len(lines)
+        
+        # Find where this section ends (next section at same or higher level)
+        for i, line in enumerate(lines[start_line + 1:], start=start_line + 1):
+            if line.startswith('#'):
+                # Count the level
+                level = len(line) - len(line.lstrip('#'))
+                if level <= section.level:
+                    end_line = i
+                    break
+        
+        # Extract text from start to end
+        section_text = '\n'.join(lines[start_line:end_line])
+        return section_text
 
 
 def validate_completeness(

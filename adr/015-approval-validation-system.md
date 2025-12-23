@@ -1,7 +1,7 @@
 ---
 adr_id: "015"
 title: "Approval & Validation System - Hybrid Pre-Checks + Sub-Agent"
-status: Proposed
+status: Implemented
 
 component_type: PROCESS
 classification: NEW
