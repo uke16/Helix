@@ -74,3 +74,34 @@ User Request
 - **Infrastructure** - Docker, CI/CD
 - **Database** - PostgreSQL, Neo4j, Qdrant
 - **Webshop** - E-commerce, configurator
+
+---
+
+## Consultant: ADR aus Gespräch erstellen
+
+Der Consultant kann ADRs direkt aus dem Gespräch erstellen.
+
+### Trigger-Wörter
+
+Wenn du sagst:
+- "mach ein ADR draus"
+- "erstelle ein ADR" / "adr erstellen"
+- "finalisiere" / "finalize"
+- "leg das ab"
+- "ok mach" / "ja mach"
+
+### Workflow
+
+Der Consultant wechselt in den `finalize` Step:
+
+1. **Erstellt ADR** basierend auf dem Gespräch → `output/ADR-xxx.md`
+2. **Validiert** mit `python -m helix.tools.adr_tool validate`
+3. **Finalisiert** mit `python -m helix.tools.adr_tool finalize`
+4. **Aktualisiert** INDEX.md mit neuem Eintrag
+5. **Bestätigt** mit finalem Pfad: `adr/XXX-titel.md`
+
+### Voraussetzungen
+
+Der Consultant braucht dafür:
+- `adr/INDEX.md` (um nächste Nummer zu kennen)
+- `skills/helix/adr/SKILL.md` (ADR-Format)
