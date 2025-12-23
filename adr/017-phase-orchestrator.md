@@ -1,7 +1,7 @@
 ---
 adr_id: "017"
 title: "Phase Orchestrator - Automatische Projekt-Ausführung"
-status: Proposed
+status: Implemented
 
 project_type: helix_internal
 component_type: PROCESS

@@ -1,0 +1,166 @@
+# HELIX v4 Phase Types Configuration
+#
+# Defines default quality gates and settings for each phase type.
+# These can be overridden in individual phases.yaml files.
+
+_meta:
+  version: "1.0"
+  description: "Default quality gates and settings per phase type"
+
+# Phase Types with their default gates
+phase_types:
+  consultant:
+    description: "ADR and specification creation"
+    default_gates:
+      - type: adr_valid
+    output_pattern: "output/ADR-*.md"
+    timeout: 900  # 15 minutes
+
+  development:
+    description: "Code implementation"
+    default_gates:
+      - type: files_exist
+      - type: syntax_check
+        language: python
+      - type: tests_pass
+        command: pytest
+    output_pattern: "output/src/**/*.py"
+    timeout: 1200  # 20 minutes
+
+  review:
+    description: "Code and ADR review"
+    default_gates:
+      - type: review_approved
+    requires_input_from: [development, consultant]
+    timeout: 600  # 10 minutes
+
+  testing:
+    description: "Test execution"
+    default_gates:
+      - type: tests_pass
+        command: pytest -v
+    output_pattern: "output/tests/**/*.py"
+    timeout: 900  # 15 minutes
+
+  integration:
+    description: "Integration into main project"
+    default_gates:
+      - type: tests_pass
+        command: pytest
+      - type: syntax_check
+        language: python
+    requires_input_from: [development, review]
+    timeout: 600  # 10 minutes
+
+  feasibility:
+    description: "Proof of concept creation"
+    default_gates:
+      - type: files_exist
+    output_pattern: "output/poc/**"
+    timeout: 1800  # 30 minutes
+
+  planning:
+    description: "Phase planning (decompose)"
+    default_gates:
+      - type: files_exist
+        files:
+          - output/plan.yaml
+    can_decompose: true
+    max_sub_phases: 4
+    output_pattern: "output/plan.yaml"
+    timeout: 600  # 10 minutes
+
+  research:
+    description: "Research and exploration"
+    default_gates:
+      - type: files_exist
+        files:
+          - output/findings.md
+    output_pattern: "output/*.md"
+    timeout: 1200  # 20 minutes
+
+  decision:
+    description: "Decision making (exploratory)"
+    default_gates:
+      - type: files_exist
+        files:
+          - output/recommendation.yaml
+    output_pattern: "output/recommendation.yaml"
+    timeout: 600  # 10 minutes
+
+  documentation:
+    description: "Documentation creation"
+    default_gates:
+      - type: files_exist
+    output_pattern: "output/docs/**/*.md"
+    timeout: 900  # 15 minutes
+
+  hardware-test:
+    description: "Hardware-in-the-loop testing"
+    default_gates:
+      - type: tests_pass
+        command: pytest tests/hil/
+    tools_required:
+      - jtag
+      - oscilloscope
+      - can-interface
+    timeout: 1800  # 30 minutes
+
+# Project Types and their default phase sequences
+project_types:
+  simple:
+    description: "Standard feature development (Schema F)"
+    default_phases:
+      - consultant
+      - development
+      - review
+      - integration
+    auto_approve: false
+
+  complex:
+    description: "Complex feature with feasibility study"
+    default_phases:
+      - consultant
+      - feasibility
+      - planning
+      - development
+      - review
+      - integration
+    auto_approve: false
+
+  exploratory:
+    description: "Exploration without fixed plan"
+    default_phases:
+      - consultant
+      - research
+      - decision
+    auto_approve: false
+
+  documentation:
+    description: "Documentation-only project"
+    default_phases:
+      - consultant
+      - documentation
+      - review
+    auto_approve: false
+
+  bugfix:
+    description: "Quick bug fix"
+    default_phases:
+      - development
+      - testing
+      - integration
+    auto_approve: false
+
+# Retry Configuration
+retry:
+  max_retries: 3
+  retry_delay_seconds: 5
+
+# Model Configuration per Phase Type
+models:
+  default: "sonnet"
+  phase_overrides:
+    consultant: "opus"
+    review: "opus"
+    planning: "opus"
