@@ -40,6 +40,7 @@
 |----|-----|--------|------------------|
 | 011 | [Post-Phase Verification](011-post-phase-verification.md) | ✅ | Hybrid: Self-Verify + Safety Net, max 2 Retries |
 | 012 | [ADR as Single Source of Truth](012-adr-as-single-source-of-truth.md) | ✅ | ADR ersetzt spec.yaml, files.create/modify |
+| 013 | [Debug & Observability Engine](013-debug-observability-engine-für-helix-workflows.md) | 📋 | Live Tool Call Tracking, Cost Monitoring, StreamParser |
 
 ---
 
@@ -99,7 +100,7 @@
 
 ## Neue ADRs erstellen
 
-1. Nächste freie Nummer verwenden (aktuell: 013)
+1. Nächste freie Nummer verwenden (aktuell: 014)
 2. Format: `NNN-kurzer-name.md`
 3. YAML Header mit adr_id, title, status, files, depends_on
 4. Sections: Kontext, Entscheidung, Implementation, Akzeptanzkriterien
