@@ -36,3 +36,15 @@ __all__ = [
     # Data flow
     "DataFlowManager",
 ]
+
+# Backward compatibility: re-export old Orchestrator class
+# The CLI still uses the old Orchestrator, not the new OrchestratorRunner
+from ..orchestrator_legacy import Orchestrator
+
+__all__.append("Orchestrator")
+
+# Backward compatibility: re-export old Orchestrator class
+# The CLI still uses the old Orchestrator, not the new OrchestratorRunner
+from ..orchestrator_legacy import Orchestrator
+
+__all__.append("Orchestrator")

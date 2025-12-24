@@ -45,7 +45,7 @@ class PhaseLoader:
             print(f"Phase {phase.id}: {phase.name}")
     """
 
-    VALID_PHASE_TYPES = {"meeting", "development", "review", "documentation", "test"}
+    VALID_PHASE_TYPES = {"meeting", "consultant", "development", "review", "documentation", "test"}
 
     def __init__(self, templates_dir: Path | None = None) -> None:
         """Initialize the PhaseLoader.

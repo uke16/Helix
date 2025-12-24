@@ -4,6 +4,8 @@ This module contains all CLI commands for the HELIX system.
 """
 
 import asyncio
+import functools
+import functools
 import json
 import sys
 from datetime import datetime
@@ -15,6 +17,7 @@ import click
 
 def handle_error(func):
     """Decorator to handle errors gracefully without showing tracebacks."""
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -75,8 +78,8 @@ def _show_dry_run(project: Path, start_phase: Optional[str]) -> None:
     """Display what would be executed in dry-run mode."""
     from helix.phase_loader import PhaseLoader
 
-    loader = PhaseLoader(project)
-    phases = loader.load_phases()
+    loader = PhaseLoader()
+    phases = loader.load_phases(project)
 
     started = start_phase is None
     click.echo()
@@ -89,7 +92,7 @@ def _show_dry_run(project: Path, start_phase: Optional[str]) -> None:
 
         status = "→ would run" if started else "  skipped"
         status_color = "green" if started else "white"
-        click.echo(f"{phase.name:<25} {phase.description[:38]:<40} ", nl=False)
+        click.echo(f"{phase.name:<25} {phase.name[:38]:<40} ", nl=False)
         click.secho(status, fg=status_color)
 
     click.echo()
@@ -112,8 +115,8 @@ def status(project_path: str) -> None:
     click.echo()
 
     # Load phases and check status
-    loader = PhaseLoader(project)
-    phases = loader.load_phases()
+    loader = PhaseLoader()
+    phases = loader.load_phases(project)
     gate_checker = GateChecker(project)
 
     # Determine current phase from state file
