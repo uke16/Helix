@@ -146,21 +146,21 @@ tools:
 
   - id: orchestrator_cli
     name: "Project Orchestrator CLI"
-    module: "helix.cli.project"
+    module: "helix.cli.main"
     description: "Autonomous project execution commands"
 
     cli_commands:
-      - command: "helix project create my-feature --type simple"
+      - command: "helix new my-feature --type simple"
         description: "Create new project with standard structure"
-      - command: "helix project run my-feature"
+      - command: "helix run projects/my-feature"
         description: "Execute all phases autonomously"
-      - command: "helix project run my-feature --resume"
+      - command: "helix run projects/my-feature --resume"
         description: "Resume after failure"
-      - command: "helix project run my-feature --dry-run"
+      - command: "helix run projects/my-feature --dry-run"
         description: "Show execution plan without running"
-      - command: "helix project status my-feature"
+      - command: "helix status projects/my-feature"
         description: "Show current project status"
-      - command: "helix project list"
+      - command: "helix list"  # NOTE: Not implemented yet
         description: "List all projects"
 
     python_api:

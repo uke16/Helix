@@ -1,0 +1,158 @@
+# docs/sources/cli.yaml
+# PRIMARY SOURCE for HELIX CLI Documentation
+#
+# Documents all available CLI commands with their actual implementation.
+# This should match the real CLI in src/helix/cli/
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "HELIX v4 CLI Reference"
+  source: "src/helix/cli/commands.py"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+overview:
+  name: "HELIX CLI"
+  description: |
+    Command-line interface for HELIX v4 project orchestration.
+    All commands operate on project directories containing phases.yaml.
+  
+  invocation:
+    - "python -m helix.cli.main <command>"
+    - "helix <command>  # if installed via pip"
+
+commands:
+  - id: run
+    name: "helix run"
+    description: "Run a HELIX project workflow"
+    usage: "helix run <PROJECT_PATH> [OPTIONS]"
+    
+    arguments:
+      - name: PROJECT_PATH
+        required: true
+        description: "Path to project directory (must contain phases.yaml)"
+    
+    options:
+      - flag: "-p, --phase TEXT"
+        description: "Start from specific phase"
+      - flag: "-m, --model TEXT"
+        description: "LLM model to use (default: claude-opus-4)"
+      - flag: "--dry-run"
+        description: "Show what would be done without executing"
+    
+    examples:
+      - description: "Run a project"
+        command: "helix run projects/my-feature"
+      - description: "Dry run to see execution plan"
+        command: "helix run projects/my-feature --dry-run"
+      - description: "Start from specific phase"
+        command: "helix run projects/my-feature --phase development"
+      - description: "Use different model"
+        command: "helix run projects/my-feature --model claude-sonnet-4"
+
+  - id: status
+    name: "helix status"
+    description: "Show project status and progress"
+    usage: "helix status <PROJECT_PATH>"
+    
+    arguments:
+      - name: PROJECT_PATH
+        required: true
+        description: "Path to project directory"
+    
+    examples:
+      - description: "Show project status"
+        command: "helix status projects/my-feature"
+
+  - id: new
+    name: "helix new"
+    description: "Create a new HELIX project from template"
+    usage: "helix new <PROJECT_NAME> [OPTIONS]"
+    
+    arguments:
+      - name: PROJECT_NAME
+        required: true
+        description: "Name for the new project"
+    
+    options:
+      - flag: "--type TEXT"
+        description: "Project type (simple, complex, exploratory)"
+      - flag: "--base-dir PATH"
+        description: "Base directory for projects"
+    
+    examples:
+      - description: "Create simple project"
+        command: "helix new my-feature --type simple"
+      - description: "Create in custom location"
+        command: "helix new my-feature --base-dir projects/internal"
+
+  - id: debug
+    name: "helix debug"
+    description: "Show debug logs for a project or phase"
+    usage: "helix debug <PROJECT_PATH> [OPTIONS]"
+    
+    arguments:
+      - name: PROJECT_PATH
+        required: true
+        description: "Path to project directory"
+    
+    examples:
+      - description: "Show debug logs"
+        command: "helix debug projects/my-feature"
+
+  - id: costs
+    name: "helix costs"
+    description: "Show token usage and costs"
+    usage: "helix costs <PROJECT_PATH>"
+    
+    arguments:
+      - name: PROJECT_PATH
+        required: true
+        description: "Path to project directory"
+    
+    examples:
+      - description: "Show costs for project"
+        command: "helix costs projects/my-feature"
+
+  - id: discuss
+    name: "helix discuss"
+    description: "Start a consultant meeting for a project"
+    usage: "helix discuss <PROJECT_PATH>"
+    
+    arguments:
+      - name: PROJECT_PATH
+        required: true
+        description: "Path to project directory"
+    
+    examples:
+      - description: "Start consultant meeting"
+        command: "helix discuss projects/my-feature"
+
+environment_variables:
+  - name: HELIX_DEBUG
+    description: "Enable debug output"
+    example: "HELIX_DEBUG=1 helix run projects/my-feature"
+  
+  - name: ANTHROPIC_API_KEY
+    description: "API key for Claude (required)"
+    example: "export ANTHROPIC_API_KEY=sk-ant-..."
+  
+  - name: HELIX_MODEL
+    description: "Default model to use"
+    example: "export HELIX_MODEL=claude-sonnet-4"
+
+quick_reference:
+  title: "CLI Quick Reference"
+  table: |
+    | Command | Description | Example |
+    |---------|-------------|---------|
+    | `helix run <path>` | Run project | `helix run projects/my-feature` |
+    | `helix run <path> --dry-run` | Show plan | `helix run projects/x --dry-run` |
+    | `helix status <path>` | Show status | `helix status projects/my-feature` |
+    | `helix new <name>` | Create project | `helix new my-feature --type simple` |
+    | `helix debug <path>` | Show logs | `helix debug projects/my-feature` |
+    | `helix costs <path>` | Show costs | `helix costs projects/my-feature` |
+    | `helix discuss <path>` | Consultant | `helix discuss projects/my-feature` |

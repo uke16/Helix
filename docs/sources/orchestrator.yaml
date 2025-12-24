@@ -150,85 +150,88 @@ modules:
       - "src/: Entire src directory"
       - "ADR-*.md: All ADR files"
 
-cli_commands:
-  - id: project_create
-    command: "helix project create"
-    description: "Create a new project with standard structure"
+# CLI moved to docs/sources/cli.yaml
+# cli_commands:
+#   - id: project_create
+#     command: "helix new"
+#     description: "Create a new project with standard structure"
     
-    usage: |
-      ```bash
-      # Simple project
-      helix project create my-feature --type simple
+#     usage: |
+#       ```bash
+#       # Simple project
+#       helix new my-feature --type simple
       
-      # Complex project
-      helix project create big-refactor --type complex
+#       # Complex project
+#       helix new big-refactor --type complex
       
-      # Exploratory
-      helix project create new-idea --type exploratory
+#       # Exploratory
+#       helix new new-idea --type exploratory
       
-      # Custom base directory
-      helix project create my-feature --base-dir projects/internal
-      ```
+#       # Custom base directory
+#       helix new my-feature --base-dir projects/internal
+#       ```
     
-    creates:
-      - "project.yaml: Project metadata"
-      - "phases.yaml: Phase configuration"
-      - "phases/: Directory structure for each phase"
-      - "phases/*/CLAUDE.md: Phase instructions"
+#     creates:
+#       - "project.yaml: Project metadata"
+#       - "phases.yaml: Phase configuration"
+#       - "phases/: Directory structure for each phase"
+#       - "phases/*/CLAUDE.md: Phase instructions"
 
-  - id: project_run
-    command: "helix project run"
-    description: "Execute all phases of a project"
+#   - id: project_run
+#     command: "helix run"
+#     description: "Execute all phases of a project"
     
-    usage: |
-      ```bash
-      # Normal execution
-      helix project run my-feature
+#     usage: |
+#       ```bash
+#       # Normal execution
+#       helix run my-feature
       
-      # Resume after failure
-      helix project run my-feature --resume
+#       # Resume after failure
+#       helix run my-feature --resume
       
-      # Dry run (show what would happen)
-      helix project run my-feature --dry-run
+#       # Dry run (show what would happen)
+#       helix run my-feature --dry-run
       
-      # With debug output
-      HELIX_DEBUG=1 helix project run my-feature
-      ```
+#       # With debug output
+#       HELIX_DEBUG=1 helix run my-feature
+#       ```
     
-    options:
-      - "--resume: Continue from last failed phase"
-      - "--dry-run: Show execution plan without running"
-      - "--phase: Run specific phase only"
+#     options:
+#       - "--resume: Continue from last failed phase"
+#       - "--dry-run: Show execution plan without running"
+#       - "--phase: Run specific phase only"
 
-  - id: project_status
-    command: "helix project status"
-    description: "Show current project status"
+#   - id: project_status
+#     command: "helix status"
+#     description: "Show current project status"
     
-    usage: |
-      ```bash
-      helix project status my-feature
-      ```
+#     usage: |
+#       ```bash
+#       helix status my-feature
+#       ```
     
-    output_example: |
-      Project: my-feature
-      Status: in_progress
+#     output_example: |
+#       Project: my-feature
+#       Status: in_progress
       
-      Phases:
-        ✅ consultant: complete
-        🔄 development: running (retry 1/3)
-        ⏳ review: pending
-        ⏳ integration: pending
+#       Phases:
+#         ✅ consultant: complete
+#         🔄 development: running (retry 1/3)
+#         ⏳ review: pending
+#         ⏳ integration: pending
 
-  - id: project_list
-    command: "helix project list"
-    description: "List all projects and their status"
+#   - id: project_list
+#     command: "helix list"
+#     description: "List all projects and their status"
     
-    usage: |
-      ```bash
-      helix project list
-      helix project list --status running
-      helix project list --type complex
-      ```
+#     usage: |
+#       ```bash
+#       helix list
+#       helix list --status running
+#       helix list --type complex
+#       ```
+
+
 
 api_endpoints:
   - path: "POST /project/{name}/run"
@@ -299,7 +302,7 @@ best_practices:
   - title: "Always Check Status After Failures"
     description: |
       ```bash
-      helix project status my-feature
+      helix status my-feature
       cat projects/my-feature/status.yaml
       ```
       Review the error before using --resume.
@@ -307,7 +310,7 @@ best_practices:
   - title: "Use Dry Run for Complex Projects"
     description: |
       ```bash
-      helix project run big-refactor --dry-run
+      helix run big-refactor --dry-run
       ```
       Verify the execution plan before committing time.
 
@@ -315,7 +318,7 @@ best_practices:
     description: |
       For complex projects, combine with debug tools:
       ```bash
-      HELIX_DEBUG=1 helix project run my-feature
+      HELIX_DEBUG=1 helix run my-feature
       # Or in separate terminal:
       tail -f projects/my-feature/status.yaml
       ```

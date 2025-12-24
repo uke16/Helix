@@ -359,17 +359,17 @@ print(tracker.get_stats())
 calc = CostCalculator()
 calc.add_usage(1000, 500, model="claude-sonnet")
 print(f"Cost: ${calc.get_total_cost():.4f}")```
-### Project Orchestrator CLI (`helix.cli.project`)
+### Project Orchestrator CLI (`helix.cli.main`)
 
 Autonomous project execution commands
 
 ```bash# Create new project with standard structure
-helix project create my-feature --type simple# Execute all phases autonomously
-helix project run my-feature# Resume after failure
-helix project run my-feature --resume# Show execution plan without running
-helix project run my-feature --dry-run# Show current project status
-helix project status my-feature# List all projects
-helix project list```
+helix new my-feature --type simple# Execute all phases autonomously
+helix run projects/my-feature# Resume after failure
+helix run projects/my-feature --resume# Show execution plan without running
+helix run projects/my-feature --dry-run# Show current project status
+helix status projects/my-feature# List all projects
+helix list```
 **Python API:**
 ```python
 from helix.orchestrator import OrchestratorRunner, StatusTracker, PhaseExecutor

@@ -705,3 +705,50 @@ modules:
 - **Validation Gate** (blocks commits with broken refs)
 
 {% endif %}
+
+{# ============================================================ #}
+{# CLI REFERENCE                                                 #}
+{# ============================================================ #}
+
+{% if cli is defined %}
+## CLI Reference
+
+{{ cli.overview.description }}
+
+### Quick Reference
+
+{{ cli.quick_reference.table }}
+
+### Commands
+
+{% for cmd in cli.commands %}
+#### `{{ cmd.name }}`
+
+{{ cmd.description }}
+
+**Usage:** `{{ cmd.usage }}`
+
+{% if cmd.options %}
+**Options:**
+{% for opt in cmd.options %}
+- `{{ opt.flag }}`: {{ opt.description }}
+{% endfor %}
+{% endif %}
+
+**Examples:**
+```bash
+{% for ex in cmd.examples %}
+# {{ ex.description }}
+{{ ex.command }}
+{% endfor %}
+```
+
+{% endfor %}
+
+### Environment Variables
+
+{% for env in cli.environment_variables %}
+- `{{ env.name }}`: {{ env.description }}
+{% endfor %}
+
+{% endif %}

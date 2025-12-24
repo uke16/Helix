@@ -1286,64 +1286,6 @@ Research and discovery projects
 
 ### CLI Commands
 
-#### `helix project create`
-
-Create a new project with standard structure
-
-```bash
-# Simple project
-helix project create my-feature --type simple
-
-# Complex project
-helix project create big-refactor --type complex
-
-# Exploratory
-helix project create new-idea --type exploratory
-
-# Custom base directory
-helix project create my-feature --base-dir projects/internal
-```
-
-
-#### `helix project run`
-
-Execute all phases of a project
-
-```bash
-# Normal execution
-helix project run my-feature
-
-# Resume after failure
-helix project run my-feature --resume
-
-# Dry run (show what would happen)
-helix project run my-feature --dry-run
-
-# With debug output
-HELIX_DEBUG=1 helix project run my-feature
-```
-
-
-#### `helix project status`
-
-Show current project status
-
-```bash
-helix project status my-feature
-```
-
-
-#### `helix project list`
-
-List all projects and their status
-
-```bash
-helix project list
-helix project list --status running
-helix project list --type complex
-```
-
-
 
 ### Python API
 
@@ -1552,4 +1494,127 @@ modules:
 - **Auto-Extraction** (docstrings, signatures from code)
 - **Diagram Validation** (`$diagram_refs`)
 - **Validation Gate** (blocks commits with broken refs)
+
+
+
+## CLI Reference
+
+Command-line interface for HELIX v4 project orchestration.
+All commands operate on project directories containing phases.yaml.
+
+
+### Quick Reference
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `helix run <path>` | Run project | `helix run projects/my-feature` |
+| `helix run <path> --dry-run` | Show plan | `helix run projects/x --dry-run` |
+| `helix status <path>` | Show status | `helix status projects/my-feature` |
+| `helix new <name>` | Create project | `helix new my-feature --type simple` |
+| `helix debug <path>` | Show logs | `helix debug projects/my-feature` |
+| `helix costs <path>` | Show costs | `helix costs projects/my-feature` |
+| `helix discuss <path>` | Consultant | `helix discuss projects/my-feature` |
+
+
+### Commands
+
+#### `helix run`
+
+Run a HELIX project workflow
+
+**Usage:** `helix run <PROJECT_PATH> [OPTIONS]`
+
+**Options:**
+- `-p, --phase TEXT`: Start from specific phase
+- `-m, --model TEXT`: LLM model to use (default: claude-opus-4)
+- `--dry-run`: Show what would be done without executing
+
+**Examples:**
+```bash
+# Run a project
+helix run projects/my-feature
+# Dry run to see execution plan
+helix run projects/my-feature --dry-run
+# Start from specific phase
+helix run projects/my-feature --phase development
+# Use different model
+helix run projects/my-feature --model claude-sonnet-4
+```
+
+#### `helix status`
+
+Show project status and progress
+
+**Usage:** `helix status <PROJECT_PATH>`
+
+
+**Examples:**
+```bash
+# Show project status
+helix status projects/my-feature
+```
+
+#### `helix new`
+
+Create a new HELIX project from template
+
+**Usage:** `helix new <PROJECT_NAME> [OPTIONS]`
+
+**Options:**
+- `--type TEXT`: Project type (simple, complex, exploratory)
+- `--base-dir PATH`: Base directory for projects
+
+**Examples:**
+```bash
+# Create simple project
+helix new my-feature --type simple
+# Create in custom location
+helix new my-feature --base-dir projects/internal
+```
+
+#### `helix debug`
+
+Show debug logs for a project or phase
+
+**Usage:** `helix debug <PROJECT_PATH> [OPTIONS]`
+
+
+**Examples:**
+```bash
+# Show debug logs
+helix debug projects/my-feature
+```
+
+#### `helix costs`
+
+Show token usage and costs
+
+**Usage:** `helix costs <PROJECT_PATH>`
+
+
+**Examples:**
+```bash
+# Show costs for project
+helix costs projects/my-feature
+```
+
+#### `helix discuss`
+
+Start a consultant meeting for a project
+
+**Usage:** `helix discuss <PROJECT_PATH>`
+
+
+**Examples:**
+```bash
+# Start consultant meeting
+helix discuss projects/my-feature
+```
+
+
+### Environment Variables
+
+- `HELIX_DEBUG`: Enable debug output
+- `ANTHROPIC_API_KEY`: API key for Claude (required)
+- `HELIX_MODEL`: Default model to use
 

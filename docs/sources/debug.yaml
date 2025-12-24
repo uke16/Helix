@@ -187,7 +187,7 @@ best_practices:
     description: |
       When developing new features, always run with debug enabled:
       ```bash
-      HELIX_DEBUG=1 helix project run my-feature
+      HELIX_DEBUG=1 helix run my-feature
       ```
 
   - title: "Monitor Cost During Long Sessions"
