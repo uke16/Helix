@@ -106,3 +106,78 @@ tools:
       - "Markdown has valid structure"
 
     usage_context: "Called automatically by orchestrator, can also be run manually"
+
+  - id: debug_tools
+    name: "Debug & Observability Tools"
+    module: "helix.debug"
+    description: "Live debugging and cost tracking for Claude CLI executions"
+
+    cli_commands:
+      - command: "./control/claude-wrapper.sh -v -- --print 'prompt'"
+        description: "Run Claude CLI with verbose debug output"
+      - command: "./control/helix-debug.sh -d phases/01-analysis"
+        description: "Start debug session with terminal dashboard"
+      - command: "./control/helix-debug.sh -w -p 8080 phases/01-analysis"
+        description: "Start debug session with web dashboard"
+
+    python_api:
+      imports: |
+        from helix.debug import StreamParser, ToolTracker, CostCalculator, LiveDashboard
+
+      examples:
+        - name: "Parse Claude CLI stream"
+          code: |
+            parser = StreamParser()
+            async for event in parser.parse_stream(process.stdout):
+                print(f"{event.type}: {event.data}")
+
+        - name: "Track tool calls"
+          code: |
+            tracker = ToolTracker()
+            tracker.start_tool("123", "bash_tool", {"command": "ls"})
+            tracker.end_tool("123", output="file.txt", success=True)
+            print(tracker.get_stats())
+
+        - name: "Calculate costs"
+          code: |
+            calc = CostCalculator()
+            calc.add_usage(1000, 500, model="claude-sonnet")
+            print(f"Cost: ${calc.get_total_cost():.4f}")
+
+  - id: orchestrator_cli
+    name: "Project Orchestrator CLI"
+    module: "helix.cli.project"
+    description: "Autonomous project execution commands"
+
+    cli_commands:
+      - command: "helix project create my-feature --type simple"
+        description: "Create new project with standard structure"
+      - command: "helix project run my-feature"
+        description: "Execute all phases autonomously"
+      - command: "helix project run my-feature --resume"
+        description: "Resume after failure"
+      - command: "helix project run my-feature --dry-run"
+        description: "Show execution plan without running"
+      - command: "helix project status my-feature"
+        description: "Show current project status"
+      - command: "helix project list"
+        description: "List all projects"
+
+    python_api:
+      imports: |
+        from helix.orchestrator import OrchestratorRunner, StatusTracker, PhaseExecutor
+
+      examples:
+        - name: "Run project programmatically"
+          code: |
+            runner = OrchestratorRunner(project_dir=Path("projects/my-feature"))
+            success = await runner.run()
+            if not success:
+                print(f"Failed at: {runner.get_status().current_phase}")
+
+        - name: "Check project status"
+          code: |
+            tracker = StatusTracker(Path("projects/my-feature"))
+            tracker.load()
+            for phase_id, status in tracker.phases.items():
+                print(f"{phase_id}: {status.state}")

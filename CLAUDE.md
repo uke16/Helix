@@ -335,4 +335,52 @@ Verify phase outputs before completing a phase
 
 ```bash# Verify current phase outputs
 python -m helix.tools.verify_phase```
+### Debug & Observability Tools (`helix.debug`)
+
+Live debugging and cost tracking for Claude CLI executions
+
+```bash# Run Claude CLI with verbose debug output
+./control/claude-wrapper.sh -v -- --print 'prompt'# Start debug session with terminal dashboard
+./control/helix-debug.sh -d phases/01-analysis# Start debug session with web dashboard
+./control/helix-debug.sh -w -p 8080 phases/01-analysis```
+**Python API:**
+```python
+from helix.debug import StreamParser, ToolTracker, CostCalculator, LiveDashboard
+# Parse Claude CLI stream
+parser = StreamParser()
+async for event in parser.parse_stream(process.stdout):
+    print(f"{event.type}: {event.data}")
+# Track tool calls
+tracker = ToolTracker()
+tracker.start_tool("123", "bash_tool", {"command": "ls"})
+tracker.end_tool("123", output="file.txt", success=True)
+print(tracker.get_stats())
+# Calculate costs
+calc = CostCalculator()
+calc.add_usage(1000, 500, model="claude-sonnet")
+print(f"Cost: ${calc.get_total_cost():.4f}")```
+### Project Orchestrator CLI (`helix.cli.project`)
+
+Autonomous project execution commands
+
+```bash# Create new project with standard structure
+helix project create my-feature --type simple# Execute all phases autonomously
+helix project run my-feature# Resume after failure
+helix project run my-feature --resume# Show execution plan without running
+helix project run my-feature --dry-run# Show current project status
+helix project status my-feature# List all projects
+helix project list```
+**Python API:**
+```python
+from helix.orchestrator import OrchestratorRunner, StatusTracker, PhaseExecutor
+# Run project programmatically
+runner = OrchestratorRunner(project_dir=Path("projects/my-feature"))
+success = await runner.run()
+if not success:
+    print(f"Failed at: {runner.get_status().current_phase}")
+# Check project status
+tracker = StatusTracker(Path("projects/my-feature"))
+tracker.load()
+for phase_id, status in tracker.phases.items():
+    print(f"{phase_id}: {status.state}")```
 ---

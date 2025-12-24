@@ -1,0 +1,325 @@
+# docs/sources/orchestrator.yaml
+# PRIMARY SOURCE for Phase Orchestrator Documentation
+#
+# Defines the Orchestrator modules from ADR-017.
+# All documentation is generated from this file.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "Phase Orchestrator (ADR-017)"
+  adr: "017"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+overview:
+  name: "Phase Orchestrator"
+  purpose: |
+    Autonomous project execution - the heart of HELIX v4.
+    Runs projects without manual intervention, handling phases,
+    quality gates, retries, and status tracking.
+  
+  key_features:
+    - "Autonomous Execution: Start a project, come back when it's done"
+    - "Quality Gates: Automatic validation after each phase"
+    - "Retry Logic: Configurable retries on failure"
+    - "Status Tracking: Persistent status in status.yaml"
+    - "Resume Support: Continue interrupted projects"
+    - "CLI + API: Both interfaces available"
+
+project_types:
+  - id: simple
+    name: "Simple (Schema F)"
+    description: "Standard feature development workflow"
+    phases:
+      - consultant
+      - development
+      - review
+      - integration
+    use_when: "Clear requirements, well-understood scope"
+
+  - id: complex
+    name: "Complex"
+    description: "Features requiring feasibility study and planning"
+    phases:
+      - consultant
+      - feasibility
+      - planning
+      - development
+      - review
+      - integration
+    use_when: "Unclear requirements, technical uncertainty"
+
+  - id: exploratory
+    name: "Exploratory"
+    description: "Research and discovery projects"
+    phases:
+      - consultant
+      - research
+      - decision
+    use_when: "No clear direction, need to explore options"
+
+modules:
+  - id: runner
+    name: "OrchestratorRunner"
+    module: "helix.orchestrator.runner"
+    description: "Main orchestration class - runs entire projects"
+    
+    key_classes:
+      - name: "OrchestratorRunner"
+        description: "Coordinates phase execution, gates, and status"
+        methods:
+          - "run() -> bool: Execute all phases"
+          - "run_phase(phase_id: str) -> PhaseResult"
+          - "get_status() -> ProjectStatus"
+          - "resume() -> bool: Continue from last failure"
+    
+    usage: |
+      ```python
+      from helix.orchestrator import OrchestratorRunner
+      
+      runner = OrchestratorRunner(project_dir=Path("projects/my-feature"))
+      success = await runner.run()
+      
+      if not success:
+          print(f"Failed at: {runner.get_status().current_phase}")
+      ```
+
+  - id: status
+    name: "StatusTracker"
+    module: "helix.orchestrator.status"
+    description: "Persistent status tracking with pause/resume support"
+    
+    status_file: "status.yaml"
+    
+    key_classes:
+      - name: "StatusTracker"
+        description: "Manages project and phase status"
+        methods:
+          - "mark_started(phase_id: str)"
+          - "mark_complete(phase_id: str)"
+          - "mark_failed(phase_id: str, error: str)"
+          - "is_complete(phase_id: str) -> bool"
+          - "save() / load()"
+    
+    status_values:
+      - "pending: Not started yet"
+      - "running: Currently executing"
+      - "complete: Successfully finished"
+      - "failed: Failed (check error)"
+      - "skipped: Intentionally skipped"
+
+  - id: phase_executor
+    name: "PhaseExecutor"
+    module: "helix.orchestrator.phase_executor"
+    description: "Executes individual phases via Claude Code CLI"
+    
+    key_classes:
+      - name: "PhaseExecutor"
+        description: "Spawns and manages Claude CLI instances"
+        methods:
+          - "execute(phase_dir: Path, config: PhaseConfig) -> PhaseResult"
+          - "validate_phase_setup(phase_dir: Path) -> list[str]"
+    
+    execution_flow: |
+      1. Validate phase setup (CLAUDE.md exists, etc.)
+      2. Prepare environment variables
+      3. Spawn Claude Code CLI process
+      4. Wait for completion (with timeout)
+      5. Check return code
+      6. Return PhaseResult
+
+  - id: data_flow
+    name: "DataFlowManager"
+    module: "helix.orchestrator.data_flow"
+    description: "Manages input/output copying between phases"
+    
+    key_classes:
+      - name: "DataFlowManager"
+        description: "Copies outputs as inputs for dependent phases"
+        methods:
+          - "prepare_inputs(phase: Phase) -> None"
+          - "copy_outputs(source: Phase, target: Phase, patterns: list[str])"
+    
+    pattern_examples:
+      - "*.yaml: All YAML files"
+      - "src/: Entire src directory"
+      - "ADR-*.md: All ADR files"
+
+cli_commands:
+  - id: project_create
+    command: "helix project create"
+    description: "Create a new project with standard structure"
+    
+    usage: |
+      ```bash
+      # Simple project
+      helix project create my-feature --type simple
+      
+      # Complex project
+      helix project create big-refactor --type complex
+      
+      # Exploratory
+      helix project create new-idea --type exploratory
+      
+      # Custom base directory
+      helix project create my-feature --base-dir projects/internal
+      ```
+    
+    creates:
+      - "project.yaml: Project metadata"
+      - "phases.yaml: Phase configuration"
+      - "phases/: Directory structure for each phase"
+      - "phases/*/CLAUDE.md: Phase instructions"
+
+  - id: project_run
+    command: "helix project run"
+    description: "Execute all phases of a project"
+    
+    usage: |
+      ```bash
+      # Normal execution
+      helix project run my-feature
+      
+      # Resume after failure
+      helix project run my-feature --resume
+      
+      # Dry run (show what would happen)
+      helix project run my-feature --dry-run
+      
+      # With debug output
+      HELIX_DEBUG=1 helix project run my-feature
+      ```
+    
+    options:
+      - "--resume: Continue from last failed phase"
+      - "--dry-run: Show execution plan without running"
+      - "--phase: Run specific phase only"
+
+  - id: project_status
+    command: "helix project status"
+    description: "Show current project status"
+    
+    usage: |
+      ```bash
+      helix project status my-feature
+      ```
+    
+    output_example: |
+      Project: my-feature
+      Status: in_progress
+      
+      Phases:
+        ✅ consultant: complete
+        🔄 development: running (retry 1/3)
+        ⏳ review: pending
+        ⏳ integration: pending
+
+  - id: project_list
+    command: "helix project list"
+    description: "List all projects and their status"
+    
+    usage: |
+      ```bash
+      helix project list
+      helix project list --status running
+      helix project list --type complex
+      ```
+
+api_endpoints:
+  - path: "POST /project/{name}/run"
+    description: "Start project execution in background"
+    response: '{"status": "started", "project": "my-feature"}'
+
+  - path: "GET /project/{name}/status"
+    description: "Get current project status"
+    response: '{"status": "running", "current_phase": "development", ...}'
+
+  - path: "GET /projects"
+    description: "List all projects"
+    response: '[{"name": "my-feature", "status": "running"}, ...]'
+
+configuration:
+  phase_types_yaml:
+    path: "config/phase-types.yaml"
+    description: "Default quality gates per phase type"
+    example: |
+      ```yaml
+      phase_types:
+        consultant:
+          gates: [adr_valid]
+          timeout: 600
+        
+        development:
+          gates: [files_exist, syntax_check, tests_pass]
+          timeout: 900
+          retry:
+            max: 2
+            with_feedback: true
+        
+        review:
+          gates: [review_approved]
+          timeout: 300
+      ```
+
+  phases_yaml:
+    path: "projects/<name>/phases.yaml"
+    description: "Project-specific phase configuration"
+    example: |
+      ```yaml
+      project:
+        name: my-feature
+        type: simple
+      
+      phases:
+        - id: consultant
+          type: consultant
+          output: [ADR-*.md, spec.yaml]
+          gate: adr_valid
+        
+        - id: development
+          type: development
+          depends_on: [consultant]
+          input_from:
+            consultant: [spec.yaml, ADR-*.md]
+          output: [src/, tests/]
+          gate: [syntax_check, tests_pass]
+      ```
+
+best_practices:
+  - title: "Start with Simple Projects"
+    description: |
+      Use `--type simple` for well-understood features.
+      Only use complex/exploratory when there's real uncertainty.
+
+  - title: "Always Check Status After Failures"
+    description: |
+      ```bash
+      helix project status my-feature
+      cat projects/my-feature/status.yaml
+      ```
+      Review the error before using --resume.
+
+  - title: "Use Dry Run for Complex Projects"
+    description: |
+      ```bash
+      helix project run big-refactor --dry-run
+      ```
+      Verify the execution plan before committing time.
+
+  - title: "Monitor Long-Running Projects"
+    description: |
+      For complex projects, combine with debug tools:
+      ```bash
+      HELIX_DEBUG=1 helix project run my-feature
+      # Or in separate terminal:
+      tail -f projects/my-feature/status.yaml
+      ```
+
+see_also:
+  - "docs/ORCHESTRATOR-GUIDE.md - Full usage guide"
+  - "docs/ARCHITECTURE-ORCHESTRATOR.md - Technical design"
+  - "docs/ARCHITECTURE-ORCHESTRATOR-FULL.md - Complete vision"
+  - "ADR-017 - Architecture decision"

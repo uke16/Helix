@@ -485,3 +485,123 @@ next_num = get_next_adr_number()  # -> 13
 - [docs/SELF-DOCUMENTATION.md](../../docs/SELF-DOCUMENTATION.md) - Dokumentationsprinzipien
 
 ---
+
+{# ============================================================ #}
+{# DEBUG & OBSERVABILITY ENGINE (ADR-013)                       #}
+{# ============================================================ #}
+
+{% if debug is defined and debug.overview is defined %}
+## Debug & Observability Engine
+
+{{ debug.overview.purpose }}
+
+### Key Features
+
+{% for feature in debug.overview.key_features %}
+- {{ feature }}
+{% endfor %}
+
+### Modules
+
+{% for module in debug.modules %}
+#### `{{ module.module }}`
+
+{{ module.description }}
+
+{% if module.key_classes %}
+{% for cls in module.key_classes %}
+**{{ cls.name }}**: {{ cls.description }}
+
+Methods:
+{% for method in cls.methods %}
+- `{{ method }}`
+{% endfor %}
+
+{% endfor %}
+{% endif %}
+
+{% if module.usage %}
+{{ module.usage }}
+{% endif %}
+
+{% endfor %}
+
+### CLI Tools
+
+{% for tool in debug.cli_tools %}
+#### {{ tool.name }}
+
+{{ tool.description }}
+
+{{ tool.usage }}
+
+{% endfor %}
+
+{% endif %}
+
+{# ============================================================ #}
+{# PHASE ORCHESTRATOR (ADR-017)                                 #}
+{# ============================================================ #}
+
+{% if orchestrator is defined and orchestrator.overview is defined %}
+## Phase Orchestrator
+
+{{ orchestrator.overview.purpose }}
+
+### Key Features
+
+{% for feature in orchestrator.overview.key_features %}
+- {{ feature }}
+{% endfor %}
+
+### Project Types
+
+{% for ptype in orchestrator.project_types %}
+#### {{ ptype.name }} (`{{ ptype.id }}`)
+
+{{ ptype.description }}
+
+**Phases:** {{ ptype.phases | join(' → ') }}
+
+**Use when:** {{ ptype.use_when }}
+
+{% endfor %}
+
+### CLI Commands
+
+{% for cmd in orchestrator.cli_commands %}
+#### `{{ cmd.command }}`
+
+{{ cmd.description }}
+
+{{ cmd.usage }}
+
+{% endfor %}
+
+### Python API
+
+{% for module in orchestrator.modules %}
+#### `{{ module.module }}`
+
+{{ module.description }}
+
+{% if module.key_classes %}
+{% for cls in module.key_classes %}
+**{{ cls.name }}**: {{ cls.description }}
+
+{% endfor %}
+{% endif %}
+
+{% if module.usage %}
+{{ module.usage }}
+{% endif %}
+
+{% endfor %}
+
+### API Endpoints
+
+{% for endpoint in orchestrator.api_endpoints %}
+- `{{ endpoint.path }}` - {{ endpoint.description }}
+{% endfor %}
+
+{% endif %}

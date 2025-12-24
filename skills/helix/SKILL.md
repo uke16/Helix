@@ -1079,3 +1079,305 @@ This API provides:
 - [docs/SELF-DOCUMENTATION.md](../../docs/SELF-DOCUMENTATION.md) - Dokumentationsprinzipien
 
 ---
+
+
+## Debug & Observability Engine
+
+Live visibility into Claude CLI executions for debugging, 
+cost tracking, and monitoring.
+
+
+### Key Features
+
+- Live Tool Tracking: See which tools are being called in real-time
+- Cost Monitoring: Track token usage and costs per phase and project
+- Timing Metrics: Measure tool call durations and identify bottlenecks
+- SSE Dashboard: Stream events to web dashboards
+- Terminal Dashboard: Live CLI monitoring with visual statistics
+
+### Modules
+
+#### `helix.debug.stream_parser`
+
+Parses NDJSON events from Claude CLI --output-format stream-json
+
+**StreamParser**: Main parser class for NDJSON event streams
+
+Methods:
+- `parse_line(line: str) -> Event`
+- `parse_stream(stream: AsyncIterator) -> AsyncIterator[Event]`
+- `get_summary() -> dict`
+- `get_tool_calls() -> list[ToolCall]`
+
+
+```python
+from helix.debug import StreamParser
+
+parser = StreamParser()
+async for event in parser.parse_stream(process.stdout):
+    print(f"{event.type}: {event.data}")
+```
+
+
+#### `helix.debug.tool_tracker`
+
+Tracks all tool calls with timing, input, output, and statistics
+
+**ToolTracker**: Aggregates tool call statistics
+
+Methods:
+- `start_tool(tool_id: str, name: str, input: dict)`
+- `end_tool(tool_id: str, output: Any, success: bool)`
+- `get_stats() -> ToolStats`
+- `get_failures() -> list[ToolCall]`
+
+
+```python
+from helix.debug import ToolTracker
+
+tracker = ToolTracker()
+tracker.start_tool("123", "bash_tool", {"command": "ls"})
+tracker.end_tool("123", output="file.txt", success=True)
+
+stats = tracker.get_stats()
+print(f"Total calls: {stats.total_calls}")
+print(f"Success rate: {stats.success_rate}%")
+```
+
+
+#### `helix.debug.cost_calculator`
+
+Calculates token usage and costs per model
+
+**CostCalculator**: Tracks and calculates costs
+
+Methods:
+- `add_usage(input_tokens: int, output_tokens: int, model: str)`
+- `get_total_cost() -> float`
+- `get_cost_by_phase() -> dict[str, float]`
+
+
+```python
+from helix.debug import CostCalculator
+
+calc = CostCalculator()
+calc.add_usage(1000, 500, model="claude-sonnet")
+
+print(f"Total cost: ${calc.get_total_cost():.4f}")
+```
+
+
+#### `helix.debug.live_dashboard`
+
+SSE endpoints for real-time streaming to web dashboards
+
+
+```python
+from helix.debug import LiveDashboard
+from fastapi import FastAPI
+
+app = FastAPI()
+dashboard = LiveDashboard()
+app.include_router(dashboard.router, prefix="/debug")
+```
+
+
+#### `helix.debug.events`
+
+Event type definitions and dataclasses
+
+
+
+
+### CLI Tools
+
+#### claude-wrapper.sh
+
+Wrapper script for Claude CLI with debug options
+
+```bash
+# Basic usage with verbose output
+./control/claude-wrapper.sh -v -- --print "Your prompt"
+
+# With cost tracking
+./control/claude-wrapper.sh -c -- --print "Your prompt"
+
+# Stream to file
+./control/claude-wrapper.sh -o debug.log -- --print "Your prompt"
+```
+
+
+#### helix-debug.sh
+
+Start debug session for a HELIX phase
+
+```bash
+# Terminal dashboard
+./control/helix-debug.sh -d phases/01-analysis
+
+# Web dashboard on port 8080
+./control/helix-debug.sh -w -p 8080 phases/01-analysis
+
+# Just logging, no dashboard
+./control/helix-debug.sh -l phases/01-analysis
+```
+
+
+
+
+
+## Phase Orchestrator
+
+Autonomous project execution - the heart of HELIX v4.
+Runs projects without manual intervention, handling phases,
+quality gates, retries, and status tracking.
+
+
+### Key Features
+
+- Autonomous Execution: Start a project, come back when it's done
+- Quality Gates: Automatic validation after each phase
+- Retry Logic: Configurable retries on failure
+- Status Tracking: Persistent status in status.yaml
+- Resume Support: Continue interrupted projects
+- CLI + API: Both interfaces available
+
+### Project Types
+
+#### Simple (Schema F) (`simple`)
+
+Standard feature development workflow
+
+**Phases:** consultant → development → review → integration
+
+**Use when:** Clear requirements, well-understood scope
+
+#### Complex (`complex`)
+
+Features requiring feasibility study and planning
+
+**Phases:** consultant → feasibility → planning → development → review → integration
+
+**Use when:** Unclear requirements, technical uncertainty
+
+#### Exploratory (`exploratory`)
+
+Research and discovery projects
+
+**Phases:** consultant → research → decision
+
+**Use when:** No clear direction, need to explore options
+
+
+### CLI Commands
+
+#### `helix project create`
+
+Create a new project with standard structure
+
+```bash
+# Simple project
+helix project create my-feature --type simple
+
+# Complex project
+helix project create big-refactor --type complex
+
+# Exploratory
+helix project create new-idea --type exploratory
+
+# Custom base directory
+helix project create my-feature --base-dir projects/internal
+```
+
+
+#### `helix project run`
+
+Execute all phases of a project
+
+```bash
+# Normal execution
+helix project run my-feature
+
+# Resume after failure
+helix project run my-feature --resume
+
+# Dry run (show what would happen)
+helix project run my-feature --dry-run
+
+# With debug output
+HELIX_DEBUG=1 helix project run my-feature
+```
+
+
+#### `helix project status`
+
+Show current project status
+
+```bash
+helix project status my-feature
+```
+
+
+#### `helix project list`
+
+List all projects and their status
+
+```bash
+helix project list
+helix project list --status running
+helix project list --type complex
+```
+
+
+
+### Python API
+
+#### `helix.orchestrator.runner`
+
+Main orchestration class - runs entire projects
+
+**OrchestratorRunner**: Coordinates phase execution, gates, and status
+
+
+```python
+from helix.orchestrator import OrchestratorRunner
+
+runner = OrchestratorRunner(project_dir=Path("projects/my-feature"))
+success = await runner.run()
+
+if not success:
+    print(f"Failed at: {runner.get_status().current_phase}")
+```
+
+
+#### `helix.orchestrator.status`
+
+Persistent status tracking with pause/resume support
+
+**StatusTracker**: Manages project and phase status
+
+
+
+#### `helix.orchestrator.phase_executor`
+
+Executes individual phases via Claude Code CLI
+
+**PhaseExecutor**: Spawns and manages Claude CLI instances
+
+
+
+#### `helix.orchestrator.data_flow`
+
+Manages input/output copying between phases
+
+**DataFlowManager**: Copies outputs as inputs for dependent phases
+
+
+
+
+### API Endpoints
+
+- `POST /project/{name}/run` - Start project execution in background
+- `GET /project/{name}/status` - Get current project status
+- `GET /projects` - List all projects
+

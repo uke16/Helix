@@ -1,0 +1,211 @@
+# docs/sources/debug.yaml
+# PRIMARY SOURCE for Debug & Observability Documentation
+#
+# Defines the Debug Engine modules from ADR-013.
+# All documentation is generated from this file.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "Debug & Observability Engine (ADR-013)"
+  adr: "013"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+overview:
+  name: "Debug & Observability Engine"
+  purpose: |
+    Live visibility into Claude CLI executions for debugging, 
+    cost tracking, and monitoring.
+  
+  key_features:
+    - "Live Tool Tracking: See which tools are being called in real-time"
+    - "Cost Monitoring: Track token usage and costs per phase and project"
+    - "Timing Metrics: Measure tool call durations and identify bottlenecks"
+    - "SSE Dashboard: Stream events to web dashboards"
+    - "Terminal Dashboard: Live CLI monitoring with visual statistics"
+
+modules:
+  - id: stream_parser
+    name: "StreamParser"
+    module: "helix.debug.stream_parser"
+    description: "Parses NDJSON events from Claude CLI --output-format stream-json"
+    
+    key_classes:
+      - name: "StreamParser"
+        description: "Main parser class for NDJSON event streams"
+        methods:
+          - "parse_line(line: str) -> Event"
+          - "parse_stream(stream: AsyncIterator) -> AsyncIterator[Event]"
+          - "get_summary() -> dict"
+          - "get_tool_calls() -> list[ToolCall]"
+    
+    usage: |
+      ```python
+      from helix.debug import StreamParser
+      
+      parser = StreamParser()
+      async for event in parser.parse_stream(process.stdout):
+          print(f"{event.type}: {event.data}")
+      ```
+
+  - id: tool_tracker
+    name: "ToolTracker"
+    module: "helix.debug.tool_tracker"
+    description: "Tracks all tool calls with timing, input, output, and statistics"
+    
+    key_classes:
+      - name: "ToolTracker"
+        description: "Aggregates tool call statistics"
+        methods:
+          - "start_tool(tool_id: str, name: str, input: dict)"
+          - "end_tool(tool_id: str, output: Any, success: bool)"
+          - "get_stats() -> ToolStats"
+          - "get_failures() -> list[ToolCall]"
+    
+    usage: |
+      ```python
+      from helix.debug import ToolTracker
+      
+      tracker = ToolTracker()
+      tracker.start_tool("123", "bash_tool", {"command": "ls"})
+      tracker.end_tool("123", output="file.txt", success=True)
+      
+      stats = tracker.get_stats()
+      print(f"Total calls: {stats.total_calls}")
+      print(f"Success rate: {stats.success_rate}%")
+      ```
+
+  - id: cost_calculator
+    name: "CostCalculator"
+    module: "helix.debug.cost_calculator"
+    description: "Calculates token usage and costs per model"
+    
+    pricing:
+      claude_sonnet:
+        input: "$3 / 1M tokens"
+        output: "$15 / 1M tokens"
+      claude_opus:
+        input: "$15 / 1M tokens"
+        output: "$75 / 1M tokens"
+    
+    key_classes:
+      - name: "CostCalculator"
+        description: "Tracks and calculates costs"
+        methods:
+          - "add_usage(input_tokens: int, output_tokens: int, model: str)"
+          - "get_total_cost() -> float"
+          - "get_cost_by_phase() -> dict[str, float]"
+    
+    usage: |
+      ```python
+      from helix.debug import CostCalculator
+      
+      calc = CostCalculator()
+      calc.add_usage(1000, 500, model="claude-sonnet")
+      
+      print(f"Total cost: ${calc.get_total_cost():.4f}")
+      ```
+
+  - id: live_dashboard
+    name: "LiveDashboard"
+    module: "helix.debug.live_dashboard"
+    description: "SSE endpoints for real-time streaming to web dashboards"
+    
+    endpoints:
+      - path: "/debug/stream"
+        method: "GET"
+        description: "SSE stream of all events"
+      - path: "/debug/stats"
+        method: "GET"
+        description: "Current statistics snapshot"
+      - path: "/debug/tools"
+        method: "GET"
+        description: "Recent tool calls"
+    
+    usage: |
+      ```python
+      from helix.debug import LiveDashboard
+      from fastapi import FastAPI
+      
+      app = FastAPI()
+      dashboard = LiveDashboard()
+      app.include_router(dashboard.router, prefix="/debug")
+      ```
+
+  - id: events
+    name: "Events"
+    module: "helix.debug.events"
+    description: "Event type definitions and dataclasses"
+    
+    event_types:
+      - "TEXT: Text output from Claude"
+      - "TOOL_USE: Tool call initiated"
+      - "TOOL_RESULT: Tool call completed"
+      - "ERROR: Error occurred"
+      - "USAGE: Token usage update"
+
+cli_tools:
+  - id: claude_wrapper
+    name: "claude-wrapper.sh"
+    path: "control/claude-wrapper.sh"
+    description: "Wrapper script for Claude CLI with debug options"
+    
+    usage: |
+      ```bash
+      # Basic usage with verbose output
+      ./control/claude-wrapper.sh -v -- --print "Your prompt"
+      
+      # With cost tracking
+      ./control/claude-wrapper.sh -c -- --print "Your prompt"
+      
+      # Stream to file
+      ./control/claude-wrapper.sh -o debug.log -- --print "Your prompt"
+      ```
+
+  - id: helix_debug
+    name: "helix-debug.sh"
+    path: "control/helix-debug.sh"
+    description: "Start debug session for a HELIX phase"
+    
+    usage: |
+      ```bash
+      # Terminal dashboard
+      ./control/helix-debug.sh -d phases/01-analysis
+      
+      # Web dashboard on port 8080
+      ./control/helix-debug.sh -w -p 8080 phases/01-analysis
+      
+      # Just logging, no dashboard
+      ./control/helix-debug.sh -l phases/01-analysis
+      ```
+
+best_practices:
+  - title: "Enable Debug Mode for Development"
+    description: |
+      When developing new features, always run with debug enabled:
+      ```bash
+      HELIX_DEBUG=1 helix project run my-feature
+      ```
+
+  - title: "Monitor Cost During Long Sessions"
+    description: |
+      For complex projects, enable cost tracking to avoid surprises:
+      ```bash
+      ./control/helix-debug.sh -c -w phases/01-consultant
+      ```
+
+  - title: "Review Tool Call Patterns"
+    description: |
+      If a phase is slow, check which tools are taking time:
+      ```python
+      stats = tracker.get_stats()
+      for tool, data in stats.by_tool.items():
+          print(f"{tool}: {data.avg_duration:.2f}s avg")
+      ```
+
+see_also:
+  - "docs/DEBUGGING.md - Full usage guide"
+  - "ADR-013 - Architecture decision"
