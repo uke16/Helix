@@ -185,7 +185,7 @@ class Orchestrator:
 
             if not claude_result.success:
                 result.status = "failed"
-                result.error = claude_result.error
+                result.error = claude_result.stderr or "Claude execution failed"
                 result.completed_at = datetime.now()
                 return result
 

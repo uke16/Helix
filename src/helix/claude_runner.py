@@ -64,7 +64,7 @@ class ClaudeRunner:
         )
     """
 
-    DEFAULT_CLAUDE_CMD = "/home/aiuser01/helix-v4/control/claude-wrapper.sh"
+    DEFAULT_CLAUDE_CMD = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin/claude"
     DEFAULT_TIMEOUT = 1800  # 30 minutes
 
     def __init__(
@@ -500,11 +500,13 @@ class ClaudeRunner:
             True if Claude CLI is installed and accessible.
         """
         try:
+            env = self.get_claude_env()
             process = await asyncio.create_subprocess_exec(
                 self.claude_cmd,
                 "--version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env={**os.environ, **env},
             )
             await asyncio.wait_for(process.communicate(), timeout=10.0)
             return process.returncode == 0

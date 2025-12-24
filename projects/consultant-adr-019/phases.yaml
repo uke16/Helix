@@ -1,0 +1,25 @@
+project_type: adr_creation
+name: "Documentation Validation Solution"
+
+phases:
+  - id: "1"
+    name: "Consultant Meeting"
+    type: consultant
+    
+    input:
+      - input/request.md
+    
+    output:
+      - output/spec.yaml
+      - output/ADR-draft.md
+    
+    quality_gates:
+      - type: files_exist
+        files:
+          - output/ADR-draft.md
+      - type: adr_valid
+        file: output/ADR-draft.md
+
+skills:
+  - helix
+  - helix/adr

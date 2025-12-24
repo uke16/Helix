@@ -153,35 +153,3 @@ Nur `ENABLE_LSP_TOOL=1` Environment Variable nötig (seit Claude Code v2.0.74).
 
 **Siehe:** [ADR-018](018-lsp-integration.md)
 
-## ADR-019: Documentation as Code - Validierbare Referenzen
-
-**Status:** Proposed | **Datum:** 2024-12-24
-
-Drei-Schichten Dokumentationssystem mit validierbaren Referenzen (`$ref`, `$uses`, `$file`).
-Verhindert veraltete Dokumentation durch Compile-Time Validierung.
-
-**Kernkonzepte:**
-- `$ref: helix.debug.StreamParser` → Validierbar, auto-extrahiert Docstrings
-- `$uses: StreamParser.parse_line` → Workflow-Steps validieren Methoden
-- `$diagram_refs` → Diagramme listen ihre Code-Abhängigkeiten
-
-**Siehe:** [ADR-019](019-documentation-as-code.md)
-
-## ADR-020: Intelligent Documentation Discovery
-
-**Status:** Proposed | **Datum:** 2024-12-24
-
-Vier Features für intelligente Dokumentations-Discovery:
-
-1. **Skill Index** - Auto-generated `skills/INDEX.yaml` mit Keywords
-2. **Smart Skill Selection** - Consultant bekommt relevante Skills empfohlen
-3. **Reverse Index** - CODE → ADR Traceability
-4. **ADR Files Validation** - Prüft ob files.create existieren
-
-**Kernkonzepte:**
-- Hybrid Keyword-Matching: auto-extracted + manuelle aliases
-- On-Demand Generierung (kein Sync-Problem)
-- Fallback-Garantien (kein Match → alle Skills)
-- Transparenz (Consultant sieht Score + matched Keywords)
-
-**Siehe:** [ADR-020](020-intelligent-documentation-discovery.md)

@@ -61,10 +61,16 @@ def run(project_path: str, phase: Optional[str], model: str, dry_run: bool) -> N
     if phase:
         click.secho(f"→ Starting from phase: {phase}", fg="blue")
 
-    orchestrator = Orchestrator(project, model=model, logger=logger)
+    # Create orchestrator with optional model override
+    from helix.claude_runner import ClaudeRunner
+    claude_runner = ClaudeRunner()
+    
+    orchestrator = Orchestrator(claude_runner=claude_runner)
 
     async def execute():
-        await orchestrator.run(start_phase=phase)
+        result = await orchestrator.run_project(project)
+        if result.status != "success":
+            raise RuntimeError(f"Project failed at phase {result.completed_phases}/{result.total_phases}")
 
     try:
         asyncio.run(execute())
