@@ -1,0 +1,99 @@
+# docs/sources/setup.yaml
+# PRIMARY SOURCE for Server Setup Documentation
+#
+# Defines prerequisites and installation steps for HELIX v4.
+# All documentation is generated from this file.
+
+_meta:
+  version: "1.0"
+  description: "HELIX v4 Server Setup Requirements"
+  generated_outputs:
+    - docs/SETUP.md
+
+prerequisites:
+  system:
+    - name: "Ubuntu/Debian"
+      version: "22.04+ / 12+"
+    - name: "Python"
+      version: "3.11+"
+    - name: "Node.js"
+      version: "20+"
+    - name: "Git"
+      version: "latest"
+
+  python_packages:
+    - name: "helix"
+      install: "pip install -e ."
+      required: true
+    - name: "pyright"
+      install: "pip install pyright"
+      required: false
+      purpose: "LSP Support für Python"
+
+  npm_packages:
+    - name: "@anthropic-ai/claude-code"
+      install: "npm install -g @anthropic-ai/claude-code"
+      required: true
+      purpose: "Claude Code CLI"
+    - name: "@vtsls/language-server"
+      install: "npm install -g @vtsls/language-server typescript"
+      required: false
+      purpose: "LSP Support für TypeScript"
+
+  claude_code_plugins:
+    marketplace: "boostvolt/claude-code-lsps"
+    plugins:
+      - name: "pyright@claude-code-lsps"
+        language: "Python"
+        required: false
+        recommended: true
+      - name: "vtsls@claude-code-lsps"
+        language: "TypeScript/JavaScript"
+        required: false
+      - name: "gopls@claude-code-lsps"
+        language: "Go"
+        required: false
+
+  environment_variables:
+    - name: "ENABLE_LSP_TOOL"
+      value: "1"
+      purpose: "Aktiviert LSP Tool in Claude Code"
+      recommended: true
+    - name: "ANTHROPIC_API_KEY"
+      value: "<your-key>"
+      purpose: "API Key für Claude"
+      required: true
+
+installation_order:
+  1: "System packages (Python, Node.js, Git)"
+  2: "HELIX Repository klonen"
+  3: "Python dependencies installieren"
+  4: "Claude Code CLI installieren"
+  5: "Claude Code Login"
+  6: "LSP Support einrichten (optional aber empfohlen)"
+  7: "Konfiguration anpassen"
+  8: "Verifizieren"
+
+verification_checklist:
+  basis:
+    - "Python 3.11+ installiert"
+    - "Node.js 20+ installiert"
+    - "HELIX Repository geklont"
+    - "Python Dependencies installiert"
+  
+  claude_code:
+    - "Claude Code CLI installiert"
+    - "Claude Login erfolgreich"
+    - "API Key konfiguriert"
+  
+  lsp:
+    - "ENABLE_LSP_TOOL=1 in Environment"
+    - "Pyright installiert"
+    - "LSP Plugin Marketplace hinzugefügt"
+    - "pyright Plugin installiert"
+    - "LSP Test erfolgreich"
+
+see_also:
+  - "docs/SETUP.md - Vollständige Anleitung"
+  - "docs/LSP-INTEGRATION.md - LSP Details"
+  - "ONBOARDING.md - HELIX Konzept"
