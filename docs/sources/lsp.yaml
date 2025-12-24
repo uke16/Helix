@@ -1,0 +1,118 @@
+# docs/sources/lsp.yaml
+# PRIMARY SOURCE for LSP Integration Documentation
+#
+# Defines the LSP Integration from ADR-018.
+# All documentation is generated from this file.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "LSP Integration (ADR-018)"
+  adr: "018"
+  status: "proposed"
+  generated_outputs:
+    - skills/helix/SKILL.md
+
+overview:
+  name: "LSP Integration"
+  purpose: |
+    Native Claude Code LSP-Unterstützung für Code-Intelligence.
+    Ermöglicht Anti-Halluzination und Echtzeit-Diagnostics.
+  
+  key_features:
+    - "Go to Definition: Finde Symbol-Definitionen"
+    - "Find References: Alle Verwendungen eines Symbols"
+    - "Hover: Dokumentation und Type-Info"
+    - "Automatic Diagnostics: Echtzeit-Errors und Warnings"
+    - "Workspace Symbol Search: Suche über gesamtes Projekt"
+
+activation:
+  environment_variable: "ENABLE_LSP_TOOL=1"
+  automatic_for:
+    - development
+    - review
+    - integration
+
+lsp_operations:
+  - id: goToDefinition
+    name: "Go to Definition"
+    description: "Springt zur Definition eines Symbols"
+    use_case: "Wo ist diese Funktion implementiert?"
+    example: |
+      LSP goToDefinition: "calculate_total"
+      → src/billing/calculator.py:45
+
+  - id: findReferences
+    name: "Find References"
+    description: "Findet alle Verwendungen eines Symbols"
+    use_case: "Wer nutzt diese Klasse? Wo muss ich beim Refactoring ändern?"
+    example: |
+      LSP findReferences: "UserService"
+      → src/api/routes.py:12
+      → src/api/routes.py:89
+      → tests/test_api.py:34
+
+  - id: hover
+    name: "Hover"
+    description: "Zeigt Dokumentation und Type-Information"
+    use_case: "Was macht diese Methode? Welche Parameter?"
+    example: |
+      LSP hover: "process_request"
+      → def process_request(data: dict) -> Response
+
+  - id: documentSymbol
+    name: "Document Symbols"
+    description: "Listet alle Symbole in einer Datei"
+    use_case: "Was ist alles in dieser Datei definiert?"
+
+  - id: workspaceSymbol
+    name: "Workspace Symbol"
+    description: "Sucht Symbole im gesamten Projekt"
+    use_case: "Finde alle Handler-Klassen"
+    example: |
+      LSP workspaceSymbol: "*Handler"
+      → RequestHandler, ResponseHandler, ErrorHandler
+
+available_plugins:
+  - language: Python
+    plugin: "pyright@claude-code-lsps"
+    install: "pip install pyright"
+    
+  - language: TypeScript/JavaScript
+    plugin: "vtsls@claude-code-lsps"
+    install: "npm install -g @vtsls/language-server typescript"
+    
+  - language: Go
+    plugin: "gopls@claude-code-lsps"
+    install: "go install golang.org/x/tools/gopls@latest"
+    
+  - language: Rust
+    plugin: "rust-analyzer@claude-code-lsps"
+    install: "rustup component add rust-analyzer"
+
+best_practices:
+  - title: "Anti-Halluzination"
+    description: |
+      Bevor du eine Funktion aufrufst, prüfe ob sie existiert:
+      1. LSP goToDefinition → Symbol existiert?
+      2. LSP hover → Signatur korrekt?
+      3. Dann erst Code schreiben
+
+  - title: "Sichere Refactorings"
+    description: |
+      1. findReferences auf alten Namen
+      2. Alle gefundenen Stellen notieren
+      3. Änderungen durchführen
+      4. Verifizieren mit findReferences
+
+  - title: "Diagnostics beachten"
+    description: |
+      - Errors immer beheben vor Commit
+      - Warnings wenn möglich fixen
+      - Diagnostics erscheinen automatisch nach Edits
+
+see_also:
+  - "skills/lsp/SKILL.md - Vollständige Nutzungsanleitung"
+  - "docs/LSP-INTEGRATION.md - Setup Guide"
+  - "ADR-018 - Architektur-Entscheidung"

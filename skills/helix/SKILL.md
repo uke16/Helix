@@ -1381,3 +1381,111 @@ Manages input/output copying between phases
 - `GET /project/{name}/status` - Get current project status
 - `GET /projects` - List all projects
 
+
+
+## LSP Code Navigation
+
+Native Claude Code LSP-Unterstützung für Code-Intelligence.
+Ermöglicht Anti-Halluzination und Echtzeit-Diagnostics.
+
+
+### Aktivierung
+
+Environment Variable: `ENABLE_LSP_TOOL=1`
+
+Automatisch aktiv für Phasen: development, review, integration
+
+### Verfügbare Operations
+
+#### Go to Definition (`goToDefinition`)
+
+Springt zur Definition eines Symbols
+
+**Use Case:** Wo ist diese Funktion implementiert?
+
+```
+LSP goToDefinition: "calculate_total"
+→ src/billing/calculator.py:45
+
+```
+
+#### Find References (`findReferences`)
+
+Findet alle Verwendungen eines Symbols
+
+**Use Case:** Wer nutzt diese Klasse? Wo muss ich beim Refactoring ändern?
+
+```
+LSP findReferences: "UserService"
+→ src/api/routes.py:12
+→ src/api/routes.py:89
+→ tests/test_api.py:34
+
+```
+
+#### Hover (`hover`)
+
+Zeigt Dokumentation und Type-Information
+
+**Use Case:** Was macht diese Methode? Welche Parameter?
+
+```
+LSP hover: "process_request"
+→ def process_request(data: dict) -> Response
+
+```
+
+#### Document Symbols (`documentSymbol`)
+
+Listet alle Symbole in einer Datei
+
+**Use Case:** Was ist alles in dieser Datei definiert?
+
+
+#### Workspace Symbol (`workspaceSymbol`)
+
+Sucht Symbole im gesamten Projekt
+
+**Use Case:** Finde alle Handler-Klassen
+
+```
+LSP workspaceSymbol: "*Handler"
+→ RequestHandler, ResponseHandler, ErrorHandler
+
+```
+
+
+### Best Practices
+
+**Anti-Halluzination**
+
+Bevor du eine Funktion aufrufst, prüfe ob sie existiert:
+1. LSP goToDefinition → Symbol existiert?
+2. LSP hover → Signatur korrekt?
+3. Dann erst Code schreiben
+
+
+**Sichere Refactorings**
+
+1. findReferences auf alten Namen
+2. Alle gefundenen Stellen notieren
+3. Änderungen durchführen
+4. Verifizieren mit findReferences
+
+
+**Diagnostics beachten**
+
+- Errors immer beheben vor Commit
+- Warnings wenn möglich fixen
+- Diagnostics erscheinen automatisch nach Edits
+
+
+
+### Setup (Python)
+
+```bash
+pip install pyright
+/plugin install pyright@claude-code-lsps
+export ENABLE_LSP_TOOL=1
+```
+

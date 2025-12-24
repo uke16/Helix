@@ -605,3 +605,54 @@ Methods:
 {% endfor %}
 
 {% endif %}
+
+{# ============================================================ #}
+{# LSP INTEGRATION (ADR-018)                                    #}
+{# ============================================================ #}
+
+{% if lsp is defined and lsp.overview is defined %}
+## LSP Code Navigation
+
+{{ lsp.overview.purpose }}
+
+### Aktivierung
+
+Environment Variable: `{{ lsp.activation.environment_variable }}`
+
+Automatisch aktiv für Phasen: {{ lsp.activation.automatic_for | join(', ') }}
+
+### Verfügbare Operations
+
+{% for op in lsp.lsp_operations %}
+#### {{ op.name }} (`{{ op.id }}`)
+
+{{ op.description }}
+
+**Use Case:** {{ op.use_case }}
+
+{% if op.example %}
+```
+{{ op.example }}
+```
+{% endif %}
+
+{% endfor %}
+
+### Best Practices
+
+{% for practice in lsp.best_practices %}
+**{{ practice.title }}**
+
+{{ practice.description }}
+
+{% endfor %}
+
+### Setup (Python)
+
+```bash
+pip install pyright
+/plugin install pyright@claude-code-lsps
+export ENABLE_LSP_TOOL=1
+```
+
+{% endif %}
