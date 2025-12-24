@@ -210,6 +210,7 @@ def test_new_method():
 | Dokument | Änderung |
 |----------|----------|
 | `docs/ARCHITECTURE-MODULES.md` | Neues Modul beschreiben |
+| `docs/sources/*.yaml` | **PFLICHT bei neuen Modulen** - Single Source of Truth |
 | `ONBOARDING.md` | Section für neues Feature |
 | `CLAUDE.md` | Arbeitsanweisungen aktualisieren |
 | `skills/helix/*/SKILL.md` | Skill aktualisieren falls relevant |

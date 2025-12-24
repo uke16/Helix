@@ -114,6 +114,7 @@ project_types:
       - consultant
       - development
       - review
+      - documentation  # Docs aktualisieren vor Integration
       - integration
     auto_approve: false
 
@@ -125,6 +126,7 @@ project_types:
       - planning
       - development
       - review
+      - documentation  # Docs aktualisieren vor Integration
       - integration
     auto_approve: false
 

@@ -37,6 +37,7 @@ project_types:
       - consultant
       - development
       - review
+      - documentation
       - integration
     use_when: "Clear requirements, well-understood scope"
 
@@ -49,6 +50,7 @@ project_types:
       - planning
       - development
       - review
+      - documentation
       - integration
     use_when: "Unclear requirements, technical uncertainty"
 

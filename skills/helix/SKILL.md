@@ -1248,7 +1248,7 @@ quality gates, retries, and status tracking.
 
 Standard feature development workflow
 
-**Phases:** consultant → development → review → integration
+**Phases:** consultant → development → review → documentation → integration
 
 **Use when:** Clear requirements, well-understood scope
 
@@ -1256,7 +1256,7 @@ Standard feature development workflow
 
 Features requiring feasibility study and planning
 
-**Phases:** consultant → feasibility → planning → development → review → integration
+**Phases:** consultant → feasibility → planning → development → review → documentation → integration
 
 **Use when:** Unclear requirements, technical uncertainty
 
