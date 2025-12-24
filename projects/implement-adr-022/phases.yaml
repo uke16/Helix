@@ -1,0 +1,124 @@
+project_type: adr_implementation
+name: "ADR-022 Implementation - Unified API Architecture"
+description: "Implementiert ADR-022: Eine API für alles, CLI wird thin client"
+
+# WICHTIG: Jede Phase hat klare Erfolgskriterien
+# Claude Code muss diese SELBST prüfen bevor er fertig ist
+
+phases:
+  - id: "1"
+    name: "UnifiedOrchestrator erstellen"
+    type: development
+    description: "Konsolidiere alle Orchestrator-Logik in einer Datei"
+    input:
+      - input/requirements.md
+    output:
+      - output/src/helix/api/orchestrator.py
+      - output/tests/api/test_orchestrator.py
+    quality_gates:
+      - type: files_exist
+        files:
+          - output/src/helix/api/orchestrator.py
+          - output/tests/api/test_orchestrator.py
+      - type: python_syntax
+      - type: tests_pass
+        command: "pytest output/tests/api/test_orchestrator.py -v"
+    success_criteria:
+      - "UnifiedOrchestrator Klasse existiert"
+      - "run_project() Methode mit event callback"
+      - "Verification (ADR-011) integriert"
+      - "Quality Gates integriert"
+      - "Tests laufen durch"
+
+  - id: "2"
+    name: "API Endpoints aktualisieren"
+    type: development
+    description: "streaming.py nutzt UnifiedOrchestrator"
+    input:
+      - input/current-streaming.py
+    output:
+      - output/src/helix/api/streaming.py
+      - output/src/helix/api/routes/project.py
+    quality_gates:
+      - type: files_exist
+      - type: python_syntax
+      - type: api_endpoint_test
+        endpoints:
+          - "POST /helix/execute"
+          - "GET /helix/stream/{job_id}"
+          - "GET /helix/jobs"
+    success_criteria:
+      - "/helix/execute startet Job und gibt job_id zurück"
+      - "/helix/stream/{job_id} liefert SSE Events"
+      - "Keine duplizierte Logik mehr in streaming.py"
+
+  - id: "3"
+    name: "CLI als API Client"
+    type: development
+    description: "CLI ruft API auf statt eigener Logik"
+    input:
+      - input/current-commands.py
+    output:
+      - output/src/helix/cli/api_client.py
+      - output/src/helix/cli/commands.py
+      - output/scripts/helix
+    quality_gates:
+      - type: files_exist
+      - type: python_syntax
+      - type: cli_test
+        commands:
+          - "helix run --help"
+          - "helix jobs --help"
+    success_criteria:
+      - "api_client.py mit httpx async client"
+      - "commands.py ruft api_client auf"
+      - "scripts/helix startet API wenn nötig"
+      - "helix run project funktioniert via API"
+
+  - id: "4"
+    name: "Aufräumen - Toter Code löschen"
+    type: development
+    description: "Lösche orchestrator_legacy.py und orchestrator/ package"
+    input:
+      - input/files-to-delete.md
+    output:
+      - output/DELETED_FILES.md
+      - output/backup/orchestrator_legacy.py
+      - output/backup/orchestrator/
+    quality_gates:
+      - type: files_not_exist
+        files:
+          - src/helix/orchestrator_legacy.py
+          - src/helix/orchestrator/runner.py
+      - type: imports_valid
+        description: "Keine Imports mehr auf gelöschte Dateien"
+    success_criteria:
+      - "orchestrator_legacy.py in backup/ verschoben"
+      - "orchestrator/ package in backup/ verschoben"
+      - "Keine ImportError wenn helix importiert wird"
+      - "~2000 Zeilen Code entfernt"
+
+  - id: "5"
+    name: "Integration Test & Dokumentation"
+    type: development
+    description: "End-to-End Test und Doku aktualisieren"
+    input:
+      - input/test-scenarios.md
+    output:
+      - output/tests/integration/test_unified_api.py
+      - output/docs/sources/api.yaml
+      - output/MIGRATION_COMPLETE.md
+    quality_gates:
+      - type: integration_test
+        command: "pytest output/tests/integration/ -v"
+      - type: api_health
+        url: "http://localhost:8001/"
+    success_criteria:
+      - "helix run project via API funktioniert"
+      - "Open WebUI /v1/chat/completions funktioniert"
+      - "Dokumentation aktualisiert"
+      - "ADR-022 Status auf Implemented"
+
+skills:
+  - helix
+  - helix/adr
