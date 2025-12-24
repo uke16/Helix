@@ -167,3 +167,22 @@ Async CLI mit `--background` Flag für non-blocking Projektausführung.
 - Jobs überleben SSH-Disconnect
 
 **Siehe:** [ADR-021](021-async-cli-background-jobs.md)
+
+## ADR-022: Unified API Architecture - Eine API für alles
+
+**Status:** Proposed | **Datum:** 2024-12-24
+
+Eine einzige API als Single Source of Truth. CLI wird thin client.
+
+**Kernentscheidungen:**
+- API ist der einzige Orchestrator
+- CLI ruft API auf (kein eigener Orchestrator-Code)
+- orchestrator_legacy.py wird gelöscht
+- orchestrator/ package wird gelöscht (~2000 Zeilen toter Code)
+- Open WebUI nutzt gleiche API
+
+**Aufräumen:**
+- Löschen: orchestrator_legacy.py, orchestrator/
+- ~2067 Zeilen Code entfernt
+
+**Siehe:** [ADR-022](022-unified-api-architecture.md)

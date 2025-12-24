@@ -1,7 +1,8 @@
 ---
 adr_id: "017"
 title: "Phase Orchestrator - Automatische Projekt-Ausführung"
-status: Implemented
+status: Superseded
+superseded_by: "022"
 
 project_type: helix_internal
 component_type: PROCESS
