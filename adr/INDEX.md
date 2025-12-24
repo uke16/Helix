@@ -141,3 +141,28 @@ depends_on: [...]
       └── 008 Spec Schema ───── 012 ADR as Single Source
            └── 009 Bootstrap
 ```
+
+## ADR-018: LSP Integration für Code-Intelligence
+
+**Status:** Proposed | **Datum:** 2024-12-24
+
+Native Claude Code LSP-Unterstützung für Anti-Halluzination und Code-Intelligence.
+Nur `ENABLE_LSP_TOOL=1` Environment Variable nötig (seit Claude Code v2.0.74).
+
+**Kernentscheidung:** Minimale Integration - nutze natives Feature statt eigener Lösung.
+
+**Siehe:** [ADR-018](018-lsp-integration.md)
+
+## ADR-019: Documentation as Code - Validierbare Referenzen
+
+**Status:** Proposed | **Datum:** 2024-12-24
+
+Drei-Schichten Dokumentationssystem mit validierbaren Referenzen (`$ref`, `$uses`, `$file`).
+Verhindert veraltete Dokumentation durch Compile-Time Validierung.
+
+**Kernkonzepte:**
+- `$ref: helix.debug.StreamParser` → Validierbar, auto-extrahiert Docstrings
+- `$uses: StreamParser.parse_line` → Workflow-Steps validieren Methoden
+- `$diagram_refs` → Diagramme listen ihre Code-Abhängigkeiten
+
+**Siehe:** [ADR-019](019-documentation-as-code.md)
