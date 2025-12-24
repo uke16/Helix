@@ -545,6 +545,21 @@ Docker, PostgreSQL, deployment, and system administration
 
 ---
 
+### Development Tools (`development-tools`)
+
+Tools and utilities for code development - LSP, debugging, testing
+
+**Skills:**
+- [LSP Navigation](skills/lsp/SKILL.md) - goToDefinition, findReferences, hover, Anti-Halluzination
+
+**Key Concepts:**
+- **LSP Integration**: Language Server Protocol for code intelligence
+- **Anti-Halluzination**: Verify symbols exist before using them
+
+**Wann lesen:** When writing or modifying code
+
+---
+
 ### API Layer (`api`)
 
 REST APIs, FastAPI endpoints, authentication, and integrations

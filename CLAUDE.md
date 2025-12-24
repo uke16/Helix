@@ -36,7 +36,7 @@ Schau in deinem Arbeitsverzeichnis nach:
 2. CLAUDE.md in deinem Phase-Verzeichnis
 3. Relevante Skills in `skills/`
 
-### Skills nach Bedarf:- `skills/helix/SKILL.md` - Orchestration & evolution- `skills/pdm/SKILL.md` - Product data management- `skills/encoder/SKILL.md` - Encoder products- `skills/infrastructure/SKILL.md` - System infrastructure- `skills/api/SKILL.md` - API development
+### Skills nach Bedarf:- `skills/helix/SKILL.md` - Orchestration & evolution- `skills/pdm/SKILL.md` - Product data management- `skills/encoder/SKILL.md` - Encoder products- `skills/infrastructure/SKILL.md` - System infrastructure- `skills/lsp/SKILL.md` - Dev tools (LSP, Debug)- `skills/api/SKILL.md` - API development
 ---
 
 ## Output-Regeln

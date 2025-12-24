@@ -32,24 +32,30 @@ class ContextManager:
     DEFAULT_SKILLS_DIR = Path("/home/aiuser01/helix-v4/skills")
 
     DOMAIN_SKILL_MAP: dict[str, list[str]] = {
-        "cli-tool": ["cli-development", "argument-parsing", "user-interaction"],
-        "web-app": ["web-development", "frontend", "api-design"],
-        "api-service": ["api-design", "rest-patterns", "authentication"],
-        "library": ["api-design", "documentation", "versioning"],
-        "data-pipeline": ["data-processing", "etl-patterns", "scheduling"],
-        "infrastructure": ["devops", "cloud-patterns", "security"],
-        "documentation": ["technical-writing", "markdown", "diagrams"],
-        "testing": ["testing-patterns", "mocking", "coverage"],
+        # Maps domains to actual existing skills
+        "cli-tool": ["helix", "infrastructure", "lsp"],
+        "web-app": ["helix", "infrastructure", "lsp"],
+        "api-service": ["helix", "infrastructure", "lsp"],
+        "library": ["helix", "infrastructure", "lsp"],
+        "data-pipeline": ["helix", "infrastructure", "lsp"],
+        "infrastructure": ["infrastructure", "helix"],
+        "documentation": ["helix"],
+        "testing": ["helix", "lsp"],
+        # HELIX-specific domains
+        "helix": ["helix", "lsp", "infrastructure"],
+        "pdm": ["pdm", "helix", "encoder"],
+        "encoder": ["encoder", "pdm", "helix"],
     }
 
     LANGUAGE_SKILL_MAP: dict[str, list[str]] = {
-        "python": ["python-best-practices", "python-testing", "python-packaging"],
-        "typescript": ["typescript-patterns", "node-ecosystem", "type-safety"],
-        "javascript": ["javascript-patterns", "node-ecosystem", "async-patterns"],
-        "go": ["go-patterns", "go-testing", "go-modules"],
-        "rust": ["rust-patterns", "cargo-ecosystem", "memory-safety"],
-        "java": ["java-patterns", "maven-gradle", "jvm-ecosystem"],
-        "kotlin": ["kotlin-patterns", "kotlin-coroutines", "jvm-ecosystem"],
+        # Maps languages to actual existing skills
+        "python": ["lsp", "helix", "infrastructure"],
+        "typescript": ["lsp", "helix", "infrastructure"],
+        "javascript": ["lsp", "helix", "infrastructure"],
+        "go": ["lsp", "helix", "infrastructure"],
+        "rust": ["lsp", "helix", "infrastructure"],
+        "java": ["lsp", "helix", "infrastructure"],
+        "kotlin": ["lsp", "helix", "infrastructure"],
     }
 
     def __init__(self, skills_dir: Path | None = None) -> None:

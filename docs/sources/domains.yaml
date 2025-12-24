@@ -138,6 +138,24 @@ domains:
 
     when_to_read: "When working with deployment, databases, or containers"
 
+  - id: development-tools
+    name: "Development Tools"
+    description: "Tools and utilities for code development - LSP, debugging, testing"
+    description_short: "Dev tools (LSP, Debug)"
+
+    skills:
+      - path: skills/lsp/SKILL.md
+        name: "LSP Navigation"
+        covers: ["goToDefinition", "findReferences", "hover", "Anti-Halluzination"]
+
+    key_concepts:
+      - name: "LSP Integration"
+        description: "Language Server Protocol for code intelligence"
+      - name: "Anti-Halluzination"
+        description: "Verify symbols exist before using them"
+
+    when_to_read: "When writing or modifying code"
+
   - id: api
     name: "API Layer"
     description: "REST APIs, FastAPI endpoints, authentication, and integrations"
@@ -185,3 +203,4 @@ selection_rules:
 
   - condition: "Default for unknown projects"
     domains: [helix]
+
