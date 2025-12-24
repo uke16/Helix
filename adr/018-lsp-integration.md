@@ -5,7 +5,7 @@ status: Proposed
 date: 2024-12-24
 
 project_type: helix_internal
-component_type: ENHANCEMENT
+component_type: CONFIG
 classification: NEW
 change_scope: minor
 

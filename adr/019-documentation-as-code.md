@@ -5,7 +5,7 @@ status: Proposed
 date: 2024-12-24
 
 project_type: helix_internal
-component_type: ENHANCEMENT
+component_type: TOOL
 classification: NEW
 change_scope: major
 
@@ -915,3 +915,55 @@ python -m helix.tools.docs_compiler migrate docs/sources/debug.yaml
 ## Changelog
 
 - 2024-12-24: Initial MaxVP specification
+
+---
+
+## Implementation
+
+### Phase 1: Schema und Resolver (Woche 1)
+
+```
+files.create:
+  - src/helix/docs/__init__.py
+  - src/helix/docs/reference_resolver.py
+  - src/helix/docs/symbol_extractor.py
+  - src/helix/docs/schema.py
+  - docs/schemas/helix-docs-v1.schema.json
+```
+
+### Phase 2: Validation Gate (Woche 2)
+
+```
+files.create:
+  - src/helix/docs/diagram_validator.py
+  - src/helix/quality_gates/docs_refs_valid.py
+  - tests/docs/test_reference_resolver.py
+  - tests/docs/test_symbol_extractor.py
+```
+
+### Phase 3: Integration (Woche 3)
+
+```
+files.modify:
+  - src/helix/tools/docs_compiler.py
+  - .git/hooks/pre-commit
+  - docs/sources/*.yaml (migrate to new schema)
+```
+
+---
+
+## Dokumentation
+
+### Zu aktualisierende Dokumentation
+
+| Datei | Änderung |
+|-------|----------|
+| `skills/helix/SKILL.md` | Neue Section "$ref Syntax" |
+| `docs/DOCUMENTATION-AS-CODE.md` | Neues Dokument (Übersicht) |
+| `CLAUDE.md` | Verweis auf neues Schema |
+
+### Neue Dokumentation
+
+- `docs/schemas/helix-docs-v1.schema.json` - JSON Schema für YAML Validation
+- `docs/DOCUMENTATION-AS-CODE.md` - Übersichtsdokument für Entwickler
+

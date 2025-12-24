@@ -166,3 +166,22 @@ Verhindert veraltete Dokumentation durch Compile-Time Validierung.
 - `$diagram_refs` → Diagramme listen ihre Code-Abhängigkeiten
 
 **Siehe:** [ADR-019](019-documentation-as-code.md)
+
+## ADR-020: Intelligent Documentation Discovery
+
+**Status:** Proposed | **Datum:** 2024-12-24
+
+Vier Features für intelligente Dokumentations-Discovery:
+
+1. **Skill Index** - Auto-generated `skills/INDEX.yaml` mit Keywords
+2. **Smart Skill Selection** - Consultant bekommt relevante Skills empfohlen
+3. **Reverse Index** - CODE → ADR Traceability
+4. **ADR Files Validation** - Prüft ob files.create existieren
+
+**Kernkonzepte:**
+- Hybrid Keyword-Matching: auto-extracted + manuelle aliases
+- On-Demand Generierung (kein Sync-Problem)
+- Fallback-Garantien (kein Match → alle Skills)
+- Transparenz (Consultant sieht Score + matched Keywords)
+
+**Siehe:** [ADR-020](020-intelligent-documentation-discovery.md)
