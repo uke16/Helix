@@ -97,3 +97,67 @@ PYTHONPATH=src pytest tests/api/test_orchestrator.py -v
 - [ ] `ProjectResult` dataclass für Ergebnis
 - [ ] Tests geschrieben
 - [ ] Tests laufen durch
+
+---
+
+## 📝 Dokumentation (Code-Layer)
+
+Du MUSST für jede Datei die du erstellst auch die Code-Layer Dokumentation erstellen.
+
+### Format für Code-Layer Docs
+
+Erstelle `output/docs/sources/api-orchestrator.yaml`:
+
+```yaml
+module:
+  name: helix.api.orchestrator
+  description: "Unified Orchestrator - Eine Implementierung für alle Entry Points"
+  
+classes:
+  - name: UnifiedOrchestrator
+    description: "Der einzige Orchestrator für HELIX"
+    methods:
+      - name: run_project
+        signature: "async def run_project(project_path: Path, on_event: Callable | None = None) -> ProjectResult"
+        description: "Führt ein Projekt aus mit allen Features"
+        params:
+          - name: project_path
+            type: Path
+            description: "Pfad zum Projekt-Verzeichnis"
+          - name: on_event
+            type: "Callable[[PhaseEvent], None] | None"
+            description: "Callback für SSE Events"
+        returns:
+          type: ProjectResult
+          description: "Ergebnis der Ausführung"
+          
+  - name: PhaseEvent
+    description: "Event das während Phase-Ausführung emittiert wird"
+    fields:
+      - name: event_type
+        type: str
+        description: "phase_start, phase_complete, verification_failed, etc."
+      - name: phase_id
+        type: str
+      - name: data
+        type: dict
+
+  - name: ProjectResult
+    description: "Ergebnis einer Projekt-Ausführung"
+    fields:
+      - name: success
+        type: bool
+      - name: phases_completed
+        type: int
+      - name: phases_total
+        type: int
+      - name: errors
+        type: "list[str]"
+```
+
+### Prüfen ob Docs kompilierbar sind
+
+```bash
+cd /home/aiuser01/helix-v4
+PYTHONPATH=src python3 -m helix.tools.docs_compiler compile --source output/docs/sources/
+```
