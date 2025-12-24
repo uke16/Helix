@@ -1,0 +1,270 @@
+# docs/sources/documentation-system.yaml
+# PRIMARY SOURCE for Documentation System itself
+#
+# This file documents HOW the documentation system works.
+# Meta-documentation: the docs about the docs.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "2.0"
+  description: "HELIX Documentation System Architecture"
+  schema: "helix-docs/v1"  # Will use this schema when ADR-019 implemented
+  adrs:
+    - adr: "014"
+      title: "Documentation Architecture"
+      status: "Implemented"
+      description: "Original system: YAML sources → Jinja2 templates → Generated docs"
+    - adr: "019"
+      title: "Documentation as Code"
+      status: "Proposed"
+      description: "Extension: Validatable $ref syntax, auto-extraction, broken-ref detection"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+# ============================================================
+# CURRENT SYSTEM (ADR-014)
+# ============================================================
+
+architecture:
+  name: "Single Source of Truth Documentation"
+  principle: "One source, many outputs"
+  
+  layers:
+    - id: sources
+      name: "YAML Sources"
+      location: "docs/sources/*.yaml"
+      description: |
+        Primary source files containing structured documentation.
+        Each YAML file covers one domain (tools, quality-gates, etc.)
+      
+      files:
+        - file: "tools.yaml"
+          documents: "CLI tools and Python APIs"
+        - file: "quality-gates.yaml"
+          documents: "Quality gate definitions and usage"
+        - file: "phase-types.yaml"
+          documents: "Phase type definitions"
+        - file: "domains.yaml"
+          documents: "Knowledge domains and skills"
+        - file: "orchestrator.yaml"
+          documents: "Phase orchestrator system"
+        - file: "debug.yaml"
+          documents: "Debug and observability"
+        - file: "lsp.yaml"
+          documents: "LSP integration"
+        - file: "documentation-system.yaml"
+          documents: "This file - meta-documentation"
+
+    - id: templates
+      name: "Jinja2 Templates"
+      location: "docs/templates/*.j2"
+      description: |
+        Templates that combine YAML sources into output documents.
+        Use Jinja2 syntax for loops, conditionals, includes.
+      
+      files:
+        - file: "CLAUDE.md.j2"
+          generates: "CLAUDE.md"
+          purpose: "Root context file for Claude agents"
+        - file: "SKILL.md.j2"
+          generates: "skills/helix/SKILL.md"
+          purpose: "Detailed HELIX documentation"
+
+    - id: outputs
+      name: "Generated Outputs"
+      description: |
+        Auto-generated files. Do NOT edit directly!
+        Header comment indicates regeneration command.
+      
+      files:
+        - file: "CLAUDE.md"
+          source: "All YAML sources"
+          audience: "Claude agents (concise)"
+        - file: "skills/helix/SKILL.md"
+          source: "All YAML sources"
+          audience: "Claude agents (detailed)"
+
+  workflow:
+    - step: "Edit YAML source"
+      file: "docs/sources/*.yaml"
+      
+    - step: "Run compiler"
+      command: "python -m helix.tools.docs_compiler compile"
+      
+    - step: "Review generated output"
+      files: ["CLAUDE.md", "skills/helix/SKILL.md"]
+      
+    - step: "Commit all changes"
+      includes: "Both source and generated files"
+
+# ============================================================
+# FUTURE SYSTEM (ADR-019) - Documentation as Code
+# ============================================================
+
+future_extensions:
+  status: "Proposed in ADR-019"
+  target: "Q1 2025"
+  
+  new_concepts:
+    - id: ref_syntax
+      name: "Validatable References"
+      description: |
+        Instead of plain strings, use $ref to reference code symbols.
+        These are validated at compile time.
+      
+      syntax:
+        - pattern: "$ref: module.Class"
+          validates: "Class exists in module"
+          extracts: "docstring, methods, file location"
+          
+        - pattern: "$uses: Class.method"
+          validates: "Method exists in class"
+          use_case: "Workflow steps"
+          
+        - pattern: "$file: path/to/file"
+          validates: "File exists"
+          use_case: "Diagram references"
+          
+        - pattern: "$ref?: module.Optional"
+          validates: "Warning if missing (not error)"
+          use_case: "Optional dependencies"
+      
+      example:
+        before: |
+          modules:
+            - name: StreamParser
+              module: "helix.debug.stream_parser"  # Plain string
+              methods:
+                - "parse_line(line: str)"  # Can become outdated
+        
+        after: |
+          modules:
+            - $ref: helix.debug.stream_parser.StreamParser
+              # AUTO: name, docstring, methods, location
+              # MANUAL: when_to_use, pitfalls, examples
+              when_to_use: "Real-time CLI output processing"
+
+    - id: auto_extraction
+      name: "Automatic Extraction"
+      description: |
+        When using $ref, the compiler extracts information from code:
+        - Docstrings (first line for summary, full for details)
+        - Method signatures with type hints
+        - File path and line number
+        - Class attributes and decorators
+      
+      benefits:
+        - "Descriptions always match code"
+        - "Signatures never become outdated"
+        - "Less manual work"
+
+    - id: diagram_refs
+      name: "Diagram Validation"
+      description: |
+        Diagrams can declare which symbols they reference.
+        If a symbol is removed, the diagram is flagged as outdated.
+      
+      example: |
+        diagrams:
+          - $file: docs/diagrams/debug-flow.txt
+            $refs:
+              - helix.debug.StreamParser
+              - helix.debug.ToolTracker
+            # If StreamParser removed → ERROR: Update diagram!
+
+    - id: validation_gate
+      name: "Documentation Validation Gate"
+      description: |
+        New quality gate: docs_refs_valid
+        Validates all $ref point to existing symbols.
+        Can block commits with broken references.
+
+  three_layer_model:
+    description: |
+      ADR-019 introduces a three-layer model:
+      
+      LAYER 1: CODE (Ground Truth)
+        src/helix/**/*.py
+        → Actual implementation
+        → Docstrings are source of truth
+      
+      LAYER 2: DOKU-CODE (Validatable + Manual)
+        docs/sources/*.yaml with $ref syntax
+        → Auto-extracted: names, docstrings, signatures
+        → Manual: when_to_use, pitfalls, examples
+        → All references validated at compile time
+      
+      LAYER 3: GENERATED (Output)
+        CLAUDE.md, skills/*/SKILL.md
+        → Combined auto + manual content
+        → Guaranteed consistent with code
+
+# ============================================================
+# COMMANDS
+# ============================================================
+
+cli_commands:
+  - command: "python -m helix.tools.docs_compiler compile"
+    description: "Generate all documentation"
+    
+  - command: "python -m helix.tools.docs_compiler validate"
+    description: "Check sources without generating"
+    
+  - command: "python -m helix.tools.docs_compiler sources"
+    description: "List all YAML sources"
+    
+  - command: "python -m helix.tools.docs_compiler diff"
+    description: "Show what would change"
+
+  # Future commands (ADR-019)
+  - command: "python -m helix.tools.docs_compiler compile --validate-refs"
+    description: "(Future) Compile with $ref validation"
+    status: "Proposed"
+    
+  - command: "python -m helix.tools.docs_compiler extract helix.module"
+    description: "(Future) Extract symbols from module for YAML"
+    status: "Proposed"
+
+# ============================================================
+# BEST PRACTICES
+# ============================================================
+
+best_practices:
+  - title: "Always edit YAML sources, never generated files"
+    description: |
+      Generated files have a header comment showing how to regenerate.
+      If you edit them directly, changes will be lost on next compile.
+    
+  - title: "Run compile after every YAML change"
+    description: |
+      python -m helix.tools.docs_compiler compile
+      Then commit both source and generated files together.
+    
+  - title: "Use descriptive keys in YAML"
+    description: |
+      Good: when_to_use, common_patterns, pitfalls
+      Bad: desc, info, notes
+    
+  - title: "Include examples"
+    description: |
+      Claude agents learn best from examples.
+      Every tool/concept should have at least one example.
+
+  - title: "(Future) Use $ref for code references"
+    description: |
+      When ADR-019 is implemented:
+      - Use $ref instead of plain module/class strings
+      - Add manual fields for semantic knowledge
+      - Run validate to catch broken refs
+
+# ============================================================
+# RELATED
+# ============================================================
+
+see_also:
+  - "adr/014-documentation-architecture.md - Original design"
+  - "adr/019-documentation-as-code.md - Future extensions"
+  - "docs/templates/*.j2 - Template files"
+  - "src/helix/tools/docs_compiler.py - Compiler implementation"

@@ -1504,3 +1504,52 @@ pip install pyright
 export ENABLE_LSP_TOOL=1
 ```
 
+
+
+
+
+## Documentation System
+
+One source, many outputs
+
+### Current Architecture (ADR-014)
+
+```
+docs/sources/*.yaml  →  docs/templates/*.j2  →  CLAUDE.md, SKILL.md
+     (YAML)                 (Jinja2)              (Generated)
+```
+
+**Commands:**
+- `python -m helix.tools.docs_compiler compile` - Generate all documentation
+- `python -m helix.tools.docs_compiler validate` - Check sources without generating
+
+### YAML Sources
+
+| File | Documents |
+|------|-----------|
+| `tools.yaml` | CLI tools and Python APIs |
+| `quality-gates.yaml` | Quality gate definitions and usage |
+| `phase-types.yaml` | Phase type definitions |
+| `domains.yaml` | Knowledge domains and skills |
+| `orchestrator.yaml` | Phase orchestrator system |
+| `debug.yaml` | Debug and observability |
+| `lsp.yaml` | LSP integration |
+| `documentation-system.yaml` | This file - meta-documentation |
+
+### Future: Documentation as Code (ADR-019)
+
+Proposed extension with validatable references:
+
+```yaml
+# Instead of plain strings:
+modules:
+  - $ref: helix.debug.StreamParser    # Validated!
+    when_to_use: "Real-time parsing"  # Manual enrichment
+```
+
+**Key concepts:**
+- **Validatable References** (`$ref`, `$uses`, `$file`)
+- **Auto-Extraction** (docstrings, signatures from code)
+- **Diagram Validation** (`$diagram_refs`)
+- **Validation Gate** (blocks commits with broken refs)
+

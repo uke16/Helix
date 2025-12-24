@@ -656,3 +656,52 @@ export ENABLE_LSP_TOOL=1
 ```
 
 {% endif %}
+
+
+
+{# ============================================================ #}
+{# DOCUMENTATION SYSTEM (ADR-014 + ADR-019)                     #}
+{# ============================================================ #}
+
+{% if documentation_system is defined %}
+## Documentation System
+
+{{ documentation_system.architecture.principle }}
+
+### Current Architecture (ADR-014)
+
+```
+docs/sources/*.yaml  →  docs/templates/*.j2  →  CLAUDE.md, SKILL.md
+     (YAML)                 (Jinja2)              (Generated)
+```
+
+**Commands:**
+- `python -m helix.tools.docs_compiler compile` - Generate all documentation
+- `python -m helix.tools.docs_compiler validate` - Check sources without generating
+
+### YAML Sources
+
+| File | Documents |
+|------|-----------|
+{% for file in documentation_system.architecture.layers[0].files %}
+| `{{ file.file }}` | {{ file.documents }} |
+{% endfor %}
+
+### Future: Documentation as Code (ADR-019)
+
+Proposed extension with validatable references:
+
+```yaml
+# Instead of plain strings:
+modules:
+  - $ref: helix.debug.StreamParser    # Validated!
+    when_to_use: "Real-time parsing"  # Manual enrichment
+```
+
+**Key concepts:**
+- **Validatable References** (`$ref`, `$uses`, `$file`)
+- **Auto-Extraction** (docstrings, signatures from code)
+- **Diagram Validation** (`$diagram_refs`)
+- **Validation Gate** (blocks commits with broken refs)
+
+{% endif %}
