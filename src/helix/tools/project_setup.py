@@ -19,8 +19,11 @@ def create_adr_project(name: str, base_dir: Path, adr_id: str = None) -> Path:
     project_dir = base_dir / name
     project_dir.mkdir(parents=True, exist_ok=True)
     
-    (project_dir / "input").mkdir(exist_ok=True)
-    (project_dir / "output").mkdir(exist_ok=True)
+    # Create CORRECT structure: phases/1/input, phases/1/output
+    phase_dir = project_dir / "phases" / "1"
+    phase_dir.mkdir(parents=True, exist_ok=True)
+    (phase_dir / "input").mkdir(exist_ok=True)
+    (phase_dir / "output").mkdir(exist_ok=True)
     
     # Determine next ADR ID if not provided
     if adr_id is None:
@@ -50,7 +53,7 @@ def create_adr_project(name: str, base_dir: Path, adr_id: str = None) -> Path:
     with open(project_dir / "phases.yaml", "w") as f:
         yaml.dump(phases_yaml, f, default_flow_style=False, allow_unicode=True)
     
-    # Create CLAUDE.md with self-validation
+    # Create CLAUDE.md IN PHASE DIRECTORY (not project root!)
     claude_md = f'''# Consultant Phase - ADR Creation
 
 Du bist ein Consultant der ein neues ADR (Architecture Decision Record) erstellt.
@@ -73,7 +76,7 @@ Nach dem Erstellen des ADR, führe aus:
 
 ```bash
 cd /home/aiuser01/helix-v4
-PYTHONPATH=src python3 -m helix.tools.adr_tool validate {project_dir}/output/ADR-draft.md
+PYTHONPATH=src python3 -m helix.tools.adr_tool validate {phase_dir}/output/ADR-draft.md
 ```
 
 **Bei Errors:** Korrigiere das ADR und validiere erneut!
@@ -118,9 +121,10 @@ depends_on:
 Pflicht-Sections: Kontext, Entscheidung, Implementation, Dokumentation, Akzeptanzkriterien, Konsequenzen
 '''
     
-    (project_dir / "CLAUDE.md").write_text(claude_md)
+    # Write CLAUDE.md to PHASE directory
+    (phase_dir / "CLAUDE.md").write_text(claude_md)
     
-    # Create template request.md
+    # Create template request.md IN PHASE INPUT DIRECTORY
     request_template = '''# Problem: [Beschreibe das Problem]
 
 [Was ist das Problem?]
@@ -135,12 +139,20 @@ Pflicht-Sections: Kontext, Entscheidung, Implementation, Dokumentation, Akzeptan
 - [Constraint 2]
 '''
     
-    (project_dir / "input" / "request.md").write_text(request_template)
+    (phase_dir / "input" / "request.md").write_text(request_template)
     
     print(f"✅ ADR Project created: {project_dir}")
     print(f"   ADR ID: {adr_id}")
+    print(f"   Structure:")
+    print(f"   {project_dir}/")
+    print(f"   ├── phases.yaml")
+    print(f"   └── phases/1/")
+    print(f"       ├── CLAUDE.md")
+    print(f"       ├── input/request.md")
+    print(f"       └── output/")
+    print(f"")
     print(f"   Next steps:")
-    print(f"   1. Edit {project_dir}/input/request.md")
+    print(f"   1. Edit {phase_dir}/input/request.md")
     print(f"   2. Run: helix run {project_dir}")
     
     return project_dir

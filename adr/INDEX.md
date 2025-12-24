@@ -153,3 +153,17 @@ Nur `ENABLE_LSP_TOOL=1` Environment Variable nötig (seit Claude Code v2.0.74).
 
 **Siehe:** [ADR-018](018-lsp-integration.md)
 
+
+## ADR-021: Async CLI mit Background Jobs
+
+**Status:** Proposed | **Datum:** 2024-12-24
+
+Async CLI mit `--background` Flag für non-blocking Projektausführung.
+
+**Kernkonzepte:**
+- `helix run project --background` startet Job im Hintergrund
+- `helix jobs` zeigt laufende Jobs
+- `helix logs <job-id>` zeigt Logs
+- Jobs überleben SSH-Disconnect
+
+**Siehe:** [ADR-021](021-async-cli-background-jobs.md)
