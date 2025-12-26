@@ -1,0 +1,1 @@
+welche adrs aus dem adr verzeichnis haben wir schon implementiert? und welche noch nicht?

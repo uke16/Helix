@@ -50,11 +50,6 @@ async def list_models() -> dict:
             created=int(time.time()),
             owned_by="helix",
         ),
-        ModelInfo(
-            id="helix-developer",
-            created=int(time.time()),
-            owned_by="helix",
-        ),
     ]
     return {
         "object": "list",
@@ -190,11 +185,44 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
             if response_file.exists():
                 return response_file.read_text()
             else:
-                # Claude didn't write response file - use stdout
-                return result.stdout or "Ich habe deine Anfrage analysiert, aber keine Antwort generiert."
+                # Claude didn't write response file - parse stdout
+                # With stream-json output, we need to extract the result
+                stdout = result.stdout or ""
+                
+                # Try to parse stream-json format
+                import json
+                for line in stdout.strip().split("\n"):
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    try:
+                        data = json.loads(line)
+                        if data.get("type") == "result" and data.get("result"):
+                            return data["result"]
+                    except json.JSONDecodeError:
+                        continue
+                
+                # Fallback to raw stdout if no result found
+                return stdout or "Ich habe deine Anfrage analysiert, aber keine Antwort generiert."
         else:
-            # Error case
-            return f"❌ Fehler bei der Verarbeitung:\n```\n{result.stderr[:500]}\n```"
+            # Error case - also try to parse stream-json for error message
+            stderr = result.stderr or ""
+            stdout = result.stdout or ""
+            
+            # Try to find error in stream-json
+            import json
+            for line in (stdout + "\n" + stderr).strip().split("\n"):
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                try:
+                    data = json.loads(line)
+                    if data.get("type") == "result" and data.get("is_error"):
+                        return f"❌ Fehler: {data.get('result', 'Unbekannter Fehler')}"
+                except json.JSONDecodeError:
+                    continue
+            
+            return f"❌ Fehler bei der Verarbeitung:\n```\n{stderr[:500]}\n```"
             
     except asyncio.TimeoutError:
         return "⏱️ Timeout - die Verarbeitung hat zu lange gedauert."

@@ -5,7 +5,7 @@ This module provides the main Click group for the HELIX CLI.
 
 import click
 
-from .commands import run, status, debug, costs, new, discuss
+from .commands import run, status, debug, costs, new, discuss, jobs, logs, stop
 
 
 @click.group()
@@ -26,6 +26,9 @@ cli.add_command(debug)
 cli.add_command(costs)
 cli.add_command(new)
 cli.add_command(discuss)
+cli.add_command(jobs)
+cli.add_command(logs)
+cli.add_command(stop)
 
 
 if __name__ == "__main__":

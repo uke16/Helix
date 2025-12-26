@@ -1,0 +1,47 @@
+# Task: Implement ADR-022 Phase 2 - API Endpoints aktualisieren
+
+Read these files first:
+1. cat projects/implement-adr-022/phases/2/CLAUDE.md
+2. cat src/helix/api/orchestrator.py (Phase 1 output)
+3. cat src/helix/api/streaming.py
+4. cat src/helix/api/routes/project.py
+5. cat src/helix/api/main.py
+
+Then update:
+
+## 1. src/helix/api/streaming.py
+
+Simplify to be a thin wrapper around UnifiedOrchestrator:
+- Remove all orchestration logic
+- Just call UnifiedOrchestrator.run_project()
+- Format events as SSE
+- Keep SSE formatting utilities
+
+## 2. src/helix/api/routes/project.py
+
+Update endpoints to use the new UnifiedOrchestrator:
+- POST /helix/execute - Starts job via UnifiedOrchestrator
+- GET /helix/stream/{job_id} - SSE stream
+- GET /helix/jobs - List jobs
+- DELETE /helix/jobs/{job_id} - Stop job
+
+## Verification Steps:
+
+```bash
+# 1. Syntax check
+python3 -m py_compile src/helix/api/streaming.py
+python3 -m py_compile src/helix/api/routes/project.py
+
+# 2. Import check
+PYTHONPATH=src python3 -c "from helix.api.streaming import stream_project_execution; print('OK')"
+PYTHONPATH=src python3 -c "from helix.api.routes.project import router; print('OK')"
+
+# 3. Start API and verify
+PYTHONPATH=src python3 -m uvicorn helix.api.main:app --port 8001 &
+sleep 2
+curl http://localhost:8001/
+curl http://localhost:8001/helix/jobs
+pkill -f "uvicorn helix.api.main:app"
+```
+
+Start now and update both files.

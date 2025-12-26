@@ -14,7 +14,7 @@ export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}/home/aiuser01/helix-v4/src"
 
 # HELIX specific
 export HELIX_ROOT="/home/aiuser01/helix-v4"
-export HELIX_MODEL="${HELIX_MODEL:-claude-sonnet-4}"
+export HELIX_MODEL="${HELIX_MODEL:-sonnet}"
 
 # Verify
 if command -v claude &> /dev/null; then
@@ -28,3 +28,13 @@ if command -v python3 &> /dev/null; then
 else
     echo "❌ Python not found"
 fi
+
+# Load .env if exists (for CLAUDE_MODEL etc.)
+if [ -f "$HELIX_ROOT/.env" ]; then
+    set -a
+    source "$HELIX_ROOT/.env"
+    set +a
+fi
+
+# Export CLAUDE_MODEL for Claude CLI
+export CLAUDE_MODEL="${CLAUDE_MODEL:-opus}"

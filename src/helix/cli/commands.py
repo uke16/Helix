@@ -1,10 +1,10 @@
 """HELIX v4 CLI Commands.
 
 This module contains all CLI commands for the HELIX system.
+Commands use the HELIX API (ADR-022) instead of direct orchestrator calls.
 """
 
 import asyncio
-import functools
 import functools
 import json
 import sys
@@ -33,50 +33,75 @@ def handle_error(func):
     return wrapper
 
 
+def require_api(func):
+    """Decorator to check if API is running before executing command."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        from .api_client import check_api_health
+
+        if not asyncio.run(check_api_health()):
+            click.secho("✗ HELIX API is not running", fg="red")
+            click.secho("  Start it with: uvicorn helix.api.main:app --port 8001", fg="yellow")
+            sys.exit(1)
+        return func(*args, **kwargs)
+    return wrapper
+
+
 @click.command()
 @click.argument("project_path", type=click.Path(exists=True))
 @click.option("--phase", "-p", help="Start from specific phase")
 @click.option("--model", "-m", default="claude-opus-4", help="LLM model to use")
 @click.option("--dry-run", is_flag=True, help="Show what would be done")
+@click.option("--background", "-bg", is_flag=True, help="Run in background, return job ID")
 @handle_error
-def run(project_path: str, phase: Optional[str], model: str, dry_run: bool) -> None:
+def run(project_path: str, phase: Optional[str], model: str, dry_run: bool, background: bool) -> None:
     """Run a HELIX project workflow.
 
     PROJECT_PATH is the path to the project directory containing ADR and phases.yaml.
     """
-    from helix.orchestrator import Orchestrator
-    from helix.observability import HelixLogger
-
     project = Path(project_path).resolve()
-    logger = HelixLogger(project)
 
-    click.secho(f"→ Loading project: {project.name}", fg="blue")
+    click.secho(f"-> Loading project: {project.name}", fg="blue")
 
     if dry_run:
-        click.secho("→ Dry run mode - showing planned execution", fg="yellow")
+        click.secho("-> Dry run mode - showing planned execution", fg="yellow")
         _show_dry_run(project, phase)
         return
 
-    click.secho(f"→ Using model: {model}", fg="blue")
-    if phase:
-        click.secho(f"→ Starting from phase: {phase}", fg="blue")
+    # Check API is running
+    from .api_client import check_api_health, run_project, print_event, APIError
 
-    # Create orchestrator with optional model override
-    from helix.claude_runner import ClaudeRunner
-    claude_runner = ClaudeRunner()
-    
-    orchestrator = Orchestrator(claude_runner=claude_runner)
+    if not asyncio.run(check_api_health()):
+        click.secho("✗ HELIX API is not running", fg="red")
+        click.secho("  Start it with: uvicorn helix.api.main:app --port 8001", fg="yellow")
+        click.secho("  Or use: ./scripts/helix run <project>", fg="yellow")
+        sys.exit(1)
+
+    click.secho(f"-> Using model: {model}", fg="blue")
+    if phase:
+        click.secho(f"-> Starting from phase: {phase}", fg="blue")
 
     async def execute():
-        result = await orchestrator.run_project(project)
-        if result.status != "success":
-            raise RuntimeError(f"Project failed at phase {result.completed_phases}/{result.total_phases}")
+        try:
+            if background:
+                # Use start_job directly for background mode
+                from .api_client import start_job
+                job_id = await start_job(str(project))
+                click.secho(f"-> Job started: {job_id}", fg="green")
+                click.echo(f"   Track with: helix logs {job_id}")
+                return
+
+            # Stream events
+            async for event in run_project(str(project), background=False):
+                print_event(event)
+        except APIError as e:
+            click.secho(f"✗ API error: {e.detail}", fg="red")
+            sys.exit(1)
 
     try:
         asyncio.run(execute())
-        click.secho("✓ Workflow completed successfully", fg="green")
     except KeyboardInterrupt:
-        click.secho("\n⚠ Workflow interrupted by user", fg="yellow")
+        click.secho("\n-> Workflow interrupted by user", fg="yellow")
         sys.exit(130)
 
 
@@ -96,7 +121,7 @@ def _show_dry_run(project: Path, start_phase: Optional[str]) -> None:
         if phase.name == start_phase:
             started = True
 
-        status = "→ would run" if started else "  skipped"
+        status = "-> would run" if started else "  skipped"
         status_color = "green" if started else "white"
         click.echo(f"{phase.name:<25} {phase.name[:38]:<40} ", nl=False)
         click.secho(status, fg=status_color)
@@ -117,7 +142,7 @@ def status(project_path: str) -> None:
 
     project = Path(project_path).resolve()
 
-    click.secho(f"→ Project: {project.name}", fg="blue")
+    click.secho(f"-> Project: {project.name}", fg="blue")
     click.echo()
 
     # Load phases and check status
@@ -189,14 +214,14 @@ def debug(project_path: str, phase: Optional[str], tail: int) -> None:
     logger = HelixLogger(project)
 
     if phase:
-        click.secho(f"→ Logs for phase: {phase}", fg="blue")
+        click.secho(f"-> Logs for phase: {phase}", fg="blue")
         log_file = project / ".helix" / "logs" / f"{phase}.log"
     else:
-        click.secho(f"→ Logs for project: {project.name}", fg="blue")
+        click.secho(f"-> Logs for project: {project.name}", fg="blue")
         log_file = project / ".helix" / "logs" / "helix.log"
 
     if not log_file.exists():
-        click.secho(f"⚠ No logs found at: {log_file}", fg="yellow")
+        click.secho(f"Warning: No logs found at: {log_file}", fg="yellow")
         return
 
     click.echo()
@@ -234,13 +259,13 @@ def costs(project_path: str, detailed: bool) -> None:
     project = Path(project_path).resolve()
     collector = MetricsCollector(project)
 
-    click.secho(f"→ Costs for project: {project.name}", fg="blue")
+    click.secho(f"-> Costs for project: {project.name}", fg="blue")
     click.echo()
 
     metrics = collector.get_metrics()
 
     if not metrics:
-        click.secho("⚠ No metrics data found", fg="yellow")
+        click.secho("Warning: No metrics data found", fg="yellow")
         return
 
     total_input = metrics.get("total_input_tokens", 0)
@@ -293,7 +318,7 @@ def new(project_name: str, project_type: str, output: Optional[str]) -> None:
         click.secho(f"✗ Directory already exists: {project_dir}", fg="red")
         sys.exit(1)
 
-    click.secho(f"→ Creating new {project_type} project: {project_name}", fg="blue")
+    click.secho(f"-> Creating new {project_type} project: {project_name}", fg="blue")
 
     # Create project structure
     project_dir.mkdir(parents=True)
@@ -495,8 +520,8 @@ def discuss(project_path: str, request: Optional[str], model: str) -> None:
             sys.exit(1)
         user_request = request_file.read_text()
 
-    click.secho(f"→ Starting consultant meeting for: {project.name}", fg="blue")
-    click.secho(f"→ Using model: {model}", fg="blue")
+    click.secho(f"-> Starting consultant meeting for: {project.name}", fg="blue")
+    click.secho(f"-> Using model: {model}", fg="blue")
 
     llm_client = LLMClient()
     expert_manager = ExpertManager()
@@ -510,18 +535,155 @@ def discuss(project_path: str, request: Optional[str], model: str) -> None:
         result = asyncio.run(run_meeting())
 
         click.secho("\n✓ Consultant meeting completed!", fg="green")
-        click.secho(f"  → Experts consulted: {', '.join(result.experts_consulted)}", fg="white")
-        click.secho(f"  → Duration: {result.duration_seconds:.1f}s", fg="white")
+        click.secho(f"  -> Experts consulted: {', '.join(result.experts_consulted)}", fg="white")
+        click.secho(f"  -> Duration: {result.duration_seconds:.1f}s", fg="white")
 
         if result.spec:
-            click.secho(f"  → Created: spec.yaml", fg="green")
+            click.secho(f"  -> Created: spec.yaml", fg="green")
         if result.phases:
-            click.secho(f"  → Created: phases.yaml", fg="green")
+            click.secho(f"  -> Created: phases.yaml", fg="green")
         if result.adr_path:
-            click.secho(f"  → Created: {result.adr_path.name}", fg="green")
+            click.secho(f"  -> Created: {result.adr_path.name}", fg="green")
 
-        click.secho(f"\n→ Next step: helix run {project_path}", fg="blue")
+        click.secho(f"\n-> Next step: helix run {project_path}", fg="blue")
 
     except Exception as e:
         click.secho(f"✗ Meeting failed: {e}", fg="red")
         sys.exit(1)
+
+
+@click.command()
+@click.option("--limit", "-n", default=20, help="Number of jobs to show")
+@require_api
+@handle_error
+def jobs(limit: int) -> None:
+    """List recent jobs from the API.
+
+    Shows job ID, status, project, and timestamps.
+    """
+    from .api_client import list_jobs
+
+    jobs_list = asyncio.run(list_jobs(limit=limit))
+
+    if not jobs_list:
+        click.secho("No jobs found", fg="yellow")
+        return
+
+    click.echo()
+    click.echo(f"{'JOB ID':<36} {'STATUS':<12} {'PROJECT':<30} {'STARTED'}")
+    click.echo("-" * 100)
+
+    for job in jobs_list:
+        job_id = job.get("job_id", "?")
+        status_val = job.get("status", "unknown")
+        project = job.get("project_path", "?")
+        if len(project) > 28:
+            project = "..." + project[-25:]
+        started = job.get("started_at", "?")
+        if started and started != "?":
+            # Parse and format timestamp
+            try:
+                dt = datetime.fromisoformat(started.replace("Z", "+00:00"))
+                started = dt.strftime("%Y-%m-%d %H:%M")
+            except (ValueError, AttributeError):
+                pass
+
+        # Color status
+        status_colors = {
+            "pending": "white",
+            "running": "yellow",
+            "completed": "green",
+            "failed": "red",
+            "cancelled": "yellow",
+        }
+        color = status_colors.get(status_val, "white")
+
+        click.echo(f"{job_id:<36} ", nl=False)
+        click.secho(f"{status_val:<12} ", fg=color, nl=False)
+        click.echo(f"{project:<30} {started}")
+
+    click.echo()
+
+
+@click.command()
+@click.argument("job_id")
+@click.option("--follow", "-f", is_flag=True, help="Follow log output (stream)")
+@require_api
+@handle_error
+def logs(job_id: str, follow: bool) -> None:
+    """Show logs for a specific job.
+
+    JOB_ID is the job identifier from 'helix jobs'.
+    """
+    from .api_client import get_job, stream_job_events, print_event, APIError
+
+    async def show_logs():
+        try:
+            if follow:
+                click.secho(f"-> Streaming logs for job: {job_id}", fg="blue")
+                click.echo("   (Press Ctrl+C to stop)")
+                click.echo()
+                async for event in stream_job_events(job_id):
+                    print_event(event)
+            else:
+                job = await get_job(job_id)
+                click.secho(f"-> Job: {job_id}", fg="blue")
+                click.echo(f"   Status: {job.get('status', 'unknown')}")
+                click.echo(f"   Project: {job.get('project_path', 'unknown')}")
+
+                phases = job.get("phases", [])
+                if phases:
+                    click.echo()
+                    click.echo("Phases:")
+                    for phase in phases:
+                        phase_id = phase.get("phase_id", "?")
+                        phase_status = phase.get("status", "?")
+                        duration = phase.get("duration", 0)
+
+                        status_color = "green" if phase_status == "completed" else "red" if phase_status == "failed" else "white"
+                        click.echo(f"   ", nl=False)
+                        click.secho(f"{phase_status:<12}", fg=status_color, nl=False)
+                        click.echo(f" {phase_id} ({duration:.1f}s)")
+
+                error = job.get("error")
+                if error:
+                    click.echo()
+                    click.secho(f"Error: {error}", fg="red")
+
+        except APIError as e:
+            click.secho(f"✗ {e.detail}", fg="red")
+            sys.exit(1)
+
+    try:
+        asyncio.run(show_logs())
+    except KeyboardInterrupt:
+        click.echo()
+
+
+@click.command()
+@click.argument("job_id")
+@require_api
+@handle_error
+def stop(job_id: str) -> None:
+    """Stop a running job.
+
+    JOB_ID is the job identifier from 'helix jobs'.
+    """
+    from .api_client import stop_job, APIError
+
+    async def do_stop():
+        try:
+            result = await stop_job(job_id)
+            status_val = result.get("status", "unknown")
+
+            if status_val == "cancelled":
+                click.secho(f"✓ Job {job_id} cancelled", fg="green")
+            elif status_val == "already_stopped":
+                click.secho(f"Job {job_id} was already stopped ({result.get('job_status', '?')})", fg="yellow")
+            else:
+                click.echo(f"Result: {result}")
+        except APIError as e:
+            click.secho(f"✗ {e.detail}", fg="red")
+            sys.exit(1)
+
+    asyncio.run(do_stop())

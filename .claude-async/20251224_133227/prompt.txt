@@ -1,0 +1,51 @@
+# Task: Implement ADR-022 Phase 1 - UnifiedOrchestrator
+
+Read these files first:
+1. cat projects/implement-adr-022/phases/1/CLAUDE.md
+2. cat adr/022-unified-api-architecture.md
+3. cat src/helix/orchestrator_legacy.py
+4. cat src/helix/api/streaming.py
+5. cat src/helix/evolution/verification.py
+
+Then create:
+
+## 1. src/helix/api/orchestrator.py
+
+Create the UnifiedOrchestrator class that consolidates:
+- Quality Gates from orchestrator_legacy.py
+- Verification from streaming.py (PhaseVerifier from evolution/verification.py)
+- Event callbacks for SSE streaming
+- Escalation from orchestrator_legacy.py
+
+Key components:
+- PhaseEvent dataclass (event_type, phase_id, data)
+- ProjectResult dataclass (success, phases_completed, phases_total, errors)
+- UnifiedOrchestrator class with run_project() method
+
+## 2. tests/api/test_orchestrator.py
+
+Create tests for:
+- UnifiedOrchestrator instantiation
+- run_project() with mock project
+- Event callbacks are called
+- Verification is executed
+- Quality gate checks
+
+## 3. docs/sources/api-orchestrator.yaml
+
+Create the code-layer documentation YAML file.
+
+## Verification Steps (run after creating files):
+
+```bash
+# 1. Syntax check
+python3 -m py_compile src/helix/api/orchestrator.py
+
+# 2. Tests
+PYTHONPATH=src pytest tests/api/test_orchestrator.py -v
+
+# 3. Import check
+PYTHONPATH=src python3 -c "from helix.api.orchestrator import UnifiedOrchestrator; print('OK')"
+```
+
+Start now and create all three files.

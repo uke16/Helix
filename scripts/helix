@@ -1,0 +1,107 @@
+#!/bin/bash
+# HELIX CLI wrapper script
+#
+# This script ensures the API is running before executing CLI commands.
+# Usage: ./scripts/helix <command> [options]
+#
+# Examples:
+#   ./scripts/helix run projects/my-feature
+#   ./scripts/helix jobs
+#   ./scripts/helix logs <job-id>
+
+set -e
+
+# Configuration
+API_HOST="${HELIX_API_HOST:-localhost}"
+API_PORT="${HELIX_API_PORT:-8001}"
+API_URL="http://${API_HOST}:${API_PORT}"
+HELIX_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Check if API is running
+check_api() {
+    curl -s --connect-timeout 2 "${API_URL}/" > /dev/null 2>&1
+}
+
+# Start API in background
+start_api() {
+    echo -e "${BLUE}-> Starting HELIX API on port ${API_PORT}...${NC}"
+    cd "${HELIX_ROOT}"
+    PYTHONPATH=src nohup python3 -m uvicorn helix.api.main:app --host 0.0.0.0 --port "${API_PORT}" > /tmp/helix-api.log 2>&1 &
+    API_PID=$!
+
+    # Wait for API to start (max 10 seconds)
+    for i in {1..20}; do
+        if check_api; then
+            echo -e "${GREEN}✓ API started (PID: ${API_PID})${NC}"
+            return 0
+        fi
+        sleep 0.5
+    done
+
+    echo -e "${RED}✗ Failed to start API. Check /tmp/helix-api.log${NC}"
+    exit 1
+}
+
+# Show help
+show_help() {
+    echo "HELIX CLI - AI Development Orchestration"
+    echo ""
+    echo "Usage: helix <command> [options]"
+    echo ""
+    echo "Commands:"
+    echo "  run <project>     Run a HELIX project"
+    echo "  jobs              List recent jobs"
+    echo "  logs <job-id>     Show logs for a job"
+    echo "  stop <job-id>     Stop a running job"
+    echo "  status <project>  Show project status"
+    echo "  new <name>        Create a new project"
+    echo "  discuss <project> Start consultant meeting"
+    echo ""
+    echo "Options:"
+    echo "  --help, -h        Show this help"
+    echo "  --version, -v     Show version"
+    echo ""
+    echo "Environment:"
+    echo "  HELIX_API_HOST    API host (default: localhost)"
+    echo "  HELIX_API_PORT    API port (default: 8001)"
+    echo ""
+    echo "Examples:"
+    echo "  helix run projects/my-feature"
+    echo "  helix run projects/my-feature --dry-run"
+    echo "  helix run projects/my-feature --background"
+    echo "  helix jobs"
+    echo "  helix logs abc123 --follow"
+}
+
+# Main
+main() {
+    # Handle help flag
+    if [[ "$1" == "--help" || "$1" == "-h" || -z "$1" ]]; then
+        show_help
+        exit 0
+    fi
+
+    # Handle version flag
+    if [[ "$1" == "--version" || "$1" == "-v" ]]; then
+        echo "helix 4.0.0"
+        exit 0
+    fi
+
+    # Check if API is running, start if not
+    if ! check_api; then
+        start_api
+    fi
+
+    # Run CLI command
+    cd "${HELIX_ROOT}"
+    PYTHONPATH=src python3 -m helix.cli.main "$@"
+}
+
+main "$@"

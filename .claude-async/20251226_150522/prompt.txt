@@ -1,0 +1,61 @@
+# Task: Implement ADR-022 Phase 3 - CLI als API Client
+
+Read these files first:
+1. cat projects/implement-adr-022/phases/3/CLAUDE.md
+2. cat src/helix/cli/commands.py (current - uses old orchestrator)
+3. cat src/helix/cli/main.py
+4. cat src/helix/api/routes/helix.py (API endpoints to call)
+5. cat src/helix/api/streaming.py (SSE format)
+
+Then create:
+
+## 1. src/helix/cli/api_client.py (NEW)
+
+Async HTTP client that calls the HELIX API:
+- run_project(project_path, background=False) - POST /helix/execute, then stream SSE
+- list_jobs() - GET /helix/jobs
+- get_logs(job_id, follow=False) - GET /helix/logs/{job_id}
+- stop_job(job_id) - DELETE /helix/jobs/{job_id}
+
+Use httpx for async HTTP. Handle SSE streaming.
+
+## 2. src/helix/cli/commands.py (UPDATE)
+
+Update the `run` command to use api_client instead of orchestrator_legacy:
+- Remove: from helix.orchestrator import Orchestrator
+- Add: from .api_client import run_project, list_jobs
+- Update run() to call api_client.run_project()
+- Add jobs() command
+- Add logs() command
+
+## 3. scripts/helix (NEW)
+
+Standalone script that:
+- Checks if API is running (curl localhost:8001)
+- Starts API if not running
+- Runs CLI command
+
+## Verification Steps:
+
+```bash
+# 1. Syntax check
+python3 -m py_compile src/helix/cli/api_client.py
+python3 -m py_compile src/helix/cli/commands.py
+
+# 2. Import check
+PYTHONPATH=src python3 -c "from helix.cli.api_client import run_project; print('OK')"
+PYTHONPATH=src python3 -c "from helix.cli.commands import cli; print('OK')"
+
+# 3. Start API
+PYTHONPATH=src python3 -m uvicorn helix.api.main:app --port 8001 &
+sleep 2
+
+# 4. Test CLI via API
+PYTHONPATH=src python3 -m helix.cli.main --help
+PYTHONPATH=src python3 -m helix.cli.main jobs
+
+# 5. Cleanup
+pkill -f "uvicorn helix.api.main:app"
+```
+
+Create all files now.

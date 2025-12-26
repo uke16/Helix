@@ -1,7 +1,8 @@
 """Project API routes for HELIX v4.
 
-Provides REST API endpoints for project management:
-- POST /project/{name}/run - Start project execution
+All project execution uses UnifiedOrchestrator (ADR-022).
+This module provides REST API endpoints for project management:
+- POST /project/{name}/run - Start project execution via UnifiedOrchestrator
 - GET /project/{name}/status - Get project status
 - GET /projects - List all projects
 - POST /project - Create a new project
@@ -14,27 +15,10 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 
-# Lazy imports to avoid circular dependencies
-_runner = None
-_tracker = None
-
-
-def _get_runner():
-    """Lazy load OrchestratorRunner."""
-    global _runner
-    if _runner is None:
-        from ...orchestrator.runner import OrchestratorRunner
-        _runner = OrchestratorRunner()
-    return _runner
-
-
-def _get_tracker():
-    """Lazy load StatusTracker."""
-    global _tracker
-    if _tracker is None:
-        from ...orchestrator.status import StatusTracker
-        _tracker = StatusTracker()
-    return _tracker
+from ..orchestrator import UnifiedOrchestrator
+from ..job_manager import job_manager, Job
+from ..models import JobStatus, PhaseStatus, PhaseEvent
+from ..streaming import run_project_with_streaming
 
 
 router = APIRouter(prefix="/project", tags=["project"])
@@ -47,6 +31,7 @@ class RunRequest(BaseModel):
     resume: bool = Field(default=False, description="Resume from last completed phase")
     dry_run: bool = Field(default=False, description="Don't execute, just simulate")
     timeout_per_phase: int = Field(default=600, description="Timeout per phase in seconds")
+    phase_filter: list[str] | None = Field(default=None, description="Run only these phases")
 
 
 class RunResponse(BaseModel):
@@ -54,6 +39,7 @@ class RunResponse(BaseModel):
     status: str
     message: str
     project: str
+    job_id: str
 
 
 class CreateRequest(BaseModel):
@@ -89,25 +75,6 @@ class ProjectSummary(BaseModel):
     progress: str
 
 
-# Background task for running projects
-
-async def run_project_background(name: str, resume: bool, dry_run: bool, timeout: int):
-    """Background task to run a project."""
-    from ...orchestrator.runner import OrchestratorRunner, RunConfig
-
-    runner = OrchestratorRunner()
-    project_dir = Path(f"projects/external/{name}")
-
-    config = RunConfig(
-        project_dir=project_dir,
-        resume=resume,
-        dry_run=dry_run,
-        timeout_per_phase=timeout,
-    )
-
-    await runner.run(name, config)
-
-
 # API Endpoints
 
 @router.post("/{name}/run", response_model=RunResponse)
@@ -116,9 +83,10 @@ async def run_project(
     request: RunRequest,
     background_tasks: BackgroundTasks,
 ) -> RunResponse:
-    """Start project execution.
+    """Start project execution via UnifiedOrchestrator.
 
-    Runs the project in the background and returns immediately.
+    Runs the project in the background using the unified orchestration
+    pipeline (ADR-022). Returns job ID for tracking progress.
 
     Args:
         name: Project name.
@@ -126,25 +94,36 @@ async def run_project(
         background_tasks: FastAPI background tasks.
 
     Returns:
-        RunResponse with status.
+        RunResponse with job_id for tracking.
     """
     project_dir = Path(f"projects/external/{name}")
 
     if not project_dir.exists():
         raise HTTPException(status_code=404, detail=f"Project not found: {name}")
 
+    phases_file = project_dir / "phases.yaml"
+    if not phases_file.exists():
+        raise HTTPException(
+            status_code=400,
+            detail=f"No phases.yaml in project: {name}"
+        )
+
+    # Create job for tracking
+    job = await job_manager.create_job()
+
+    # Start execution in background via UnifiedOrchestrator
     background_tasks.add_task(
-        run_project_background,
-        name,
-        request.resume,
-        request.dry_run,
-        request.timeout_per_phase,
+        run_project_with_streaming,
+        job,
+        project_dir,
+        request.phase_filter,
     )
 
     return RunResponse(
         status="started",
-        message=f"Project '{name}' execution started in background",
+        message=f"Project '{name}' execution started",
         project=name,
+        job_id=job.job_id,
     )
 
 
@@ -156,34 +135,41 @@ async def get_status(name: str) -> StatusResponse:
         name: Project name.
 
     Returns:
-        Current project status.
+        Current project status from status.json.
     """
     project_dir = Path(f"projects/external/{name}")
 
     if not project_dir.exists():
         raise HTTPException(status_code=404, detail=f"Project not found: {name}")
 
-    tracker = _get_tracker()
-    status = tracker.load_or_create(project_dir)
+    # Read status.json if it exists
+    status_file = project_dir / "status.json"
+    if status_file.exists():
+        import json
+        with open(status_file, "r", encoding="utf-8") as f:
+            status_data = json.load(f)
 
+        return StatusResponse(
+            project_id=name,
+            status=status_data.get("status", "unknown"),
+            total_phases=status_data.get("total_phases", 0),
+            completed_phases=status_data.get("completed_phases", 0),
+            started_at=status_data.get("started_at"),
+            completed_at=status_data.get("completed_at"),
+            error=status_data.get("error"),
+            phases=status_data.get("phases", {}),
+        )
+
+    # No status file - return default
     return StatusResponse(
-        project_id=status.project_id,
-        status=status.status,
-        total_phases=status.total_phases,
-        completed_phases=status.completed_phases,
-        started_at=status.started_at.isoformat() if status.started_at else None,
-        completed_at=status.completed_at.isoformat() if status.completed_at else None,
-        error=status.error,
-        phases={
-            pid: {
-                "status": p.status,
-                "started_at": p.started_at.isoformat() if p.started_at else None,
-                "completed_at": p.completed_at.isoformat() if p.completed_at else None,
-                "retries": p.retries,
-                "error": p.error,
-            }
-            for pid, p in status.phases.items()
-        },
+        project_id=name,
+        status="pending",
+        total_phases=0,
+        completed_phases=0,
+        started_at=None,
+        completed_at=None,
+        error=None,
+        phases={},
     )
 
 
@@ -199,24 +185,35 @@ async def list_projects() -> list[ProjectSummary]:
     if not projects_dir.exists():
         return []
 
-    tracker = _get_tracker()
     projects = []
 
     for project_dir in sorted(projects_dir.iterdir()):
         if not project_dir.is_dir():
             continue
 
-        status = tracker.load_or_create(project_dir)
-        progress = (
-            f"{status.completed_phases}/{status.total_phases}"
-            if status.total_phases > 0
-            else "-"
-        )
+        # Read status.json if available
+        status_file = project_dir / "status.json"
+        status = "pending"
+        completed = 0
+        total = 0
+
+        if status_file.exists():
+            import json
+            try:
+                with open(status_file, "r", encoding="utf-8") as f:
+                    status_data = json.load(f)
+                status = status_data.get("status", "pending")
+                completed = status_data.get("completed_phases", 0)
+                total = status_data.get("total_phases", 0)
+            except (json.JSONDecodeError, IOError):
+                pass
+
+        progress = f"{completed}/{total}" if total > 0 else "-"
 
         projects.append(
             ProjectSummary(
                 name=project_dir.name,
-                status=status.status,
+                status=status,
                 progress=progress,
             )
         )
@@ -317,13 +314,19 @@ async def delete_project(name: str, force: bool = False) -> dict[str, str]:
 
     # Check if project is running
     if not force:
-        tracker = _get_tracker()
-        status = tracker.load(project_dir)
-        if status and status.status == "running":
-            raise HTTPException(
-                status_code=409,
-                detail=f"Project '{name}' is currently running. Use force=true to delete.",
-            )
+        status_file = project_dir / "status.json"
+        if status_file.exists():
+            import json
+            try:
+                with open(status_file, "r", encoding="utf-8") as f:
+                    status_data = json.load(f)
+                if status_data.get("status") == "running":
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Project '{name}' is currently running. Use force=true to delete.",
+                    )
+            except (json.JSONDecodeError, IOError):
+                pass
 
     shutil.rmtree(project_dir)
 
@@ -347,8 +350,9 @@ async def reset_project(name: str) -> dict[str, str]:
     if not project_dir.exists():
         raise HTTPException(status_code=404, detail=f"Project not found: {name}")
 
-    tracker = _get_tracker()
-    if tracker.delete(project_dir):
+    status_file = project_dir / "status.json"
+    if status_file.exists():
+        status_file.unlink()
         return {"status": "reset", "project": name}
     else:
         return {"status": "no_status_file", "project": name}

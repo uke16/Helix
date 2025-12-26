@@ -1,0 +1,54 @@
+# Task: Implement ADR-022 Phase 4 - Aufräumen (Toter Code löschen)
+
+Read first:
+1. cat projects/implement-adr-022/phases/4/CLAUDE.md
+
+## Pre-check (do this first!)
+
+```bash
+# 1. API works?
+curl http://localhost:8001/
+
+# 2. CLI uses api_client, NOT orchestrator_legacy?
+grep -n "from.*api_client" src/helix/cli/commands.py | head -5
+grep -n "orchestrator_legacy" src/helix/cli/commands.py  # Should be empty!
+
+# 3. Who still uses orchestrator_legacy?
+grep -rn "orchestrator_legacy\|from helix.orchestrator import" src/ --include="*.py" | grep -v "__pycache__"
+```
+
+## Tasks:
+
+### 1. Create backups
+```bash
+mkdir -p output/backup/orchestrator
+cp src/helix/orchestrator_legacy.py output/backup/
+cp -r src/helix/orchestrator/* output/backup/orchestrator/
+```
+
+### 2. Fix any remaining imports BEFORE deleting
+If any file still imports orchestrator_legacy, fix it to use api/orchestrator.
+
+### 3. Delete old files
+```bash
+rm src/helix/orchestrator_legacy.py
+rm -rf src/helix/orchestrator/
+```
+
+### 4. Verify no import errors
+```bash
+PYTHONPATH=src python3 -c "import helix; print('helix OK')"
+PYTHONPATH=src python3 -c "from helix.api.orchestrator import UnifiedOrchestrator; print('orchestrator OK')"
+PYTHONPATH=src python3 -c "from helix.cli.commands import cli; print('cli OK')"
+```
+
+### 5. Create DELETED_FILES.md documenting what was removed
+
+## Verification:
+```bash
+ls src/helix/orchestrator_legacy.py 2>&1  # Should say "No such file"
+ls src/helix/orchestrator/ 2>&1  # Should say "No such file"
+ls output/backup/orchestrator_legacy.py  # Should exist
+```
+
+Start now.

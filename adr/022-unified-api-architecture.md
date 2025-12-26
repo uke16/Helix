@@ -1,7 +1,7 @@
 ---
 adr_id: "022"
 title: "Unified API Architecture - Eine API für alles"
-status: Proposed
+status: Implemented
 date: 2024-12-24
 
 project_type: helix_internal
@@ -47,7 +47,7 @@ depends_on:
 
 ## Status
 
-Proposed
+Implemented (2025-12-26)
 
 ---
 

@@ -1,0 +1,1 @@
+{ "follow_ups": ["Was ist der Unterschied zwischen helix-v4 und den älteren Versionen?", "Kannst du mir erklären, was das HELIX Projekt macht?", "Wie ist das PDM_RECONSTRUCTION_PROJECT aufgebaut?", "Welche Docker-Container laufen aktuell?", "Kannst du mir die README.md im helix-v4 Ordner zeigen?"] }

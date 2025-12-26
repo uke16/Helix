@@ -1,0 +1,300 @@
+# docs/sources/api-orchestrator.yaml
+# PRIMARY SOURCE for Unified API Orchestrator Documentation
+#
+# Defines the UnifiedOrchestrator from ADR-022.
+# This is the SINGLE source of truth for project execution.
+#
+# Regenerate docs: python -m helix.tools.docs_compiler compile
+
+_meta:
+  version: "1.0"
+  description: "Unified API Orchestrator (ADR-022)"
+  adr: "022"
+  generated_outputs:
+    - CLAUDE.md
+    - skills/helix/SKILL.md
+
+overview:
+  name: "UnifiedOrchestrator"
+  purpose: |
+    The SINGLE orchestrator for HELIX - consolidates all orchestration
+    logic into one implementation used by API, CLI, and WebUI.
+
+    Replaces:
+    - orchestrator_legacy.py (Quality Gates, Escalation)
+    - streaming.py orchestration logic
+    - orchestrator/ package (never used)
+
+  key_features:
+    - "Single Implementation: One orchestrator for all entry points"
+    - "Event Streaming: Real-time SSE events for progress tracking"
+    - "ADR-011 Verification: Post-phase output verification with retry"
+    - "Quality Gates: Integrated gate checking from ADR-017"
+    - "Escalation: ADR-004 escalation on failures"
+    - "Consistent Behavior: CLI and API have identical features"
+
+module:
+  name: helix.api.orchestrator
+  path: src/helix/api/orchestrator.py
+  description: "Unified Orchestrator - Eine Implementierung für alle Entry Points"
+
+classes:
+  - name: PhaseEvent
+    description: "Event emitted during phase execution for SSE streaming"
+    type: dataclass
+    fields:
+      - name: event_type
+        type: str
+        description: |
+          Type of event. Values:
+          - project_start: Project execution started
+          - phase_start: Phase execution started
+          - output: Live output from Claude CLI
+          - verification_passed: ADR-011 verification passed
+          - verification_failed: ADR-011 verification failed
+          - gate_check_start: Quality gate check starting
+          - gate_passed: Quality gate passed
+          - gate_failed: Quality gate failed
+          - escalation: Escalation action triggered
+          - phase_complete: Phase completed successfully
+          - phase_failed: Phase failed
+          - project_complete: Project execution finished
+          - project_result: Final result data
+      - name: phase_id
+        type: str
+        description: "ID of the phase (empty for project-level events)"
+      - name: data
+        type: "dict[str, Any]"
+        description: "Additional event data (varies by event_type)"
+      - name: timestamp
+        type: datetime
+        description: "When the event occurred"
+    methods:
+      - name: to_dict
+        signature: "def to_dict() -> dict[str, Any]"
+        description: "Convert to dictionary for JSON serialization"
+
+  - name: ProjectResult
+    description: "Result of a complete project execution"
+    type: dataclass
+    fields:
+      - name: success
+        type: bool
+        description: "Whether all phases completed successfully"
+      - name: phases_completed
+        type: int
+        description: "Number of phases that completed successfully"
+      - name: phases_total
+        type: int
+        description: "Total number of phases in the project"
+      - name: errors
+        type: "list[str]"
+        description: "Error messages from failed phases"
+      - name: started_at
+        type: datetime
+        description: "When execution started"
+      - name: completed_at
+        type: "datetime | None"
+        description: "When execution completed"
+      - name: phase_results
+        type: "list[dict[str, Any]]"
+        description: "Detailed results for each phase"
+    methods:
+      - name: to_dict
+        signature: "def to_dict() -> dict[str, Any]"
+        description: "Convert to dictionary for JSON serialization"
+
+  - name: UnifiedOrchestrator
+    description: "The one and only orchestrator for HELIX"
+    constants:
+      - name: MAX_RETRIES
+        value: 2
+        description: "Maximum retry attempts per phase"
+    constructor:
+      signature: |
+        def __init__(
+            self,
+            claude_runner: ClaudeRunner | None = None,
+            gate_runner: QualityGateRunner | None = None,
+            phase_loader: PhaseLoader | None = None,
+            escalation_manager: EscalationManager | None = None,
+        ) -> None
+      description: "Initialize with optional custom components for testing"
+      params:
+        - name: claude_runner
+          type: "ClaudeRunner | None"
+          description: "ClaudeRunner instance for executing Claude CLI"
+        - name: gate_runner
+          type: "QualityGateRunner | None"
+          description: "QualityGateRunner for quality gate checks"
+        - name: phase_loader
+          type: "PhaseLoader | None"
+          description: "PhaseLoader for loading phase configurations"
+        - name: escalation_manager
+          type: "EscalationManager | None"
+          description: "EscalationManager for handling failures"
+    methods:
+      - name: run_project
+        signature: |
+          async def run_project(
+              project_path: Path,
+              on_event: Callable[[PhaseEvent], Awaitable[None]] | None = None,
+              phase_filter: list[str] | None = None,
+          ) -> ProjectResult
+        description: |
+          Execute a project with full feature set.
+
+          Features:
+          - Phase execution via ClaudeRunner
+          - Post-phase verification (ADR-011)
+          - Quality gates with escalation (ADR-004)
+          - Event streaming for progress updates
+        params:
+          - name: project_path
+            type: Path
+            description: "Path to project directory"
+          - name: on_event
+            type: "Callable[[PhaseEvent], Awaitable[None]] | None"
+            description: "Callback for SSE events"
+          - name: phase_filter
+            type: "list[str] | None"
+            description: "Run only these phases (all if None)"
+        returns:
+          type: ProjectResult
+          description: "Result with execution details"
+
+      - name: run_project_streaming
+        signature: |
+          async def run_project_streaming(
+              project_path: Path,
+              phase_filter: list[str] | None = None,
+          ) -> AsyncGenerator[PhaseEvent, None]
+        description: "Run project and yield events as async generator for SSE"
+        params:
+          - name: project_path
+            type: Path
+            description: "Path to project directory"
+          - name: phase_filter
+            type: "list[str] | None"
+            description: "Run only these phases"
+        returns:
+          type: "AsyncGenerator[PhaseEvent, None]"
+          description: "Async generator yielding PhaseEvent objects"
+
+usage_examples:
+  - title: "Basic Project Execution"
+    code: |
+      from helix.api.orchestrator import UnifiedOrchestrator
+      from pathlib import Path
+
+      orchestrator = UnifiedOrchestrator()
+      result = await orchestrator.run_project(Path("projects/my-feature"))
+
+      if result.success:
+          print(f"Completed {result.phases_completed} phases")
+      else:
+          print(f"Failed: {result.errors}")
+
+  - title: "Execution with Event Streaming"
+    code: |
+      from helix.api.orchestrator import UnifiedOrchestrator, PhaseEvent
+
+      async def handle_event(event: PhaseEvent):
+          if event.event_type == "phase_start":
+              print(f"Starting {event.phase_id}")
+          elif event.event_type == "phase_complete":
+              print(f"Completed {event.phase_id}")
+          elif event.event_type == "verification_failed":
+              print(f"Verification failed: {event.data['missing_files']}")
+
+      orchestrator = UnifiedOrchestrator()
+      result = await orchestrator.run_project(
+          Path("projects/my-feature"),
+          on_event=handle_event
+      )
+
+  - title: "SSE Stream Generation"
+    code: |
+      from helix.api.orchestrator import UnifiedOrchestrator
+
+      orchestrator = UnifiedOrchestrator()
+
+      async for event in orchestrator.run_project_streaming(project_path):
+          # Convert to SSE format
+          yield f"event: {event.event_type}\n"
+          yield f"data: {json.dumps(event.to_dict())}\n\n"
+
+  - title: "Running Specific Phases"
+    code: |
+      # Run only development phase
+      result = await orchestrator.run_project(
+          Path("projects/my-feature"),
+          phase_filter=["development"]
+      )
+
+integration:
+  api_usage:
+    description: "How the API uses UnifiedOrchestrator"
+    code: |
+      # In helix/api/main.py or routes
+      from helix.api.orchestrator import UnifiedOrchestrator
+
+      orchestrator = UnifiedOrchestrator()
+
+      @app.post("/helix/execute")
+      async def execute_project(request: ExecuteRequest):
+          # Start execution with event streaming
+          async def emit_events(event):
+              await job_manager.emit_event(job_id, event)
+
+          result = await orchestrator.run_project(
+              Path(request.project_path),
+              on_event=emit_events
+          )
+          return result.to_dict()
+
+  cli_usage:
+    description: "How CLI uses UnifiedOrchestrator (via API)"
+    note: |
+      The CLI will call the API endpoints, not use UnifiedOrchestrator directly.
+      This ensures consistent behavior across all entry points.
+
+dependencies:
+  - module: helix.claude_runner
+    classes: [ClaudeRunner, ClaudeResult]
+    purpose: "Execute Claude CLI for phases"
+
+  - module: helix.phase_loader
+    classes: [PhaseLoader, PhaseConfig]
+    purpose: "Load phase configurations from phases.yaml"
+
+  - module: helix.quality_gates
+    classes: [QualityGateRunner, GateResult]
+    purpose: "Run quality gate checks"
+
+  - module: helix.evolution.verification
+    classes: [PhaseVerifier, VerificationResult]
+    purpose: "Post-phase output verification (ADR-011)"
+
+  - module: helix.escalation
+    classes: [EscalationManager, EscalationAction, EscalationState]
+    purpose: "Handle failures with escalation (ADR-004)"
+
+related_adrs:
+  - id: "022"
+    title: "Unified API Architecture"
+    description: "The decision to consolidate orchestrators"
+  - id: "011"
+    title: "Post-Phase Verification"
+    description: "Automatic output verification with retry"
+  - id: "004"
+    title: "Escalation System"
+    description: "2-stage escalation for handling failures"
+  - id: "017"
+    title: "Phase Orchestrator"
+    description: "Original design (superseded by ADR-022)"
+
+see_also:
+  - "src/helix/orchestrator_legacy.py - Old implementation (to be deleted)"
+  - "src/helix/api/streaming.py - SSE streaming utilities"
+  - "adr/022-unified-api-architecture.md - Full ADR"
