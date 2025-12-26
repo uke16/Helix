@@ -1,0 +1,251 @@
+# HELIX Workflow System Implementation
+# =====================================
+# Implements ADR-018 (LSP) + ADR-023 to ADR-026 (Workflow System)
+#
+# Orchestrator Pattern: Phase 1 is master, starts subsequent phases via API
+
+project:
+  name: implement-workflow-system
+  description: |
+    Vollständige Implementation des Consultant Workflow Systems.
+    Ermöglicht dem Consultant, Workflows zu starten statt einzelne Tools aufzurufen.
+    Mit Sub-Agent Verifikation und dynamischen Phasen für komplexe Projekte.
+  
+  type: helix_internal
+  complexity: complex
+  
+  created: 2025-12-26
+  estimated_sessions: 6
+
+# Entscheidungen aus Diskussion mit Uwe (2025-12-26):
+decisions:
+  intern_simple_phases:
+    - planning
+    - development
+    - verify
+    - documentation
+    - deploy-test
+    - e2e
+    - deploy-prod
+  
+  extern_simple_phases:
+    - planning
+    - development
+    - verify
+    - documentation
+  
+  extern_project_path: "projects/external/{name}/"
+  
+  consultant_decisions:
+    intern_vs_extern: "ask_if_not_specified"  # Q4: B
+    simple_vs_complex: "user_or_estimate"      # Q5: A+B
+  
+  sub_agent_verification:
+    max_retries: 3                             # Q6
+    on_final_fail: "escalate_then_abort"       # Q7: B→A
+    feedback_method: "same_session"            # Q8: A
+  
+  dynamic_phases:
+    generator: "planning_agent"                # Q9
+    max_phases: 5                              # Q10
+    configurable: true
+  
+  phase_reset:
+    enabled: true
+    who_can_reset: ["user", "consultant", "orchestrator"]
+
+phases:
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 1: LSP Integration (ADR-018)
+  # ═══════════════════════════════════════════════════════════════════
+  - id: "1"
+    name: "LSP Integration"
+    type: development
+    adr: "018"
+    description: |
+      Aktiviere Language Server Protocol für alle Claude Code Sessions.
+      - ENABLE_LSP_TOOL=1 in Environment
+      - Plugin installieren falls nötig (Pylance/Pyright)
+      - Testen und persistent konfigurieren
+    
+    input:
+      - adr/018-lsp-integration.md
+      - skills/helix/SKILL.md
+    
+    output:
+      - config/lsp.conf
+      - docs/LSP-SETUP.md
+    
+    quality_gate:
+      type: verification
+      checks:
+        - lsp_tool_enabled
+        - syntax_errors_detected
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 2: Workflow-Definitionen (ADR-023)
+  # ═══════════════════════════════════════════════════════════════════
+  - id: "2"
+    name: "Workflow Definitions"
+    type: development
+    adr: "023"
+    description: |
+      Erstelle Workflow-Templates für alle Projekt-Typen:
+      - intern-simple.yaml
+      - intern-complex.yaml  
+      - extern-simple.yaml
+      - extern-complex.yaml
+    
+    input:
+      - docs/ARCHITECTURE-ORCHESTRATOR.md
+      - templates/project-types/
+      - skills/helix/evolution/SKILL.md
+    
+    output:
+      - adr/023-workflow-definitions.md
+      - templates/workflows/intern-simple.yaml
+      - templates/workflows/intern-complex.yaml
+      - templates/workflows/extern-simple.yaml
+      - templates/workflows/extern-complex.yaml
+    
+    quality_gate:
+      type: adr_valid
+      checks:
+        - yaml_syntax
+        - all_phases_defined
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 3: Consultant Workflow-Wissen (ADR-024)
+  # ═══════════════════════════════════════════════════════════════════
+  - id: "3"
+    name: "Consultant Workflow Knowledge"
+    type: development
+    adr: "024"
+    depends_on: ["2"]
+    description: |
+      Erweitere Consultant Template mit Workflow-Wissen:
+      - Welche Workflows gibt es?
+      - Wie wählt man den richtigen?
+      - Wie startet man einen Workflow via API?
+    
+    input:
+      - templates/consultant/session.md.j2
+      - templates/workflows/
+      - src/helix/api/routes/helix.py
+    
+    output:
+      - adr/024-consultant-workflow-knowledge.md
+      - templates/consultant/session.md.j2 (modified)
+      - templates/consultant/workflow-guide.md
+    
+    quality_gate:
+      type: template_valid
+      checks:
+        - jinja_syntax
+        - workflow_references_correct
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 4: Sub-Agent Verifikation (ADR-025)
+  # ═══════════════════════════════════════════════════════════════════
+  - id: "4"
+    name: "Sub-Agent Verification Loop"
+    type: development
+    adr: "025"
+    depends_on: ["2", "3"]
+    description: |
+      Implementiere Sub-Agent Verifikation mit Feedback-Loop:
+      - Max 3 Retries pro Phase
+      - Feedback in gleicher Session
+      - Eskalation bei finalem Fail
+    
+    input:
+      - src/helix/api/orchestrator.py
+      - src/helix/tools/verify_phase.py
+      - adr/011-post-phase-verification.md
+    
+    output:
+      - adr/025-sub-agent-verification.md
+      - src/helix/api/orchestrator.py (modified)
+      - src/helix/verification/sub_agent.py
+    
+    quality_gate:
+      type: tests_pass
+      checks:
+        - retry_logic_works
+        - feedback_delivered
+        - escalation_triggers
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 5: Dynamische Phasen (ADR-026)
+  # ═══════════════════════════════════════════════════════════════════
+  - id: "5"
+    name: "Dynamic Phase Generation"
+    type: development
+    adr: "026"
+    depends_on: ["2", "3", "4"]
+    description: |
+      Implementiere dynamische Phasen-Generierung:
+      - Planning-Agent für komplexe Projekte
+      - Max 5 Phasen (konfigurierbar)
+      - Feasibility als optionale Phase
+    
+    input:
+      - src/helix/api/orchestrator.py
+      - templates/workflows/intern-complex.yaml
+      - templates/workflows/extern-complex.yaml
+    
+    output:
+      - adr/026-dynamic-phase-generation.md
+      - src/helix/planning/agent.py
+      - src/helix/planning/phase_generator.py
+    
+    quality_gate:
+      type: tests_pass
+      checks:
+        - planning_agent_works
+        - phases_generated
+        - max_limit_respected
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 6: Integration & E2E Test
+  # ═══════════════════════════════════════════════════════════════════
+  - id: "6"
+    name: "Integration and E2E Testing"
+    type: integration
+    depends_on: ["1", "2", "3", "4", "5"]
+    description: |
+      Vollständiger Integrationstest:
+      - Teste intern-simple Workflow end-to-end
+      - Teste extern-simple Workflow
+      - Teste Sub-Agent Verifikation
+      - Deploy to Test-System
+    
+    input:
+      - Alle Outputs aus Phase 1-5
+      - tests/integration/
+    
+    output:
+      - tests/integration/test_workflow_system.py
+      - docs/WORKFLOW-SYSTEM.md
+      - E2E Test Results
+    
+    quality_gate:
+      type: e2e_pass
+      checks:
+        - all_workflows_work
+        - verification_works
+        - api_integration_works
+
+# API Information für E2E Phase
+api:
+  base_url: "http://localhost:8001"
+  endpoints:
+    execute: "POST /helix/execute"
+    jobs: "GET /helix/jobs"
+    job_status: "GET /helix/jobs/{id}"
+    stream: "GET /helix/stream/{id}"
+  
+  async_cli:
+    run: "helix run {project} --phase {n}"
+    status: "helix status {job_id}"
+    logs: "helix logs {job_id}"
