@@ -1,0 +1,26 @@
+{
+  "phase_id": "1",
+  "level": 0,
+  "attempt_count": 0,
+  "total_attempts": 0,
+  "failure_history": [
+    {
+      "timestamp": "2025-12-26T19:25:16.254679",
+      "gate_type": "verification",
+      "message": "Unknown gate type: verification",
+      "details": {
+        "config": {
+          "type": "verification",
+          "checks": [
+            "lsp_tool_enabled",
+            "syntax_errors_detected"
+          ]
+        }
+      },
+      "level": 0,
+      "attempt": 0
+    }
+  ],
+  "context": {},
+  "updated_at": "2025-12-26T19:25:16.254756"
+}
