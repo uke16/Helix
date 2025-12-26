@@ -1,0 +1,61 @@
+# Workflow: Extern Simple
+# Leichtes externes Projekt (nicht HELIX-intern)
+#
+# Ablauf: Planning -> Development -> Verify -> Documentation
+
+name: extern-simple
+description: Leichtes externes Projekt ohne HELIX-Deploy-Zyklus
+project_type: external
+complexity: simple
+max_retries: 3  # Pro Phase mit Sub-Agent Verifikation
+
+phases:
+  - id: planning
+    name: "Planning & Specification"
+    type: consultant
+    description: "Erstelle Spezifikation für externes Projekt"
+    template: consultant/external-planning.md
+    output:
+      - "spec.yaml"
+      - "phases.yaml"
+    quality_gate:
+      type: files_exist
+    verify_agent: true
+
+  - id: development
+    name: "Implementation"
+    type: development
+    description: "Implementiere den Code gemäß Spezifikation"
+    template: developer/generic.md
+    output:
+      - "src/**/*"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: verify
+    name: "Verification"
+    type: test
+    description: "Tests und Qualitätssicherung"
+    template: testing/unit.md
+    output:
+      - "tests/**/*"
+    quality_gate:
+      type: tests_pass
+    verify_agent: true
+    optional: true  # Tests optional bei externen Projekten
+
+  - id: documentation
+    name: "Documentation"
+    type: documentation
+    description: "Erstelle Projekt-Dokumentation"
+    template: documentation/project.md
+    output:
+      - "README.md"
+      - "docs/**/*.md"
+    quality_gate:
+      type: files_exist
+    verify_agent: false
+
+# Kein Deploy-Zyklus bei externen Projekten
+# Externe Projekte werden nicht in HELIX integriert
