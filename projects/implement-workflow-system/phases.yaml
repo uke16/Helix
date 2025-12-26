@@ -211,7 +211,7 @@ phases:
   # ═══════════════════════════════════════════════════════════════════
   - id: "6"
     name: "Integration and E2E Testing"
-    type: integration
+    type: test
     depends_on: ["1", "2", "3", "4", "5"]
     description: |
       Vollständiger Integrationstest:
