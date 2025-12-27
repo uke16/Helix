@@ -1,7 +1,7 @@
 ---
 adr_id: "024"
 title: Consultant Workflow-Wissen
-status: Proposed
+status: Implemented
 
 project_type: helix_internal
 component_type: PROMPT
@@ -24,7 +24,7 @@ depends_on:
 
 ## Status
 
-📋 Proposed
+✅ Implemented (2025-12-26)
 
 ---
 

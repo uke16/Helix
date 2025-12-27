@@ -1,0 +1,1 @@
+Kannst du die Doku gaps fillen und alles vervollständigen? Danach kannst du durch git history gehen und nach weiteren Doku gaps suchen.

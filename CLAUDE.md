@@ -262,6 +262,35 @@ curl -X POST http://localhost:8001/helix/evolution/projects/{name}/integrate
 ### Safety Guarantees1. Changes always deploy to test system first2. Full validation (syntax, unit, E2E) before integration3. Automatic rollback on failure4. Git tag backup before integration5. RAG database 1:1 copy for realistic testing
 ---
 
+## Workflow System (ADR-023 bis ADR-026)
+
+HELIX verwendet Workflows zur Projekt-Orchestrierung.
+
+### Workflow-Typen
+
+| Workflow | Projekt-Typ | Wann verwenden |
+|----------|-------------|----------------|
+| `intern-simple` | helix_internal | HELIX Feature, klar definiert |
+| `intern-complex` | helix_internal | HELIX Feature, unklar/groß |
+| `extern-simple` | external | Externes Tool, klar definiert |
+| `extern-complex` | external | Externes Tool, groß/unklar |
+
+### Sub-Agent Verifikation
+
+Phasen mit `verify_agent: true` werden durch einen Sub-Agent (Haiku) geprüft:
+- 3 Retries bei Fehlern
+- Feedback via `feedback.md`
+- Eskalation bei finalem Fail
+
+### Dynamische Phasen
+
+Complex Workflows nutzen einen PlanningAgent der 1-5 Phasen dynamisch generiert.
+
+→ **Mehr Details:** [docs/WORKFLOW-SYSTEM.md](docs/WORKFLOW-SYSTEM.md)
+→ **Skill:** [skills/helix/workflows.md](skills/helix/workflows.md)
+
+---
+
 ## Self-Documentation Prinzip
 
 > **Jede Änderung dokumentiert sich selbst.**

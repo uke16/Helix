@@ -26,7 +26,7 @@ import yaml
 class TestWorkflowTemplates:
     """Tests for workflow template loading and validation."""
 
-    TEMPLATES_DIR = Path(__file__).parent.parent.parent.parent.parent / "templates" / "workflows"
+    TEMPLATES_DIR = Path("/home/aiuser01/helix-v4") / "templates" / "workflows"
 
     def test_intern_simple_template_exists(self):
         """Test intern-simple.yaml exists and is valid."""
@@ -370,8 +370,8 @@ phases:
 class TestConsultantWorkflowKnowledge:
     """Tests for consultant workflow integration."""
 
-    CONSULTANT_TEMPLATE = Path(__file__).parent.parent.parent.parent.parent / "templates" / "consultant" / "session.md.j2"
-    WORKFLOW_GUIDE = Path(__file__).parent.parent.parent.parent.parent / "templates" / "consultant" / "workflow-guide.md"
+    CONSULTANT_TEMPLATE = Path("/home/aiuser01/helix-v4") / "templates" / "consultant" / "session.md.j2"
+    WORKFLOW_GUIDE = Path("/home/aiuser01/helix-v4") / "templates" / "consultant" / "workflow-guide.md"
 
     def test_consultant_template_has_workflow_section(self):
         """Test consultant template includes workflow section."""
@@ -500,12 +500,12 @@ class TestSmokeTests:
 
     def test_workflow_templates_directory_exists(self):
         """Test templates/workflows directory exists."""
-        templates_dir = Path(__file__).parent.parent.parent.parent.parent / "templates" / "workflows"
+        templates_dir = Path("/home/aiuser01/helix-v4") / "templates" / "workflows"
         assert templates_dir.is_dir()
 
     def test_all_four_workflow_templates_exist(self):
         """Test all four workflow templates exist."""
-        templates_dir = Path(__file__).parent.parent.parent.parent.parent / "templates" / "workflows"
+        templates_dir = Path("/home/aiuser01/helix-v4") / "templates" / "workflows"
 
         expected = [
             "intern-simple.yaml",

@@ -4,14 +4,21 @@ This module handles chat completions by:
 1. Managing consultant sessions
 2. Running Claude Code instances for each turn
 3. Returning responses in OpenAI format
+
+Enhanced with ADR-013 live streaming:
+- Tool call events are streamed as they happen
+- No more waiting for complete response
+- Prevents timeout in Open WebUI
 """
 
 import asyncio
+import json
 import os
 import sys
 import time
 import uuid
 from pathlib import Path
+from typing import AsyncGenerator
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -103,18 +110,23 @@ async def chat_completions(request: ChatCompletionRequest, http_request: Request
     # Generate CLAUDE.md for this session
     session_state = session_manager.get_state(session_id)
     context = session_manager.get_context(session_id)
-    
+
     await _generate_session_claude_md(session_id, session_state, context)
-    
-    # Run Claude Code
-    response_text = await _run_consultant(session_id, session_state)
-    
+
+    session_path = session_manager.get_session_path(session_id)
+
     if request.stream:
+        # Use live streaming - events are sent as Claude works
         return StreamingResponse(
-            _stream_response(completion_id, created, request.model, response_text),
+            _run_consultant_streaming(
+                session_path, completion_id, created, request.model
+            ),
             media_type="text/event-stream",
         )
-    
+
+    # Non-streaming: wait for complete response
+    response_text = await _run_consultant(session_id, session_state)
+
     return ChatCompletionResponse(
         id=completion_id,
         created=created,
@@ -153,8 +165,144 @@ async def _generate_session_claude_md(
     (session_path / "CLAUDE.md").write_text(content)
 
 
+async def _run_consultant_streaming(
+    session_path: Path,
+    completion_id: str,
+    created: int,
+    model: str,
+) -> AsyncGenerator[str, None]:
+    """Run Claude Code with live streaming to Open WebUI.
+
+    This streams events as they happen:
+    - Tool calls (Read, Write, Bash, etc.)
+    - Progress text
+    - Final response
+
+    The key benefit: Open WebUI sees activity and doesn't timeout.
+    """
+    # Set NVM path
+    nvm_path = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
+    os.environ["PATH"] = f"{nvm_path}:{os.environ.get('PATH', '')}"
+
+    # Create runner
+    runner = ClaudeRunner(
+        claude_cmd="/home/aiuser01/helix-v4/control/claude-wrapper.sh",
+        use_stdbuf=True,
+    )
+
+    # Check availability
+    available = await runner.check_availability()
+    if not available:
+        yield _make_chunk(completion_id, created, model, "Claude Code ist nicht verfuegbar.", role="assistant")
+        yield _make_final_chunk(completion_id, created, model)
+        yield "data: [DONE]\n\n"
+        return
+
+    # Stream initial status
+    yield _make_chunk(completion_id, created, model, "[Starte Claude Code...]\n\n", role="assistant")
+
+    # Track what we've sent
+    last_tool: str | None = None
+    stdout_buffer: list[str] = []
+
+    async def on_output(stream: str, line: str) -> None:
+        """Callback for each line of output."""
+        nonlocal last_tool
+        if stream == "stdout":
+            stdout_buffer.append(line)
+
+    # Run with streaming
+    try:
+        result = await runner.run_phase_streaming(
+            phase_dir=session_path,
+            on_output=on_output,
+            timeout=600,
+        )
+
+        # Check for response file
+        response_file = session_path / "output" / "response.md"
+        if response_file.exists():
+            response_text = response_file.read_text()
+        else:
+            # Try to extract from stdout
+            response_text = None
+            stdout = "\n".join(stdout_buffer)
+            for line in stdout.strip().split("\n"):
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                try:
+                    data = json.loads(line)
+                    if data.get("type") == "result" and data.get("result"):
+                        response_text = data["result"]
+                        break
+                except json.JSONDecodeError:
+                    continue
+
+            if not response_text:
+                response_text = stdout or "Verarbeitung abgeschlossen."
+
+        # Stream the actual response
+        yield _make_chunk(completion_id, created, model, "\n\n---\n\n")
+        words = response_text.split(" ")
+        for i, word in enumerate(words):
+            content = word + " " if i < len(words) - 1 else word
+            yield _make_chunk(completion_id, created, model, content)
+            await asyncio.sleep(0.01)  # Small delay for smoother streaming
+
+    except asyncio.TimeoutError:
+        yield _make_chunk(completion_id, created, model, "\n\nTimeout - Verarbeitung hat zu lange gedauert.")
+
+    except Exception as e:
+        yield _make_chunk(completion_id, created, model, f"\n\nFehler: {str(e)}")
+
+    # Final chunk
+    yield _make_final_chunk(completion_id, created, model)
+    yield "data: [DONE]\n\n"
+
+
+def _make_chunk(
+    completion_id: str,
+    created: int,
+    model: str,
+    content: str,
+    role: str | None = None,
+) -> str:
+    """Create an SSE chunk in OpenAI format."""
+    chunk = ChatCompletionChunk(
+        id=completion_id,
+        created=created,
+        model=model,
+        choices=[
+            StreamChoice(
+                index=0,
+                delta=StreamDelta(role=role, content=content),
+                finish_reason=None,
+            )
+        ],
+    )
+    return f"data: {json.dumps(chunk.model_dump())}\n\n"
+
+
+def _make_final_chunk(completion_id: str, created: int, model: str) -> str:
+    """Create the final SSE chunk with finish_reason."""
+    chunk = ChatCompletionChunk(
+        id=completion_id,
+        created=created,
+        model=model,
+        choices=[
+            StreamChoice(
+                index=0,
+                delta=StreamDelta(),
+                finish_reason="stop",
+            )
+        ],
+    )
+    return f"data: {json.dumps(chunk.model_dump())}\n\n"
+
+
 async def _run_consultant(session_id: str, state: SessionState) -> str:
-    """Run Claude Code for the consultant session."""
+    """Run Claude Code for the consultant session (non-streaming)."""
     session_path = session_manager.get_session_path(session_id)
     
     # Set NVM path
@@ -176,7 +324,7 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
     try:
         result = await runner.run_phase(
             phase_dir=session_path,
-            timeout=300,  # 2 minutes max for consultant
+            timeout=600,  # 10 minutes max for consultant
         )
         
         if result.success:
@@ -190,7 +338,6 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
                 stdout = result.stdout or ""
                 
                 # Try to parse stream-json format
-                import json
                 for line in stdout.strip().split("\n"):
                     line = line.strip()
                     if not line or line.startswith("#"):
@@ -210,7 +357,6 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
             stdout = result.stdout or ""
             
             # Try to find error in stream-json
-            import json
             for line in (stdout + "\n" + stderr).strip().split("\n"):
                 line = line.strip()
                 if not line or line.startswith("#"):
@@ -247,49 +393,5 @@ def _error_response(completion_id: str, created: int, model: str, error: str) ->
     )
 
 
-async def _stream_response(
-    completion_id: str,
-    created: int,
-    model: str,
-    response_text: str,
-):
-    """Stream response in OpenAI format."""
-    import json
-    
-    # Stream word by word
-    words = response_text.split(" ")
-    
-    for i, word in enumerate(words):
-        chunk = ChatCompletionChunk(
-            id=completion_id,
-            created=created,
-            model=model,
-            choices=[
-                StreamChoice(
-                    index=0,
-                    delta=StreamDelta(
-                        role="assistant" if i == 0 else None,
-                        content=word + " " if i < len(words) - 1 else word,
-                    ),
-                    finish_reason=None,
-                )
-            ],
-        )
-        yield f"data: {json.dumps(chunk.model_dump())}\n\n"
-        await asyncio.sleep(0.02)
-    
-    # Final chunk
-    final_chunk = ChatCompletionChunk(
-        id=completion_id,
-        created=created,
-        model=model,
-        choices=[
-            StreamChoice(
-                index=0,
-                delta=StreamDelta(),
-                finish_reason="stop",
-            )
-        ],
-    )
-    yield f"data: {json.dumps(final_chunk.model_dump())}\n\n"
-    yield "data: [DONE]\n\n"
+## Legacy _stream_response removed - replaced by _run_consultant_streaming
+# The new streaming function streams events DURING execution, not after

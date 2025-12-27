@@ -1,0 +1,1 @@
+Es wurden gerade aft 23 bis 26 implementiert. Kannst du das mal Reviewen im Detail als Verantwortlicher consultant und sagen ob noch was an Doku fehlt oder ob alles gut ist? Gibt es toten Code ?

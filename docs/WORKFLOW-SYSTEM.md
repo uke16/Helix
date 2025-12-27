@@ -339,10 +339,10 @@ max_dynamic_phases: 3  # Reduziert auf max 3
 
 | ADR | Titel | Status |
 |-----|-------|--------|
-| ADR-023 | Workflow-Definitionen | Proposed |
-| ADR-024 | Consultant Workflow-Wissen | Proposed |
-| ADR-025 | Sub-Agent Verifikation | Proposed |
-| ADR-026 | Dynamische Phasen | Proposed |
+| ADR-023 | Workflow-Definitionen | ✅ Implemented |
+| ADR-024 | Consultant Workflow-Wissen | ✅ Implemented |
+| ADR-025 | Sub-Agent Verifikation | ✅ Implemented |
+| ADR-026 | Dynamische Phasen | ✅ Implemented |
 
 ---
 

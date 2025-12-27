@@ -76,7 +76,7 @@ Du bist der **Meta-Consultant** im HELIX v4 System:
 
 - **Session ID**: `hi-wer-bist-7fcd28eb-20251226-162721`
 - **Status**: discussing
-- **Aktueller Schritt**: why
+- **Aktueller Schritt**: generate
 - **Erstellt**: 2025-12-26T16:27:21.623792
 - **Arbeitsverzeichnis**: `projects/sessions/hi-wer-bist-7fcd28eb-20251226-162721/`
 
@@ -97,7 +97,15 @@ welche adrs aus dem adr verzeichnis haben wir schon implementiert? und welche no
 
 
 
+### Antwort auf "Warum wird das benötigt?"
 
+Es wurden gerade aft 23 bis 26 implementiert. Kannst du das mal Reviewen im Detail als Verantwortlicher consultant und sagen ob noch was an Doku fehlt oder ob alles gut ist? Gibt es toten Code ?
+
+
+
+### Antwort auf "Welche Constraints gibt es?"
+
+Kannst du die Doku gaps fillen und alles vervollständigen? Danach kannst du durch git history gehen und nach weiteren Doku gaps suchen.
 
 
 ---
@@ -105,19 +113,137 @@ welche adrs aus dem adr verzeichnis haben wir schon implementiert? und welche no
 ## 🎯 Deine aktuelle Aufgabe
 
 
-### Phase: Bedarfsanalyse (WARUM)
+### Phase: Spezifikation erstellen
 
-**Ziel**: Verstehe den Business Case und die Motivation.
+**Ziel**: Generiere ADR (Architecture Decision Record) und Phasen-Plan.
 
-**Vorgehen**:
-1. Du weißt jetzt WAS gebaut werden soll
-2. Frage nach dem WARUM:
-   - Welches Problem wird gelöst?
-   - Wer sind die Nutzer/Stakeholder?
-   - Was ist der Business Value?
-   - Was passiert wenn es NICHT gebaut wird?
+Du hast alle Informationen. Erstelle jetzt:
 
-**Output**: Schreibe deine Antwort nach `output/response.md`
+#### 1. `output/ADR-<projektname>.md` - Architecture Decision Record
+
+Das ADR ist die **Single Source of Truth** für dieses Projekt:
+
+```markdown
+---
+adr_id: "<nächste freie Nummer>"
+title: "<Projektname - prägnant>"
+status: Proposed
+
+component_type: TOOL  # oder: NODE, AGENT, SERVICE, PROCESS
+classification: NEW   # oder: UPDATE, FIX, REFACTOR
+change_scope: major   # oder: minor, config, docs
+
+# Projekt-Kontext (ersetzt spec.yaml)
+domain: "<helix|pdm|encoder|...>"
+language: "<python|typescript|...>"
+skills:
+  - <relevanter_skill_1>
+  - <relevanter_skill_2>
+
+files:
+  create:
+    - <src/pfad/zur/neuen/datei.py>
+    - <tests/test_datei.py>
+  modify:
+    - <existierende/datei/die/geändert/wird.py>
+  docs:
+    - <docs/DOKUMENTATION.md>
+
+depends_on: []
+---
+
+# ADR-XXX: <Titel>
+
+## Status
+📋 Proposed
+
+## Kontext
+
+<Warum wird dieses Feature gebraucht? Was ist das Problem?>
+
+## Entscheidung
+
+<Was wird gebaut? Wie löst es das Problem?>
+
+## Implementation
+
+<Technische Details, API-Design, Code-Beispiele>
+
+## Akzeptanzkriterien
+
+- [ ] <Konkretes, testbares Kriterium 1>
+- [ ] <Konkretes, testbares Kriterium 2>
+- [ ] <Dokumentation aktualisiert>
+- [ ] <Tests geschrieben>
+
+## Konsequenzen
+
+### Positiv
+- <Vorteil 1>
+
+### Negativ  
+- <Nachteil/Trade-off 1>
+```
+
+#### 2. `output/phases.yaml` - Phasen-Plan
+
+```yaml
+phases:
+  - id: 01-analysis
+    name: <Beschreibender Name>
+    type: development
+    description: |
+      <Was in dieser Phase passiert>
+    config:
+      skills: [<relevante_skills>]
+    input:
+      files: []
+    output:
+      files:
+        - phases/01-analysis/output/<erwartete_datei.md>
+    quality_gate:
+      type: files_exist
+
+  - id: 02-implementation
+    name: Implementation
+    type: development
+    description: |
+      <Konkrete Implementierungsaufgaben>
+    config:
+      skills: [<relevante_skills>]
+    input:
+      files:
+        - phases/01-analysis/output/<input_von_phase_1>
+    output:
+      files:
+        - phases/02-implementation/output/<code_datei.py>
+        - phases/02-implementation/output/requirements.txt
+    quality_gate:
+      type: python_syntax  # oder: files_exist, tests_pass
+
+  - id: 03-testing
+    name: Testing & Dokumentation
+    type: development
+    description: |
+      <Test-Strategie und Doku>
+    input:
+      files:
+        - phases/02-implementation/output/<code_datei.py>
+    output:
+      files:
+        - phases/03-testing/output/test_<name>.py
+        - phases/03-testing/output/README.md
+    quality_gate:
+      type: tests_pass
+```
+
+#### 3. `output/response.md` - Zusammenfassung für User
+
+Schreibe eine professionelle Zusammenfassung:
+- Was wird gebaut
+- Welche Phasen
+- Was als nächstes passiert
+- Aufforderung: "Sag 'Starte!' wenn du bereit bist"
 
 
 
@@ -196,3 +322,66 @@ Your ADR **MUST** have:
 **IMPORTANT**: ADRs must end up in `/home/aiuser01/helix-v4/adr/`
 
 Use `finalize_adr()` to move them there automatically.
+
+---
+
+## 🚀 Workflows starten
+
+### Verfügbare Workflows
+
+| Projekt-Typ | Workflow | Wann nutzen |
+|-------------|----------|-------------|
+| Intern + Leicht | `intern-simple` | HELIX Feature, klar definiert |
+| Intern + Komplex | `intern-complex` | HELIX Feature, unklar/groß |
+| Extern + Leicht | `extern-simple` | Externes Tool, klar definiert |
+| Extern + Komplex | `extern-complex` | Externes Tool, unklar/groß |
+
+### Workflow wählen
+
+1. **Intern vs Extern?**
+   - **Intern**: Ändert HELIX selbst (src/helix/, adr/, skills/)
+   - **Extern**: Separates Projekt (projects/external/)
+   - *Wenn unklar: Frage den User*
+
+2. **Leicht vs Komplex?**
+   - **Leicht**: Scope ist klar, <5 Files, 1-2 Sessions
+   - **Komplex**: Scope unklar, braucht Feasibility/Planning
+   - *User kann es sagen, oder du schätzt*
+
+> **Mehr Details:** Lies `../../templates/consultant/workflow-guide.md`
+
+### Workflow starten
+
+```bash
+# 1. Projekt-Verzeichnis erstellen
+mkdir -p projects/{internal|external}/{name}/phases
+
+# 2. phases.yaml aus Template kopieren
+cp templates/workflows/{workflow}.yaml projects/.../phases.yaml
+
+# 3. Via API starten
+curl -X POST http://localhost:8001/helix/execute \
+  -H "Content-Type: application/json" \
+  -d '{"project_path": "projects/.../", "phase_filter": null}'
+
+# 4. Status prüfen
+curl http://localhost:8001/helix/jobs
+```
+
+### Phase Reset (bei Fehlern)
+
+```bash
+# Phase zurücksetzen und neu starten
+curl -X POST http://localhost:8001/helix/execute \
+  -d '{"project_path": "...", "phase_filter": "N", "reset": true}'
+```
+
+### API Endpoints
+
+| Endpoint | Methode | Beschreibung |
+|----------|---------|--------------|
+| `/helix/execute` | POST | Projekt starten |
+| `/helix/jobs` | GET | Alle Jobs auflisten |
+| `/helix/jobs/{id}` | GET | Job-Status abfragen |
+| `/helix/jobs/{id}` | DELETE | Job abbrechen |
+| `/helix/stream/{id}` | GET | SSE Stream für Echtzeit-Updates |

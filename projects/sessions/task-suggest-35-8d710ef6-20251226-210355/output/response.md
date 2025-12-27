@@ -1,0 +1,1 @@
+{ "follow_ups": ["Beides - erhöhe das Timeout auf 600s und starte dann das Streaming-Projekt", "Wie lange würde es dauern, das Streaming in der OpenAI Route zu implementieren?", "Kannst du mir zeigen wie ADR-013 aktuell aussieht und was genau fehlt?", "Welche Priorität hat das Streaming-Feature gegenüber anderen offenen Tickets wie der SubAgentVerifier Integration?"] }

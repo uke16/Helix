@@ -1,0 +1,1 @@
+Kurze Nachfrage. Openrouter ist nach wie vor auch verfügbar über api oder? Im Moment geht alles über meinen Claude Max Account. Aber ich könnte via openrouter auch auf OpenAI umschalten oder? Wo passiert diese Umschaltung?

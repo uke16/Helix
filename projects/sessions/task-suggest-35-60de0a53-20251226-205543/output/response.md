@@ -1,0 +1,1 @@
+{ "follow_ups": ["Kannst du den Open WebUI Timeout auf mehr als 300 Sekunden erhöhen?", "Wie kann ich die claude_runner.py Integration für den SubAgentVerifier selbst implementieren?", "Gibt es eine Möglichkeit, lange Sessions automatisch in kleinere Chunks aufzuteilen?", "Welche Unit Tests fehlen noch und wie priorisierst du sie?"] }

@@ -34,7 +34,7 @@
 | 009 | [Bootstrap Project](009-bootstrap-project.md) | 📋 | HELIX v4 baut sich selbst |
 | 010 | [ADR Migration](010-adr-migration-from-v3.md) | 📋 | v3 → v4 Migration Guide |
 
-### Evolution System (011-020)
+### Evolution System (011-015)
 
 | Nr | ADR | Status | Kurzbeschreibung |
 |----|-----|--------|------------------|
@@ -43,6 +43,26 @@
 | 013 | [Debug & Observability Engine](013-debug-observability-engine-für-helix-workflows.md) | 📋 | Live Tool Call Tracking, Cost Monitoring, StreamParser |
 | 014 | [Documentation Architecture](014-documentation-architecture.md) | 📋 | Generated Docs, Single Source of Truth, Enforcement |
 | 015 | [Approval & Validation System](015-approval-validation-system.md) | 📋 | Hybrid Pre-Checks + Sub-Agent, ADR-Completeness |
+
+### Orchestration & API (017-022)
+
+| Nr | ADR | Status | Kurzbeschreibung |
+|----|-----|--------|------------------|
+| 017 | [Phase Orchestrator](017-phase-orchestrator.md) | ⚠️ | SUPERSEDED by ADR-022 |
+| 018 | [LSP Integration](018-lsp-integration.md) | 📋 | Native Claude Code LSP für Code-Intelligence |
+| 019 | [Documentation as Code](019-documentation-as-code.md) | 📋 | Validierbare Referenzen, Symbol Extraction |
+| 020 | [Intelligent Documentation Discovery](020-intelligent-documentation-discovery.md) | 📋 | Skill Index, Reverse Index für Context |
+| 021 | [Async CLI Background Jobs](021-async-cli-background-jobs.md) | 📋 | --background Flag, Jobs überleben SSH-Disconnect |
+| 022 | [Unified API Architecture](022-unified-api-architecture.md) | 📋 | Eine API für alles, CLI als thin client |
+
+### Workflow System (023-026)
+
+| Nr | ADR | Status | Kurzbeschreibung |
+|----|-----|--------|------------------|
+| 023 | [Workflow-Definitionen](023-workflow-definitions.md) | ✅ | 4 Workflow-Templates: intern/extern × simple/complex |
+| 024 | [Consultant Workflow-Wissen](024-consultant-workflow-knowledge.md) | ✅ | Workflow-Sektion in session.md.j2, workflow-guide.md |
+| 025 | [Sub-Agent Verifikation](025-sub-agent-verification.md) | ✅ | Haiku-basierte Prüfung, 3-Retry-Loop, Feedback |
+| 026 | [Dynamische Phasen-Generierung](026-dynamic-phase-generation.md) | ✅ | PlanningAgent generiert 1-5 Phasen dynamisch |
 
 ---
 
@@ -102,7 +122,7 @@
 
 ## Neue ADRs erstellen
 
-1. Nächste freie Nummer verwenden (aktuell: 016)
+1. Nächste freie Nummer verwenden (aktuell: 027)
 2. Format: `NNN-kurzer-name.md`
 3. YAML Header mit adr_id, title, status, files, depends_on
 4. Sections: Kontext, Entscheidung, Implementation, Akzeptanzkriterien
@@ -142,47 +162,21 @@ depends_on: [...]
            └── 009 Bootstrap
 ```
 
-## ADR-018: LSP Integration für Code-Intelligence
+## Aktuelles: Workflow System (ADR-023 bis ADR-026)
 
-**Status:** Proposed | **Datum:** 2024-12-24
-
-Native Claude Code LSP-Unterstützung für Anti-Halluzination und Code-Intelligence.
-Nur `ENABLE_LSP_TOOL=1` Environment Variable nötig (seit Claude Code v2.0.74).
-
-**Kernentscheidung:** Minimale Integration - nutze natives Feature statt eigener Lösung.
-
-**Siehe:** [ADR-018](018-lsp-integration.md)
-
-
-## ADR-021: Async CLI mit Background Jobs
-
-**Status:** Proposed | **Datum:** 2024-12-24
-
-Async CLI mit `--background` Flag für non-blocking Projektausführung.
+Das Workflow System wurde vollständig implementiert und dokumentiert.
 
 **Kernkonzepte:**
-- `helix run project --background` startet Job im Hintergrund
-- `helix jobs` zeigt laufende Jobs
-- `helix logs <job-id>` zeigt Logs
-- Jobs überleben SSH-Disconnect
+- 4 Workflow-Templates: `intern-simple`, `intern-complex`, `extern-simple`, `extern-complex`
+- Sub-Agent Verifikation mit 3-Retry-Loop und Feedback-Mechanismus
+- Dynamische Phasen-Generierung mit PlanningAgent (1-5 Phasen)
+- Consultant weiß über Workflows Bescheid (session.md.j2, workflow-guide.md)
 
-**Siehe:** [ADR-021](021-async-cli-background-jobs.md)
+**Dokumentation:**
+- [docs/WORKFLOW-SYSTEM.md](../docs/WORKFLOW-SYSTEM.md) - Vollständige Workflow-Dokumentation
+- [templates/consultant/workflow-guide.md](../templates/consultant/workflow-guide.md) - Consultant Guide
 
-## ADR-022: Unified API Architecture - Eine API für alles
-
-**Status:** Proposed | **Datum:** 2024-12-24
-
-Eine einzige API als Single Source of Truth. CLI wird thin client.
-
-**Kernentscheidungen:**
-- API ist der einzige Orchestrator
-- CLI ruft API auf (kein eigener Orchestrator-Code)
-- orchestrator_legacy.py wird gelöscht
-- orchestrator/ package wird gelöscht (~2000 Zeilen toter Code)
-- Open WebUI nutzt gleiche API
-
-**Aufräumen:**
-- Löschen: orchestrator_legacy.py, orchestrator/
-- ~2067 Zeilen Code entfernt
-
-**Siehe:** [ADR-022](022-unified-api-architecture.md)
+**Status:** Alle 4 ADRs sind implementiert und die Module existieren:
+- `src/helix/verification/` - SubAgentVerifier, FeedbackChannel
+- `src/helix/planning/` - PlanningAgent, PhaseGenerator
+- `templates/workflows/` - 4 Workflow-Templates

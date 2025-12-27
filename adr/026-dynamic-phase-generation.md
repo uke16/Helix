@@ -1,7 +1,7 @@
 ---
 adr_id: "026"
 title: Dynamische Phasen-Generierung für komplexe Projekte
-status: Proposed
+status: Implemented
 
 project_type: helix_internal
 component_type: AGENT
@@ -26,7 +26,7 @@ depends_on:
 
 ## Status
 
-📋 Proposed
+✅ Implemented (2025-12-26)
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 adr_id: "025"
 title: Sub-Agent Verifikation mit Feedback-Loop
-status: Proposed
+status: Implemented
 
 project_type: helix_internal
 component_type: PROCESS
@@ -28,7 +28,7 @@ depends_on:
 
 ## Status
 
-📋 Proposed
+✅ Implemented (2025-12-26)
 
 ---
 
@@ -404,9 +404,14 @@ class PhaseVerificationFailed(Exception):
 
 ### 4. Tests
 
-- [ ] Test für erfolgreiche Verifikation
-- [ ] Test für Retry-Loop mit Feedback
-- [ ] Test für finalen Fail nach 3 Retries
+- [x] Test für erfolgreiche Verifikation
+- [x] Test für Retry-Loop mit Feedback
+- [x] Test für finalen Fail nach 3 Retries
+
+> Tests implementiert in `tests/e2e/test_workflow_system.py`:
+> - `TestSubAgentVerification.test_verification_success`
+> - `TestSubAgentVerification.test_verification_retry_on_failure`
+> - `TestSubAgentVerification.test_verification_exhausted_retries`
 
 ---
 

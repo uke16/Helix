@@ -1,7 +1,7 @@
 ---
 adr_id: "023"
 title: Workflow-Definitionen für Projekt-Matrix
-status: Proposed
+status: Implemented
 
 project_type: helix_internal
 component_type: CONFIG
@@ -27,7 +27,7 @@ depends_on:
 
 ## Status
 
-📋 Proposed
+✅ Implemented (2025-12-26)
 
 ---
 
