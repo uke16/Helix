@@ -153,18 +153,33 @@ class EvolutionProject:
             json.dump(data, f, indent=2)
 
     def get_status_data(self) -> dict:
-        """Get full status data dict."""
-        if not self._status_file.exists():
-            return {
-                "status": EvolutionStatus.PENDING.value,
-                "created_at": datetime.now().isoformat(),
-                "updated_at": datetime.now().isoformat(),
-                "current_phase": None,
-                "error": None,
-            }
+        """Get full status data dict.
         
-        with open(self._status_file) as f:
-            return json.load(f)
+        Always ensures 'updated_at' is present (Fix for Bug #9).
+        """
+        default_data = {
+            "status": EvolutionStatus.PENDING.value,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "current_phase": None,
+            "error": None,
+        }
+        
+        if not self._status_file.exists():
+            return default_data
+        
+        try:
+            with open(self._status_file) as f:
+                data = json.load(f)
+            
+            # Ensure updated_at is always present (Bug #9 fix)
+            if "updated_at" not in data or data["updated_at"] is None:
+                data["updated_at"] = data.get("created_at") or datetime.now().isoformat()
+            
+            return data
+        except (json.JSONDecodeError, IOError) as e:
+            # Return safe defaults on error
+            return default_data
 
     def get_adr(self):
         """Get project ADR (Architecture Decision Record).
@@ -426,11 +441,16 @@ class EvolutionProjectManager:
             if item.is_dir() and (item / "status.json").exists():
                 projects.append(EvolutionProject(item))
         
-        # Sort by updated_at descending
-        projects.sort(
-            key=lambda p: p.get_status_data().get("updated_at") or "",
-            reverse=True,
-        )
+        # Sort by updated_at descending (with robust error handling)
+        def get_sort_key(p):
+            """Get sort key with fallback for missing/invalid data."""
+            try:
+                data = p.get_status_data()
+                return data.get("updated_at") or ""
+            except Exception:
+                return ""
+        
+        projects.sort(key=get_sort_key, reverse=True)
         
         return projects
 

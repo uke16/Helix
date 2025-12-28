@@ -4,14 +4,20 @@ This API provides:
 1. OpenAI-compatible endpoints for Open WebUI integration
 2. HELIX-specific endpoints for project execution
 3. SSE streaming for real-time progress updates
+
+ADR-030 Fix 8: Global Exception Handler with structured logging.
 """
 
 import os
 import sys
+import logging
+import traceback
 from pathlib import Path
 from contextlib import asynccontextmanager
+from datetime import datetime
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 # Ensure src is in path
@@ -19,17 +25,36 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from .routes import openai, helix, stream, evolution
 
+# Configure logging
+LOG_DIR = Path(__file__).parent.parent.parent.parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_DIR / "api.log"),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+# Debug mode from environment
+DEBUG = os.environ.get("HELIX_DEBUG", "false").lower() == "true"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
-    print("=" * 60)
-    print("HELIX API Starting")
-    print("=" * 60)
-    print(f"Port: {os.environ.get('PORT', 8001)}")
-    print(f"Docs: http://localhost:{os.environ.get('PORT', 8001)}/docs")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("HELIX API Starting")
+    logger.info("=" * 60)
+    logger.info(f"Port: {os.environ.get('PORT', 8001)}")
+    logger.info(f"Debug: {DEBUG}")
+    logger.info(f"Docs: http://localhost:{os.environ.get('PORT', 8001)}/docs")
+    logger.info("=" * 60)
     
     # Set NVM path
     nvm_path = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
@@ -39,7 +64,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    print("HELIX API Shutting down")
+    logger.info("HELIX API Shutting down")
 
 
 app = FastAPI(
@@ -48,6 +73,60 @@ app = FastAPI(
     version="4.0.0",
     lifespan=lifespan,
 )
+
+
+# Global Exception Handler (ADR-030 Fix 8)
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Log all unhandled exceptions with full traceback.
+    Returns structured error response.
+    
+    ADR-030 Fix 8: Global Exception Handler
+    """
+    # Log full traceback
+    logger.error(
+        f"Unhandled exception in {request.method} {request.url.path}",
+        exc_info=exc
+    )
+    
+    # Build response
+    error_response = {
+        "error": "Internal Server Error",
+        "type": type(exc).__name__,
+        "message": str(exc),
+        "path": str(request.url.path),
+        "timestamp": datetime.now().isoformat(),
+    }
+    
+    # Include traceback in debug mode
+    if DEBUG:
+        error_response["traceback"] = traceback.format_exc()
+    
+    return JSONResponse(
+        status_code=500,
+        content=error_response
+    )
+
+
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all requests for debugging."""
+    start_time = datetime.now()
+    
+    response = await call_next(request)
+    
+    duration = (datetime.now() - start_time).total_seconds()
+    
+    # Only log non-health requests or if DEBUG
+    if DEBUG or request.url.path not in ["/health", "/docs", "/openapi.json"]:
+        logger.debug(
+            f"{request.method} {request.url.path} -> {response.status_code} ({duration:.3f}s)"
+        )
+    
+    return response
+
 
 # CORS for Open WebUI
 app.add_middleware(
