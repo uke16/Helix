@@ -186,3 +186,225 @@ async def stream_project_execution(
             **event.data,
             "timestamp": event.timestamp.isoformat(),
         })
+
+
+# ============================================================================
+# Evolution Pipeline - ADR-030
+# ============================================================================
+
+from helix.evolution import (
+    Deployer,
+    Validator,
+    Integrator,
+    EvolutionStatus,
+)
+from helix.evolution.project import EvolutionProject
+
+
+async def run_evolution_pipeline(
+    job: Job,
+    project: EvolutionProject,
+    auto_integrate: bool = False,
+    force: bool = False,
+) -> None:
+    """Run complete evolution pipeline with streaming events.
+
+    Pipeline steps:
+    1. Pre-checks (force, concurrent execution)
+    2. Execute all project phases (via UnifiedOrchestrator)
+    3. Deploy to test system (via Deployer)
+    4. Validate in test system (via Validator)
+    5. Integrate to production (via Integrator) - if auto_integrate=True
+
+    Args:
+        job: Job instance for tracking
+        project: EvolutionProject to execute
+        auto_integrate: Whether to automatically integrate on successful validation
+        force: Whether to force re-run on already integrated projects
+    """
+    print(f"[EVOLUTION] Starting pipeline for {project.name}")
+
+    try:
+        # Pre-check: Already integrated?
+        current_status = project.get_status()
+        if not force and current_status == EvolutionStatus.INTEGRATED:
+            await _emit_pipeline_failed(job.job_id, "pre-check",
+                "Project already integrated. Use force=true to re-run.")
+            return
+
+        # Pre-check: Already running?
+        if current_status in [EvolutionStatus.DEVELOPING, EvolutionStatus.VALIDATING]:
+            await _emit_pipeline_failed(job.job_id, "pre-check",
+                f"Pipeline already running (status: {current_status.value})")
+            return
+
+        # Mark as developing
+        project.set_status(EvolutionStatus.DEVELOPING)
+
+        await job_manager.update_job(job.job_id, status=JobStatus.RUNNING)
+
+        # Emit pipeline start event
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="pipeline_started",
+            data={
+                "project": project.name,
+                "auto_integrate": auto_integrate,
+            }
+        ))
+
+        # Step 1: Execute project phases
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="step_started",
+            data={"step": "execute", "description": "Executing project phases"}
+        ))
+
+        orchestrator = UnifiedOrchestrator()
+
+        async def on_phase_event(event: OrchestratorEvent) -> None:
+            """Forward orchestrator events."""
+            api_event = PhaseEvent(
+                event_type=event.event_type,
+                phase_id=event.phase_id or None,
+                data=event.data,
+                timestamp=event.timestamp,
+            )
+            await job_manager.emit_event(job.job_id, api_event)
+
+        result = await orchestrator.run_project(
+            project_path=project.path,
+            on_event=on_phase_event,
+        )
+
+        if not result.success:
+            project.set_status(EvolutionStatus.FAILED)
+            error_msg = "; ".join(result.errors) if result.errors else "Phase execution failed"
+            await _emit_pipeline_failed(job.job_id, "execute", error_msg)
+            return
+
+        project.set_status(EvolutionStatus.READY)
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="step_completed",
+            data={"step": "execute", "phases_completed": result.phases_completed}
+        ))
+
+        # Step 2: Deploy to test system
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="step_started",
+            data={"step": "deploy", "description": "Deploying to test system"}
+        ))
+
+        deployer = Deployer()
+        deploy_result = await deployer.full_deploy(project)
+
+        if not deploy_result.success:
+            project.set_status(EvolutionStatus.FAILED)
+            await _emit_pipeline_failed(job.job_id, "deploy", deploy_result.error or deploy_result.message)
+            return
+
+        project.set_status(EvolutionStatus.DEPLOYED)
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="step_completed",
+            data={"step": "deploy", "files_copied": deploy_result.files_copied}
+        ))
+
+        # Step 3: Validate in test system
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="step_started",
+            data={"step": "validate", "description": "Running validation suite"}
+        ))
+
+        project.set_status(EvolutionStatus.VALIDATING)
+        validator = Validator()
+        validation_result = await validator.full_validation()
+
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="validation_result",
+            data={
+                "success": validation_result.success,
+                "passed": validation_result.passed,
+                "failed": validation_result.failed,
+                "errors": validation_result.errors[:5] if validation_result.errors else [],
+            }
+        ))
+
+        if not validation_result.success:
+            # Rollback test system
+            await deployer.rollback()
+            project.set_status(EvolutionStatus.FAILED)
+            error_summary = "; ".join(validation_result.errors[:3]) if validation_result.errors else "Validation failed"
+            await _emit_pipeline_failed(job.job_id, "validate", error_summary)
+            return
+
+        project.set_status(EvolutionStatus.DEPLOYED)  # Back to deployed after validation
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="step_completed",
+            data={"step": "validate", "passed": validation_result.passed}
+        ))
+
+        # Step 4: Integrate to production (if auto_integrate)
+        if auto_integrate:
+            await job_manager.emit_event(job.job_id, PhaseEvent(
+                event_type="step_started",
+                data={"step": "integrate", "description": "Integrating to production"}
+            ))
+
+            integrator = Integrator()
+            integration_result = await integrator.full_integration(project)
+
+            if not integration_result.success:
+                project.set_status(EvolutionStatus.FAILED)
+                await _emit_pipeline_failed(job.job_id, "integrate",
+                    integration_result.error or integration_result.message)
+                return
+
+            project.set_status(EvolutionStatus.INTEGRATED)
+            await job_manager.emit_event(job.job_id, PhaseEvent(
+                event_type="step_completed",
+                data={
+                    "step": "integrate",
+                    "files_integrated": integration_result.files_integrated,
+                    "backup_tag": integration_result.backup_tag,
+                }
+            ))
+
+        # Pipeline complete
+        await job_manager.update_job(job.job_id, status=JobStatus.COMPLETED)
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="pipeline_completed",
+            data={
+                "project": project.name,
+                "integrated": auto_integrate,
+            }
+        ))
+        print(f"[EVOLUTION] Pipeline completed for {project.name}")
+
+    except Exception as e:
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        print(f"[EVOLUTION] Pipeline error: {error_msg}")
+        try:
+            project.set_status(EvolutionStatus.FAILED)
+        except:
+            pass
+        await job_manager.update_job(
+            job.job_id,
+            status=JobStatus.FAILED,
+            error=str(e)
+        )
+        await job_manager.emit_event(job.job_id, PhaseEvent(
+            event_type="pipeline_failed",
+            data={"error": str(e)}
+        ))
+
+
+async def _emit_pipeline_failed(job_id: str, step: str, error: str) -> None:
+    """Emit pipeline failure event and update job status."""
+    print(f"[EVOLUTION] Pipeline failed at {step}: {error}")
+    await job_manager.update_job(
+        job_id,
+        status=JobStatus.FAILED,
+        error=f"Failed at {step}: {error}"
+    )
+    await job_manager.emit_event(job_id, PhaseEvent(
+        event_type="pipeline_failed",
+        data={"step": step, "error": error}
+    ))

@@ -37,3 +37,9 @@ __all__ = [
     # RAG Integration
     "RAGSync",
 ]
+
+# Additional exports for API routes and tests
+from .deployer import DeployResult
+from .validator import ValidationResult, ValidationLevel
+from .integrator import IntegrationResult
+from .rag_sync import SyncResult, SyncStatus

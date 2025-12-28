@@ -109,7 +109,7 @@ async def list_projects():
 
 
 @router.get("/projects/{name}", response_model=ProjectResponse)
-async def get_project(name: str):
+async def get_project(name: str, force: bool = False):
     """Get details of a specific project."""
     manager = EvolutionProjectManager()
     project = manager.get_project(name)
@@ -129,7 +129,7 @@ async def get_project(name: str):
 
 
 @router.post("/projects/{name}/deploy", response_model=DeployResponse)
-async def deploy_project(name: str, request: DeployRequest = DeployRequest()):
+async def deploy_project(name: str, request: DeployRequest = DeployRequest(), force: bool = False):
     """Deploy a project to the test system."""
     manager = EvolutionProjectManager()
     project = manager.get_project(name)
@@ -161,7 +161,7 @@ async def deploy_project(name: str, request: DeployRequest = DeployRequest()):
 
 
 @router.post("/projects/{name}/validate", response_model=ValidationResponse)
-async def validate_project(name: str):
+async def validate_project(name: str, force: bool = False):
     """Run validation on a deployed project."""
     manager = EvolutionProjectManager()
     project = manager.get_project(name)
@@ -198,7 +198,7 @@ async def validate_project(name: str):
 
 
 @router.post("/projects/{name}/integrate", response_model=IntegrationResponse)
-async def integrate_project(name: str):
+async def integrate_project(name: str, force: bool = False):
     """Integrate a validated project into production."""
     manager = EvolutionProjectManager()
     project = manager.get_project(name)
