@@ -1,0 +1,3 @@
+das hier habe ich geschrieben:
+kannst du den evolution workflow mit adr 029 starten bitte?
+du hast das projekt angelegt. aber nur mit 3 phasen. evolution workflow heisst doch dass es auf das testsystem iplementiert wird und dann auf das productoin system und dann restart von der api gemacht wird oder? ist es möglich das projekt noch zu erweitern? mit den nötigen phasen? falls das möglich ist bitte mach das

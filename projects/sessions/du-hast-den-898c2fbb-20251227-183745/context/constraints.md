@@ -1,0 +1,1 @@
+Kannst du das rebooten und sei vorsichtig weil du schiesst dich selbst damit ab

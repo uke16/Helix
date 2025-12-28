@@ -1,0 +1,1 @@
+{ "follow_ups": ["Go, leg los!", "Wie lange dauert das ungefähr?", "Kannst du mir danach zeigen welche Code-Änderungen du gemacht hast?", "Soll ich den API-Neustart selber machen oder machst du das auch?"] }

@@ -1,0 +1,1 @@
+{"follow_ups": ["Wie kann ich den Fortschritt des Evolution Workflows live verfolgen?", "Was passiert wenn eine Phase im Workflow fehlschlägt?", "Kannst du auch ADR-028 (Launcher Performance) als Evolution Workflow starten?", "Wie lange dauert der komplette Workflow typischerweise?"]}

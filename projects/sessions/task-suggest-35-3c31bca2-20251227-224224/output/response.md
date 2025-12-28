@@ -1,0 +1,1 @@
+{ "follow_ups": ["Kannst du jetzt den manuellen Test in Open WebUI durchführen und das Ergebnis dokumentieren?", "Sollen wir die Änderungen committen und pushen?", "Welche ADRs sind noch offen oder als 'Proposed' markiert?", "Gibt es ein ADR für Self-Documentation und wenn ja, was fehlt noch zur Implementierung?"] }

@@ -1,0 +1,46 @@
+name: evolution-pipeline-automation
+description: Implement run_evolution_pipeline for full automation
+project_type: helix_internal
+complexity: simple
+max_retries: 3
+
+phases:
+  - id: planning
+    name: "Planning & ADR"
+    type: consultant
+    description: "Create ADR for evolution pipeline automation"
+    output:
+      - "ADR-*.md"
+    quality_gate:
+      type: adr_valid
+    verify_agent: true
+
+  - id: development
+    name: "Implementation"
+    type: development
+    description: "Implement run_evolution_pipeline function"
+    output:
+      - "src/**/*.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: verify
+    name: "Verification"
+    type: test
+    description: "Unit tests for evolution pipeline"
+    output:
+      - "tests/**/*.py"
+    quality_gate:
+      type: tests_pass
+    verify_agent: true
+
+  - id: documentation
+    name: "Documentation"
+    type: documentation
+    description: "Update SKILL.md and API docs"
+    output:
+      - "docs/**/*.md"
+    quality_gate:
+      type: files_exist
+    verify_agent: false

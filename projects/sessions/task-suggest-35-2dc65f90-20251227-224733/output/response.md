@@ -1,0 +1,1 @@
+{"follow_ups": ["Kannst du ADR-014 vollständig implementieren - also die YAML-Quellen und Templates erstellen?", "Wie kann ich verhindern, dass der Session-Kontext bei neuen Anfragen verloren geht?", "Was genau macht der docs_compiler und wie benutze ich ihn?", "Kannst du mir den Stale-Response Bug genauer erklären und einen Fix vorschlagen?"]}

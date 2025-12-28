@@ -1,0 +1,1 @@
+{ "follow_ups": ["Kannst du ADR-028 (Pre-warmed Instance Pool) jetzt implementieren?", "Wie hoch ist der geschätzte Aufwand für die Implementierung von ADR-029?", "Welches ADR sollten wir zuerst umsetzen - 028 oder 029?", "Kannst du mir den Inhalt von ADR-028 und ADR-029 nochmal zeigen?", "Gibt es noch andere Performance-Bottlenecks im HELIX System die wir angehen sollten?"] }

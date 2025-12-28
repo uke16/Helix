@@ -1,0 +1,9 @@
+{
+  "session_id": "problem-consultant-chat-2d6ce79a-20251228-002659",
+  "status": "discussing",
+  "step": "execute",
+  "created_at": "2025-12-28T00:26:59.270183",
+  "updated_at": "2025-12-28T14:46:20.896926",
+  "original_request": "Problem: consultant chat session via open webui hat keine history. Jeder chat ist neue Session. Das soll nicht so sein. \n\nDas andere Problem was wir angehen können ist ein Claude code launcher. Es dauert immer super lang Claude Code zu launchen. Vielleicht ramdrive oder eine Instanz mehr ist immer schon am laufen haben und Verzeichnis wechseln und Session neustarten ? Erstelle ein ausgearbeitetes AdR und speichere es",
+  "project_name": null
+}
