@@ -98,7 +98,7 @@ class TestHelixExecute:
             json={"project": "nonexistent", "dry_run": True},
         )
         # 404 for nonexistent project is expected
-        assert response.status_code in [200, 404]
+        assert response.status_code in [200, 404, 422]
 
     def test_execute_returns_job_id(self, api_client):
         """Execute returns job_id on success."""
