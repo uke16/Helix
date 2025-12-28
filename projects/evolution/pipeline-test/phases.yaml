@@ -1,0 +1,14 @@
+name: pipeline-test
+description: Simple test project for Evolution pipeline validation
+project_type: helix_internal
+complexity: simple
+
+phases:
+  - id: development
+    name: "Development"
+    type: development
+    output:
+      files:
+        - "pipeline_test.py"
+    quality_gate:
+      type: files_exist

@@ -1,0 +1,1 @@
+Wo wird die Session Historie gespeichert? Datenbank?

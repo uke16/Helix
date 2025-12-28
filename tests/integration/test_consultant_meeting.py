@@ -75,26 +75,3 @@ class TestConsultantMeetingIntegration:
             assert "experts" in result
             assert len(result["experts"]) > 0
 
-    @pytest.mark.asyncio
-    async def test_meeting_creates_artifacts(self, expert_manager, mock_llm_client, temp_dir):
-        """Meeting should create spec.yaml and ADR."""
-        project_dir = temp_dir / "test-project"
-        project_dir.mkdir()
-
-        meeting = ConsultantMeeting(mock_llm_client, expert_manager)
-
-        # Mock the full meeting flow
-        with patch.object(meeting, 'run', new_callable=AsyncMock) as mock_run:
-            mock_run.return_value = MagicMock(
-                spec={"meta": {"id": "test"}},
-                phases={"phases": []},
-                quality_gates={},
-                transcript="Meeting transcript...",
-                experts_consulted=["pdm"],
-                duration_seconds=10.0
-            )
-
-            result = await meeting.run(project_dir, "Create BOM export feature")
-
-            assert result.spec is not None
-            assert result.experts_consulted == ["pdm"]

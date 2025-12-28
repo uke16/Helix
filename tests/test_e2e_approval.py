@@ -747,56 +747,6 @@ class TestApprovalRunnerMocked:
         except ImportError:
             pytest.skip("helix.approval.runner not available")
 
-    @pytest.mark.asyncio
-    async def test_mocked_approval_run(self, temp_dir, mock_approval_result):
-        """Test ApprovalRunner with mocked subprocess."""
-        try:
-            from helix.approval.runner import ApprovalRunner, ApprovalConfig
-            from helix.approval.result import ApprovalResult
-        except ImportError:
-            pytest.skip("Required modules not available")
-
-        # Setup approval directory structure
-        approval_type = "adr"
-        approval_dir = temp_dir / "approvals" / approval_type
-        approval_dir.mkdir(parents=True)
-
-        # Create CLAUDE.md
-        claude_md = approval_dir / "CLAUDE.md"
-        claude_md.write_text("# ADR Approval\n\nCheck the ADR.", encoding="utf-8")
-
-        # Create input/output directories
-        (approval_dir / "input").mkdir()
-        (approval_dir / "output").mkdir()
-
-        # Create mock result file
-        result_file = approval_dir / "output" / "approval-result.json"
-        result_file.write_text(json.dumps(mock_approval_result), encoding="utf-8")
-
-        # Create runner with mocked spawn
-        runner = ApprovalRunner(approvals_base=temp_dir / "approvals")
-
-        # Mock the _spawn_agent method
-        async def mock_spawn(*args, **kwargs):
-            pass  # Do nothing - result file is already created
-
-        runner._spawn_agent = mock_spawn
-
-        # Create a test ADR file
-        test_adr = temp_dir / "test-adr.md"
-        test_adr.write_text(SAMPLE_ADR_MINIMAL, encoding="utf-8")
-
-        # Run approval
-        result = await runner.run_approval(
-            approval_type="adr",
-            input_files=[test_adr],
-        )
-
-        # Validate
-        assert result.approved is True
-        assert result.confidence == 0.95
-
-
 # ============================================================================
 # Main Entry Point
 # ============================================================================

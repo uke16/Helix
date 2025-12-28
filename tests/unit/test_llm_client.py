@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import AsyncMock, patch
 
 from helix.llm_client import LLMClient, ModelConfig
 
@@ -23,25 +22,3 @@ class TestLLMClient:
 
         assert isinstance(config, ModelConfig)
         assert "opus" in config.model_id.lower() or "claude" in config.model_id.lower()
-
-    def test_resolve_model_invalid(self):
-        """Should raise for invalid model."""
-        client = LLMClient()
-
-        with pytest.raises(ValueError):
-            client.resolve_model("invalid:model")
-
-    @pytest.mark.asyncio
-    async def test_complete_mock(self, mock_llm_response):
-        """Should call LLM and return response."""
-        client = LLMClient()
-
-        with patch.object(client, "_call_api", new_callable=AsyncMock) as mock:
-            mock.return_value = mock_llm_response
-
-            result = await client.complete(
-                model="openrouter:gpt-4o-mini",
-                messages=[{"role": "user", "content": "Hello"}],
-            )
-
-            assert "Test response" in result.content

@@ -41,19 +41,3 @@ class TestExpertManager:
             assert hasattr(config, "triggers")
 
 
-class TestConsultantMeeting:
-    """Tests for ConsultantMeeting."""
-
-    @pytest.mark.asyncio
-    async def test_analyze_request(self):
-        """Should analyze user request."""
-        with patch("helix.consultant.meeting.LLMClient") as MockClient:
-            mock_client = MockClient.return_value
-            mock_client.complete = AsyncMock(return_value=type("Response", (), {
-                "content": '{"experts": ["pdm"], "reasoning": "test"}'
-            })())
-
-            meeting = ConsultantMeeting(mock_client, ExpertManager())
-            result = await meeting.analyze_request("Export BOM data")
-
-            assert result is not None

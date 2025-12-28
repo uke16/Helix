@@ -168,41 +168,70 @@ class PhaseVerifier:
         missing = []
         found = []
         syntax_errors = {}
-        
+
         for file_path in expected_files:
+            # Check if this is a glob pattern
+            is_glob = any(c in file_path for c in ["*", "?", "["])
+
             # Normalize path (remove new/ or modified/ prefix for checking)
             clean_path = file_path
             for prefix in ["new/", "modified/", "output/"]:
                 if clean_path.startswith(prefix):
                     clean_path = clean_path[len(prefix):]
                     break
-            
-            # Check multiple candidate locations
-            candidates = [
-                phase_dir / "output" / clean_path,
-                phase_dir / "output" / file_path,
-                phase_dir / clean_path,
-                phase_dir / file_path,
-                self.project_path / "new" / clean_path,
-                self.project_path / file_path,
-            ]
-            
-            found_path = None
-            for candidate in candidates:
-                if candidate.exists() and candidate.is_file():
-                    found_path = candidate
-                    break
-            
-            if found_path:
-                found.append(str(found_path))
-                
-                # Syntax check for Python files
-                if found_path.suffix == ".py":
-                    error = self._check_python_syntax(found_path)
-                    if error:
-                        syntax_errors[str(found_path)] = error
+
+            if is_glob:
+                # Handle glob patterns - search in candidate directories
+                glob_dirs = [
+                    phase_dir / "output",
+                    phase_dir,
+                    self.project_path / "new",
+                    self.project_path,
+                ]
+
+                matched_files = []
+                for search_dir in glob_dirs:
+                    if search_dir.exists():
+                        matches = list(search_dir.glob(clean_path))
+                        matched_files.extend(matches)
+
+                if matched_files:
+                    for match_path in matched_files:
+                        found.append(str(match_path))
+                        # Syntax check for Python files
+                        if match_path.suffix == ".py":
+                            error = self._check_python_syntax(match_path)
+                            if error:
+                                syntax_errors[str(match_path)] = error
+                else:
+                    missing.append(file_path)
             else:
-                missing.append(file_path)
+                # Check multiple candidate locations for literal files
+                candidates = [
+                    phase_dir / "output" / clean_path,
+                    phase_dir / "output" / file_path,
+                    phase_dir / clean_path,
+                    phase_dir / file_path,
+                    self.project_path / "new" / clean_path,
+                    self.project_path / file_path,
+                ]
+
+                found_path = None
+                for candidate in candidates:
+                    if candidate.exists() and candidate.is_file():
+                        found_path = candidate
+                        break
+
+                if found_path:
+                    found.append(str(found_path))
+
+                    # Syntax check for Python files
+                    if found_path.suffix == ".py":
+                        error = self._check_python_syntax(found_path)
+                        if error:
+                            syntax_errors[str(found_path)] = error
+                else:
+                    missing.append(file_path)
         
         # Determine success
         success = len(missing) == 0 and len(syntax_errors) == 0
