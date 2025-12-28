@@ -1,0 +1,23 @@
+{
+  "phase_id": "tests",
+  "level": 0,
+  "attempt_count": 0,
+  "total_attempts": 0,
+  "failure_history": [
+    {
+      "timestamp": "2025-12-28T19:18:41.495743",
+      "gate_type": "tests_pass",
+      "message": "Tests failed with exit code 127",
+      "details": {
+        "command": "pytest",
+        "exit_code": 127,
+        "stdout": "",
+        "stderr": "/bin/sh: 1: pytest: not found\n"
+      },
+      "level": 0,
+      "attempt": 0
+    }
+  ],
+  "context": {},
+  "updated_at": "2025-12-28T19:18:41.495818"
+}

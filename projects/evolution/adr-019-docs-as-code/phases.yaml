@@ -1,0 +1,53 @@
+# Evolution Project: ADR-019 Documentation as Code
+name: adr-019-docs-as-code
+description: "Validierbare Referenzen für Dokumentation"
+project_type: helix_internal
+complexity: major
+max_retries: 2
+
+phases:
+  - id: core-implementation
+    name: "Core Implementation"
+    type: development
+    description: "Implement reference resolver, symbol extractor, and schema"
+    output:
+      - "new/src/helix/docs/__init__.py"
+      - "new/src/helix/docs/reference_resolver.py"
+      - "new/src/helix/docs/symbol_extractor.py"
+      - "new/src/helix/docs/diagram_validator.py"
+      - "new/src/helix/docs/schema.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: quality-gate-impl
+    name: "Quality Gate Implementation"
+    type: development
+    description: "Implement docs_refs_valid quality gate"
+    output:
+      - "new/src/helix/quality_gates/docs_refs_valid.py"
+      - "new/docs/schemas/helix-docs-v1.schema.json"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: tests
+    name: "Test Implementation"
+    type: development
+    description: "Implement tests for reference resolver and symbol extractor"
+    output:
+      - "new/tests/docs/test_reference_resolver.py"
+      - "new/tests/docs/test_symbol_extractor.py"
+    quality_gate:
+      type: tests_pass
+    verify_agent: true
+
+  - id: documentation
+    name: "Documentation"
+    type: documentation
+    description: "Update documentation"
+    output:
+      - "new/docs/DOCUMENTATION-AS-CODE.md"
+    quality_gate:
+      type: files_exist
+    verify_agent: false

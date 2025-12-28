@@ -1,0 +1,177 @@
+# Auto-generated skill index
+# Generated: 2024-12-28T10:00:00+00:00
+# Regenerate: python -m helix.docs.skill_index
+#
+# Manual fields (preserved on regeneration):
+#   aliases: Synonyms for skill keywords
+#   triggers: Phrase patterns that activate this skill
+
+_meta:
+  generated_at: "2024-12-28T10:00:00+00:00"
+  generator: "helix.docs.skill_index"
+
+skills:
+  - path: skills/helix/SKILL.md
+    name: "HELIX Core Skill"
+    description: "Detaillierte Dokumentation des HELIX Orchestration Systems."
+    auto_keywords:
+      - HELIX
+      - Phase
+      - Phases
+      - Quality Gate
+      - QualityGate
+      - Orchestrator
+      - Development
+      - Consultant
+      - Documentation
+      - Review
+      - Integration
+      - Testing
+      - Escalation
+      - Evolution
+      - ADR
+      - adr_valid
+      - files_exist
+      - syntax_check
+      - tests_pass
+      - review_approved
+    aliases:
+      - Orchestration
+      - Workflow
+      - Pipeline
+    triggers:
+      - "wenn HELIX erwähnt"
+      - "wenn Phase oder Workflow erwähnt"
+      - "wenn Quality Gate erwähnt"
+
+  - path: skills/helix/adr/SKILL.md
+    name: "ADR Writing Skill"
+    description: "ADR Template, Validation, and Finalization"
+    auto_keywords:
+      - ADR
+      - Architecture Decision Record
+      - Template
+      - Validation
+      - Finalization
+      - adr_valid
+      - frontmatter
+      - YAML
+    aliases:
+      - Architektur
+      - Entscheidung
+      - Decision Record
+    triggers:
+      - "wenn ADR geschrieben werden soll"
+      - "wenn Architekturentscheidung dokumentiert wird"
+
+  - path: skills/helix/evolution/SKILL.md
+    name: "Evolution Skill"
+    description: "Test System, Deployment, Rollback for HELIX self-modification"
+    auto_keywords:
+      - Evolution
+      - Deploy
+      - Rollback
+      - Test
+      - Integration
+      - Self-modification
+      - Validation
+    aliases:
+      - Selbstmodifikation
+      - Upgrade
+    triggers:
+      - "wenn HELIX modifiziert werden soll"
+      - "wenn Evolution-Projekt"
+
+  - path: skills/pdm/SKILL.md
+    name: "PDM - Product Data Management"
+    description: "BOM, Artikel, Stücklisten, SAP-Integration"
+    auto_keywords:
+      - PDM
+      - BOM
+      - Bill of Materials
+      - Artikel
+      - Article
+      - Stückliste
+      - Revision
+      - ERP
+      - SAP
+      - Webshop
+      - Production
+      - Manufacturing
+      - Category
+      - Catalog
+    aliases:
+      - Bill of Materials
+      - Produktdaten
+      - Product Data
+      - Materialstamm
+    triggers:
+      - "wenn BOM oder Stückliste erwähnt"
+      - "wenn SAP-Integration benötigt"
+      - "wenn Artikel oder Produktdaten"
+
+  - path: skills/encoder/SKILL.md
+    name: "POSITAL Encoder"
+    description: "Encoder products, specifications, configurations"
+    auto_keywords:
+      - Encoder
+      - POSITAL
+      - Absolute
+      - Incremental
+      - Magnetic
+      - Optical
+      - Resolution
+      - Interface
+      - Configuration
+      - Ordering Code
+    aliases:
+      - Drehgeber
+      - Sensor
+      - Positionsgeber
+    triggers:
+      - "wenn Encoder erwähnt"
+      - "wenn POSITAL Produkt"
+
+  - path: skills/infrastructure/SKILL.md
+    name: "Infrastructure"
+    description: "Docker, PostgreSQL, deployment, system administration"
+    auto_keywords:
+      - Docker
+      - PostgreSQL
+      - Postgres
+      - Database
+      - Container
+      - Compose
+      - Deployment
+      - Migration
+      - Performance
+      - Network
+    aliases:
+      - DevOps
+      - Datenbank
+      - Container
+    triggers:
+      - "wenn Docker oder Container erwähnt"
+      - "wenn Datenbank oder PostgreSQL"
+      - "wenn Deployment oder Infrastructure"
+
+  - path: skills/lsp/SKILL.md
+    name: "LSP Navigation"
+    description: "goToDefinition, findReferences, hover, Anti-Halluzination"
+    auto_keywords:
+      - LSP
+      - Language Server
+      - goToDefinition
+      - findReferences
+      - hover
+      - documentSymbol
+      - workspaceSymbol
+      - Anti-Halluzination
+      - Code Navigation
+    aliases:
+      - Language Server Protocol
+      - Code Intelligence
+    triggers:
+      - "wenn LSP erwähnt"
+      - "wenn Symbol-Navigation benötigt"
+      - "wenn Anti-Halluzination"

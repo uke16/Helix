@@ -1,12 +1,12 @@
 {
   "project_id": "pipeline-test",
   "title": "Pipeline Test Project",
-  "status": "failed",
+  "status": "deployed",
   "workflow": "intern-simple",
   "created_at": "2025-12-28T17:40:00.000000",
   "phases": {
     "development": "finished"
   },
-  "updated_at": "2025-12-28T18:18:55.998354",
+  "updated_at": "2025-12-28T18:37:19.857387",
   "error": null
 }

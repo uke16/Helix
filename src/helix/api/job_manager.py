@@ -87,6 +87,41 @@ class JobManager:
             if error is not None:
                 job.error = error
     
+    async def start_phase(
+        self,
+        job_id: str,
+        phase_id: str,
+        phase_name: str | None = None,
+    ) -> None:
+        """Record phase start - ADR-030 Fix 2.
+
+        Adds phase to job's phases list with RUNNING status.
+        Called when a phase begins execution.
+        """
+        job = self._jobs.get(job_id)
+        if not job:
+            return
+
+        async with self._lock:
+            # Check if phase already exists (avoid duplicates)
+            for phase in job.phases:
+                if phase["phase_id"] == phase_id:
+                    # Update existing phase to running
+                    phase["status"] = PhaseStatus.RUNNING.value
+                    phase["started_at"] = datetime.utcnow().isoformat()
+                    return
+
+            # Add new phase entry
+            job.phases.append({
+                "phase_id": phase_id,
+                "name": phase_name or phase_id,
+                "status": PhaseStatus.RUNNING.value,
+                "started_at": datetime.utcnow().isoformat(),
+                "completed_at": None,
+                "duration_seconds": None,
+                "output_files": [],
+            })
+
     async def add_phase_result(
         self,
         job_id: str,
@@ -95,14 +130,29 @@ class JobManager:
         duration: float,
         output_files: list[str] | None = None,
     ) -> None:
-        """Add phase execution result."""
+        """Update phase with completion result - ADR-030 Fix 2.
+
+        Updates existing phase entry or creates one if missing.
+        Called when a phase completes or fails.
+        """
         job = self._jobs.get(job_id)
         if not job:
             return
-        
+
         async with self._lock:
+            # Find existing phase entry
+            for phase in job.phases:
+                if phase["phase_id"] == phase_id:
+                    phase["status"] = status.value
+                    phase["duration_seconds"] = duration
+                    phase["output_files"] = output_files or []
+                    phase["completed_at"] = datetime.utcnow().isoformat()
+                    return
+
+            # If phase wasn't started, add it now (fallback)
             job.phases.append({
                 "phase_id": phase_id,
+                "name": phase_id,
                 "status": status.value,
                 "duration_seconds": duration,
                 "output_files": output_files or [],

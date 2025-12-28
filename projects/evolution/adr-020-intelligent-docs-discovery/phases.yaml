@@ -1,0 +1,51 @@
+# Evolution Project: ADR-020 Intelligent Documentation Discovery
+name: adr-020-intelligent-docs-discovery
+description: "Intelligent Skill Selection und Reverse Index"
+project_type: helix_internal
+complexity: major
+max_retries: 2
+
+phases:
+  - id: core-implementation
+    name: "Core Implementation"
+    type: development
+    description: "Implement skill_index, skill_selector, reverse_index"
+    output:
+      - "new/src/helix/docs/skill_index.py"
+      - "new/src/helix/docs/skill_selector.py"
+      - "new/src/helix/docs/reverse_index.py"
+      - "new/skills/INDEX.yaml"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: quality-gate-impl
+    name: "Quality Gate Implementation"
+    type: development
+    description: "Implement adr_files_exist quality gate"
+    output:
+      - "new/src/helix/quality_gates/adr_files_exist.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: tests
+    name: "Test Implementation"
+    type: development
+    description: "Implement tests for skill selector and reverse index"
+    output:
+      - "new/tests/docs/test_skill_selector.py"
+      - "new/tests/docs/test_reverse_index.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: documentation
+    name: "Documentation"
+    type: documentation
+    description: "Create SKILL-SELECTION.md documentation"
+    output:
+      - "new/docs/SKILL-SELECTION.md"
+    quality_gate:
+      type: files_exist
+    verify_agent: false

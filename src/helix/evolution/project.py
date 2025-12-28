@@ -428,7 +428,7 @@ class EvolutionProjectManager:
         
         # Sort by updated_at descending
         projects.sort(
-            key=lambda p: p.get_status_data().get("updated_at", ""),
+            key=lambda p: p.get_status_data().get("updated_at") or "",
             reverse=True,
         )
         

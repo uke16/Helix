@@ -1,0 +1,10 @@
+{
+  "session_id": "conv-pipeline-analysis-1766952726",
+  "status": "discussing",
+  "step": "what",
+  "created_at": "2025-12-28T20:12:07.003980",
+  "updated_at": "2025-12-28T20:12:07.005009",
+  "original_request": "Analysiere die heutige Evolution Pipeline Session für ADR-019 und ADR-020. \n\nDie Pipeline wurde erfolgreich ausgeführt aber es gab Probleme bei der automatischen Integration. Ich brauche:\n\n1. Eine Analyse was funktioniert hat und was nicht\n2. Konkrete Empfehlungen für Pipeline-Verbesserungen\n3. Ein ADR-Entwurf für die wichtigsten Fixes\n\nRelevante Logs findest du in:\n- projects/evolution/adr-019-docs-as-code/\n- projects/evolution/adr-020-intelligent-docs-discovery/\n- docs/analysis/EVOLUTION-PIPELINE-ISSUES-2024-12-28.md\n\nBitte lies zuerst die Analyse-Datei und dann die Projekt-Status-Dateien.",
+  "project_name": null,
+  "conversation_id": "pipeline-analysis-1766952726"
+}

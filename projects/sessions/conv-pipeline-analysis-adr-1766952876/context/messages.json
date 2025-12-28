@@ -1,0 +1,6 @@
+[
+  {
+    "role": "user",
+    "content": "Erstelle einen ADR-Entwurf f\u00fcr die Pipeline-Fixes basierend auf den identifizierten Issues:\n\n1. pytest PATH Issue (exit 127)\n2. Job Status API zeigt keine Phasen\n3. StrEnum Test-Kompatibilit\u00e4t\n4. Keine automatische Retry bei kleinen Fehlern\n\nDer ADR soll:\n- ADR-031 sein (n\u00e4chste freie Nummer)\n- Titel: Evolution Pipeline Reliability\n- Alle 4 Issues addressieren\n- Konkrete Implementation Steps haben\n- Acceptance Criteria mit Checkboxen"
+  }
+]

@@ -1,6 +1,6 @@
 {
   "name": "adr-single-source",
-  "status": "completed",
+  "status": "integrated",
   "current_phase": null,
   "phases_completed": ["1", "2", "3", "4", "5"],
   "phases_pending": [],
