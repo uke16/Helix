@@ -1,0 +1,71 @@
+# Evolution Project: ADR-031 Pipeline Bug Fixes Wave 2
+name: adr-031-bugfixes-wave2
+description: "Fix 4 dogfooding bugs + ADR-030 restfixes"
+project_type: helix_internal
+complexity: minor
+max_retries: 2
+
+phases:
+  - id: status-sync
+    name: "Fix 1: Status Synchronization"
+    type: development
+    description: "Implement StatusSynchronizer for unified status tracking"
+    output:
+      - "new/src/helix/evolution/status_sync.py"
+      - "new/tests/evolution/test_status_sync.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: file-permissions
+    name: "Fix 2: File Permission Normalization"
+    type: development
+    description: "Implement permission normalization module"
+    output:
+      - "new/src/helix/evolution/file_permissions.py"
+      - "new/tests/evolution/test_file_permissions.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: polling-api
+    name: "Fix 3: Polling Status API"
+    type: development
+    description: "Add polling-friendly status endpoints"
+    output:
+      - "modified/src/helix/api/routes_evolution.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: output-validator
+    name: "Fix 4: Output Directory Standardization"
+    type: development
+    description: "Update validator to support multiple output directories"
+    output:
+      - "modified/src/helix/evolution/validator.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: integration-streaming
+    name: "Integration: Streaming with StatusSync"
+    type: development
+    description: "Integrate StatusSynchronizer into streaming.py"
+    output:
+      - "modified/src/helix/api/streaming.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
+
+  - id: tests
+    name: "Test Suite"
+    type: development
+    description: "Unit and integration tests for all fixes"
+    output:
+      - "new/tests/evolution/test_status_sync.py"
+      - "new/tests/evolution/test_file_permissions.py"
+      - "new/tests/api/test_polling_api.py"
+    quality_gate:
+      type: syntax_check
+    verify_agent: true
