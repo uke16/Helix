@@ -1,0 +1,397 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://helix.dev/schemas/helix-docs-v1.schema.json",
+  "title": "Helix Documentation Schema v1",
+  "description": "Schema for validatable documentation references in HELIX v4 (ADR-019)",
+  "type": "object",
+  "properties": {
+    "_meta": {
+      "type": "object",
+      "description": "Metadata about the documentation file",
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "helix-docs/v1",
+          "description": "Schema identifier"
+        },
+        "title": {
+          "type": "string",
+          "description": "Document title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Document description"
+        },
+        "version": {
+          "type": "string",
+          "description": "Document version"
+        }
+      },
+      "required": ["schema"]
+    },
+    "modules": {
+      "type": "array",
+      "description": "Module and class documentation",
+      "items": {
+        "$ref": "#/definitions/moduleEntry"
+      }
+    },
+    "diagrams": {
+      "type": "array",
+      "description": "Diagram references with validated symbols",
+      "items": {
+        "$ref": "#/definitions/diagramEntry"
+      }
+    },
+    "workflows": {
+      "type": "array",
+      "description": "Workflow documentation with validated steps",
+      "items": {
+        "$ref": "#/definitions/workflowEntry"
+      }
+    }
+  },
+  "definitions": {
+    "moduleEntry": {
+      "type": "object",
+      "description": "Documentation entry for a module, class, or function",
+      "properties": {
+        "$ref": {
+          "type": "string",
+          "description": "Reference to a module, class, or function (e.g., helix.debug.StreamParser)",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$"
+        },
+        "$ref?": {
+          "type": "string",
+          "description": "Optional reference (warning if not found instead of error)",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$"
+        },
+        "_auto": {
+          "$ref": "#/definitions/autoExtracted",
+          "description": "Auto-extracted fields (do not edit manually)"
+        },
+        "when_to_use": {
+          "type": "string",
+          "description": "When to use this module/class"
+        },
+        "pitfalls": {
+          "type": "array",
+          "description": "Common pitfalls and mistakes to avoid",
+          "items": {
+            "type": "string"
+          }
+        },
+        "best_practices": {
+          "type": "array",
+          "description": "Recommended best practices",
+          "items": {
+            "type": "string"
+          }
+        },
+        "examples": {
+          "type": "array",
+          "description": "Code examples",
+          "items": {
+            "$ref": "#/definitions/exampleEntry"
+          }
+        },
+        "related": {
+          "type": "array",
+          "description": "Related modules/classes",
+          "items": {
+            "type": "string"
+          }
+        },
+        "see_also": {
+          "type": "array",
+          "description": "Additional references (URLs, ADRs, etc.)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "oneOf": [
+        { "required": ["$ref"] },
+        { "required": ["$ref?"] }
+      ]
+    },
+    "autoExtracted": {
+      "type": "object",
+      "description": "Auto-extracted symbol information",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Symbol name"
+        },
+        "module": {
+          "type": "string",
+          "description": "Parent module path"
+        },
+        "file": {
+          "type": "string",
+          "description": "Source file path"
+        },
+        "line": {
+          "type": "integer",
+          "description": "Line number in source file"
+        },
+        "docstring": {
+          "type": "string",
+          "description": "Full docstring"
+        },
+        "docstring_short": {
+          "type": "string",
+          "description": "First line of docstring"
+        },
+        "signature": {
+          "type": "string",
+          "description": "Function/method signature"
+        },
+        "methods": {
+          "type": "array",
+          "description": "Methods for classes",
+          "items": {
+            "$ref": "#/definitions/methodInfo"
+          }
+        },
+        "class_attributes": {
+          "type": "array",
+          "description": "Class attributes",
+          "items": {
+            "$ref": "#/definitions/attributeInfo"
+          }
+        },
+        "decorators": {
+          "type": "array",
+          "description": "Applied decorators",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bases": {
+          "type": "array",
+          "description": "Base classes",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "methodInfo": {
+      "type": "object",
+      "description": "Information about a method",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "signature": {
+          "type": "string"
+        },
+        "docstring": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer"
+        }
+      },
+      "required": ["name"]
+    },
+    "attributeInfo": {
+      "type": "object",
+      "description": "Information about a class attribute",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
+    },
+    "exampleEntry": {
+      "type": "object",
+      "description": "A code example",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Example title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Example description"
+        },
+        "code": {
+          "type": "string",
+          "description": "Example code"
+        },
+        "language": {
+          "type": "string",
+          "description": "Code language (e.g., python, bash)",
+          "default": "python"
+        },
+        "output": {
+          "type": "string",
+          "description": "Expected output"
+        }
+      },
+      "required": ["title", "code"]
+    },
+    "diagramEntry": {
+      "type": "object",
+      "description": "A diagram with validated symbol references",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique diagram identifier"
+        },
+        "title": {
+          "type": "string",
+          "description": "Diagram title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Diagram description"
+        },
+        "$file": {
+          "type": "string",
+          "description": "Path to diagram file"
+        },
+        "$refs": {
+          "type": "array",
+          "description": "Symbols that must exist in the codebase",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$"
+          }
+        },
+        "connections": {
+          "type": "array",
+          "description": "Connections between symbols in the diagram",
+          "items": {
+            "$ref": "#/definitions/connectionEntry"
+          }
+        }
+      },
+      "required": ["id", "$file"]
+    },
+    "connectionEntry": {
+      "type": "object",
+      "description": "A connection between diagram elements",
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "Source element"
+        },
+        "to": {
+          "type": "string",
+          "description": "Target element"
+        },
+        "label": {
+          "type": "string",
+          "description": "Connection label/description"
+        },
+        "style": {
+          "type": "string",
+          "description": "Line style (solid, dashed, dotted)",
+          "enum": ["solid", "dashed", "dotted"]
+        }
+      },
+      "required": ["from", "to"]
+    },
+    "workflowEntry": {
+      "type": "object",
+      "description": "A workflow with validated step references",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique workflow identifier"
+        },
+        "title": {
+          "type": "string",
+          "description": "Workflow title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Workflow description"
+        },
+        "steps": {
+          "type": "array",
+          "description": "Workflow steps",
+          "items": {
+            "$ref": "#/definitions/workflowStep"
+          }
+        },
+        "triggers": {
+          "type": "array",
+          "description": "Events that trigger this workflow",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outcomes": {
+          "type": "array",
+          "description": "Possible outcomes of the workflow",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["id", "title", "steps"]
+    },
+    "workflowStep": {
+      "type": "object",
+      "description": "A step in a workflow",
+      "properties": {
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ],
+          "description": "Step identifier"
+        },
+        "action": {
+          "type": "string",
+          "description": "What this step does"
+        },
+        "$uses": {
+          "type": "string",
+          "description": "Method/function reference (validated)",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$"
+        },
+        "$calls": {
+          "type": "string",
+          "description": "Script/executable reference (validated)"
+        },
+        "args": {
+          "type": "array",
+          "description": "Arguments passed to the method/script",
+          "items": {
+            "type": "string"
+          }
+        },
+        "input": {
+          "type": "string",
+          "description": "Description of input"
+        },
+        "output": {
+          "type": "string",
+          "description": "Description of output"
+        },
+        "condition": {
+          "type": "string",
+          "description": "When this step executes"
+        },
+        "on_error": {
+          "type": "string",
+          "description": "Error handling behavior"
+        }
+      },
+      "required": ["id", "action"]
+    }
+  },
+  "additionalProperties": true
+}
