@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "Merke dir die Zahl 42"
+  },
+  {
+    "role": "assistant",
+    "content": "OK"
+  },
+  {
+    "role": "user",
+    "content": "Welche Zahl sollst du dir merken?"
+  }
+]
