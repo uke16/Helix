@@ -14,6 +14,7 @@ The LLM now determines the conversation step and reports it via markers.
 import hashlib
 import json
 import re
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -45,7 +46,15 @@ class SessionManager:
 
     ADR-034: Step detection is now handled by the LLM, not Python.
     This manager only extracts metadata; the LLM reports its step via markers.
+
+    ADR-035: Security hardening.
+    - Session IDs are now cryptographically random (uuid4).
+    - Path sanitization prevents traversal attacks.
     """
+
+    # ADR-035: Security constants
+    MAX_CONVERSATION_ID_LENGTH = 64
+    LOCK_TIMEOUT = 5  # seconds
 
     def __init__(self, base_path: Path | None = None):
         if base_path is None:
@@ -59,19 +68,56 @@ class SessionManager:
     def _normalize_conversation_id(self, conversation_id: str) -> str:
         """Normalize conversation ID to valid directory name.
 
+        ADR-035 Fix 5: Path traversal prevention with strict sanitization.
+
         Args:
             conversation_id: Raw conversation ID from X-Conversation-ID header.
 
         Returns:
             Sanitized ID suitable for filesystem use.
         """
-        # Remove any unsafe characters, keep alphanumeric and hyphens
-        safe_id = "".join(
-            c if c.isalnum() or c in "-_" else "-"
-            for c in conversation_id
-        )
+        # Remove any unsafe characters, keep only alphanumeric and hyphens
+        # Note: Underscores are converted to hyphens for consistency
+        safe_chars = []
+        for c in conversation_id:
+            if c.isascii() and c.isalnum():
+                safe_chars.append(c)
+            elif c == '-':
+                safe_chars.append('-')
+            else:
+                # Replace non-safe chars with hyphen
+                safe_chars.append('-')
+
+        safe_id = "".join(safe_chars)
+
+        # Collapse consecutive hyphens to single hyphen
+        while '--' in safe_id:
+            safe_id = safe_id.replace('--', '-')
+
+        # Strip leading and trailing hyphens
+        safe_id = safe_id.strip('-')
+
+        # Fallback if result is empty or only had special chars
+        if not safe_id:
+            safe_id = "session"
+
+        # Apply length limit (accounting for 'conv-' prefix)
+        max_safe_len = self.MAX_CONVERSATION_ID_LENGTH - len("conv-")
+        if len(safe_id) > max_safe_len:
+            safe_id = safe_id[:max_safe_len]
+
         # Prefix to distinguish from hash-based IDs
         return f"conv-{safe_id}"
+
+    def _generate_session_id(self) -> str:
+        """Generate a cryptographically secure random session ID.
+
+        ADR-035 Fix 1: Uses uuid4 for unpredictable session IDs.
+
+        Returns:
+            Session ID in format 'session-{uuid4_hex}'.
+        """
+        return f"session-{uuid.uuid4().hex}"
 
     def _generate_session_id_stable(self, first_message: str) -> str:
         """Generate stable session ID from first message (no timestamp).
@@ -157,16 +203,11 @@ class SessionManager:
             self._conversation_cache[conversation_id] = session_id
             return session_id, state
 
-        # Fallback: Use stable hash-based ID (without timestamp)
-        session_id = self._generate_session_id_stable(first_message)
+        # ADR-035: Use cryptographically random session ID
+        # This ensures session IDs are not predictable from message content
+        session_id = self._generate_session_id()
 
-        # Check if session exists
-        if self.session_exists(session_id):
-            state = self.get_state(session_id)
-            if state:
-                return session_id, state
-
-        # Create new session
+        # Create new session with random ID
         state = self.create_session(session_id, first_message)
         return session_id, state
 

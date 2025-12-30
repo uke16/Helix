@@ -255,9 +255,9 @@ class TestBackwardCompatibility:
             data = response.json()
             assert data["choices"][0]["message"]["content"] == "Response without header"
 
-    def test_fallback_uses_stable_hash(self, client, mock_session_manager):
-        """Without header, same message produces same session ID."""
-        message = "Consistent message for stable hash"
+    def test_fallback_creates_new_sessions(self, client, mock_session_manager):
+        """Without header, each request creates new session (ADR-035 random IDs)."""
+        message = "Message for random ID generation"
 
         with patch('helix.api.routes.openai._run_consultant', new_callable=AsyncMock) as mock_run:
             mock_run.return_value = "Response"
@@ -285,9 +285,11 @@ class TestBackwardCompatibility:
                 },
             )
 
-            # Should still have same number of sessions (reused)
+            # ADR-035: Without header, each request creates new session
             sessions_after = list(mock_session_manager.base_path.iterdir())
-            assert len(sessions_after) == len(sessions_before)
+            assert len(sessions_after) == len(sessions_before) + 1
+            # All should have random session- prefix
+            assert all(s.name.startswith("session-") for s in sessions_after)
 
 
 class TestOpenAICompatibility:

@@ -191,9 +191,9 @@ class TestBackwardCompatibility:
         # Should not have conv- prefix (using hash-based ID)
         assert not sessions[0].name.startswith("conv-")
 
-    def test_same_message_without_header_same_session(self, client, mock_session_manager):
-        """Test that same message without header returns same session (stable hash)."""
-        message = "Test message for hash consistency"
+    def test_same_message_without_header_gets_new_session(self, client, mock_session_manager):
+        """Test that same message without header creates new sessions (ADR-035 random IDs)."""
+        message = "Test message for random ID generation"
 
         # First request
         response1 = client.post(
@@ -217,9 +217,11 @@ class TestBackwardCompatibility:
         )
         assert response2.status_code == 200
 
-        # Should be same session
+        # ADR-035: Without X-Conversation-ID, each request creates a new session
         sessions = list(mock_session_manager.base_path.iterdir())
-        assert len(sessions) == 1
+        assert len(sessions) == 2
+        # Both should have random session- prefix
+        assert all(s.name.startswith("session-") for s in sessions)
 
 
 class TestMessagePersistence:

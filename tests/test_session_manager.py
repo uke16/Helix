@@ -45,19 +45,22 @@ class TestNormalizeConversationId:
         assert "@" not in result
 
     def test_empty_string(self):
-        """Test handling of empty string."""
+        """Test handling of empty string - ADR-035 returns fallback."""
         manager = SessionManager(base_path=Path(tempfile.mkdtemp()))
         result = manager._normalize_conversation_id("")
 
-        assert result == "conv-"
+        # ADR-035: Empty string returns fallback "conv-session"
+        assert result == "conv-session"
 
-    def test_underscores_preserved(self):
-        """Test that underscores are preserved."""
+    def test_underscores_converted_to_hyphens(self):
+        """Test that underscores are converted to hyphens (ADR-035)."""
         manager = SessionManager(base_path=Path(tempfile.mkdtemp()))
         conv_id = "test_id_with_underscores"
         result = manager._normalize_conversation_id(conv_id)
 
-        assert "test_id_with_underscores" in result
+        # ADR-035: Underscores become hyphens for consistency
+        assert "_" not in result
+        assert result == "conv-test-id-with-underscores"
 
 
 class TestGenerateSessionIdStable:
@@ -170,8 +173,8 @@ class TestGetOrCreateSession:
         assert state.status == "discussing"
         assert state.conversation_id is None
 
-    def test_without_conversation_id_same_message_same_session(self):
-        """Test that same message without conv_id returns same session."""
+    def test_without_conversation_id_gets_random_session(self):
+        """Test that same message without conv_id gets different sessions (ADR-035)."""
         tmp_dir = Path(tempfile.mkdtemp())
         manager = SessionManager(base_path=tmp_dir)
         message = "Hello world"
@@ -186,7 +189,10 @@ class TestGetOrCreateSession:
             conversation_id=None,
         )
 
-        assert session_id1 == session_id2
+        # ADR-035: Without conversation_id, each call gets a new random session
+        assert session_id1 != session_id2
+        assert session_id1.startswith("session-")
+        assert session_id2.startswith("session-")
 
     def test_session_directory_structure(self):
         """Test that created session has correct directory structure."""

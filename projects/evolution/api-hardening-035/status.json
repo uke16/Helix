@@ -1,5 +1,5 @@
 {
-  "status": "deployed",
+  "status": "integrated",
   "current_phase": null,
   "phases": {
     "01": {
@@ -48,7 +48,7 @@
     }
   },
   "created_at": "2025-12-30T15:31:00Z",
-  "updated_at": "2025-12-30T16:25:58.245213",
+  "updated_at": "2025-12-30T16:26:35.962984",
   "error": null,
   "files": {
     "new": 8,
