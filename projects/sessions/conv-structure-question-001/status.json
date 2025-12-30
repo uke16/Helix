@@ -1,0 +1,10 @@
+{
+  "session_id": "conv-structure-question-001",
+  "status": "discussing",
+  "step": "what",
+  "created_at": "2025-12-29T23:00:12.691456",
+  "updated_at": "2025-12-29T23:00:12.692235",
+  "original_request": "Ich habe folgende Fragen zur Projektstruktur:\n\n1. Wo sollte ein neuer MCP Server für Hardware-Teststände liegen? Optionen:\n   - /home/aiuser01/mcp-hardware/\n   - /home/aiuser01/mcp/hardware/\n   - /home/aiuser01/docker/mcp-servers/hardware/\n\n2. Ich habe eine API-Dokumentation für die J-Link REST API geschrieben (auf einem FPGA-Board). Wo gehört diese Referenz-Doku hin damit sie für HELIX/Claude auffindbar ist?\n\nBitte berücksichtige die bestehende Struktur unter /home/aiuser01/ und die HELIX Skills.",
+  "project_name": null,
+  "conversation_id": "structure-question-001"
+}

@@ -1,0 +1,10 @@
+{
+  "session_id": "conv-verify-adr-032-mcp-server",
+  "status": "discussing",
+  "step": "what",
+  "created_at": "2025-12-29T22:40:10.410430",
+  "updated_at": "2025-12-29T22:40:10.411269",
+  "original_request": "Bitte lies und verifiziere ADR-032 in adr/032-mcp-server-hardware-teststand.md. Prüfe ob das ADR vollständig ist, ob die Architektur sinnvoll ist, und ob etwas fehlt. Gib konstruktives Feedback.",
+  "project_name": null,
+  "conversation_id": "verify-adr-032-mcp-server"
+}

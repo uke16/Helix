@@ -1,0 +1,58 @@
+# Hardware Test Station Configuration
+# ADR-032: Phase 1 - Hardware Server
+
+server:
+  name: "helix-hardware"
+  version: "0.1.0"
+  host: "0.0.0.0"
+  port: 8000
+
+# Station definitions
+# Each station has an FPGA controller and optional J-Link debugger
+stations:
+  station-alpha:
+    description: "Test Station Alpha - Nordic nRF5340"
+    fpga:
+      host: "192.168.1.101"
+      port: 5000
+      voltage: 3.3
+    jlink:
+      serial: "123456789"
+      device: "nRF5340_xxAA"
+      interface: "SWD"
+      speed: 4000
+
+  station-beta:
+    description: "Test Station Beta - STM32L5"
+    fpga:
+      host: "192.168.1.102"
+      port: 5000
+      voltage: 3.3
+    jlink:
+      serial: "987654321"
+      device: "STM32L552ZE"
+      interface: "SWD"
+      speed: 4000
+
+  station-gamma:
+    description: "Test Station Gamma - ESP32-S3"
+    fpga:
+      host: "192.168.1.103"
+      port: 5000
+      voltage: 3.3
+    jlink:
+      serial: "111222333"
+      device: "ESP32-S3"
+      interface: "JTAG"
+      speed: 4000
+
+# Lock settings
+locking:
+  default_timeout: 300  # 5 minutes
+  max_timeout: 3600     # 1 hour
+
+# Audit settings
+audit:
+  enabled: true
+  log_dir: "./logs/audit"
+  retention_days: 30

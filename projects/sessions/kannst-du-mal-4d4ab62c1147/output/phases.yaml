@@ -1,0 +1,98 @@
+phases:
+  - id: 01-bugfixes
+    name: Kritische Bugfixes
+    type: development
+    description: |
+      Behebe die kritischen Bugs die Runtime-Crashes verursachen:
+      1. GateChecker → QualityGateRunner in CLI
+      2. Route Typo /s → / in project.py
+    config:
+      skills: [helix]
+    input:
+      files: []
+    output:
+      files:
+        - phases/01-bugfixes/output/cli_commands_fixed.py
+        - phases/01-bugfixes/output/project_routes_fixed.py
+    quality_gate:
+      type: python_syntax
+
+  - id: 02-dead-code-cleanup
+    name: Toter Code Cleanup
+    type: development
+    description: |
+      Entferne oder dokumentiere toten Code:
+      1. Lösche src/helix/api/routes.py (Duplikat)
+      2. Kläre template_engine.py Status
+    config:
+      skills: [helix]
+    input:
+      files:
+        - phases/01-bugfixes/output/cli_commands_fixed.py
+    output:
+      files:
+        - phases/02-dead-code-cleanup/output/CLEANUP_REPORT.md
+    quality_gate:
+      type: files_exist
+
+  - id: 03-adr-completion
+    name: ADR-014/019 Vervollständigung
+    type: documentation
+    description: |
+      Erstelle die fehlenden Dokumentations-Dateien:
+      1. docs/DOC-INDEX.md
+      2. docs/DOCUMENTATION-GUIDE.md
+      3. docs/DOCUMENTATION-AS-CODE.md
+    config:
+      skills: [helix, helix/adr]
+    input:
+      files:
+        - phases/02-dead-code-cleanup/output/CLEANUP_REPORT.md
+    output:
+      files:
+        - phases/03-adr-completion/output/DOC-INDEX.md
+        - phases/03-adr-completion/output/DOCUMENTATION-GUIDE.md
+        - phases/03-adr-completion/output/DOCUMENTATION-AS-CODE.md
+    quality_gate:
+      type: files_exist
+
+  - id: 04-integration
+    name: Integration & ADR Status Update
+    type: development
+    description: |
+      Integriere alle Änderungen und aktualisiere ADR-Status:
+      1. Kopiere Fixes in src/
+      2. Update ADR-014 Status
+      3. Update ADR-019 Status
+      4. Erstelle DEAD-CODE-ANALYSIS.md
+    config:
+      skills: [helix, helix/adr]
+    input:
+      files:
+        - phases/03-adr-completion/output/DOC-INDEX.md
+        - phases/03-adr-completion/output/DOCUMENTATION-GUIDE.md
+        - phases/03-adr-completion/output/DOCUMENTATION-AS-CODE.md
+    output:
+      files:
+        - phases/04-integration/output/INTEGRATION_COMPLETE.md
+    quality_gate:
+      type: files_exist
+
+  - id: 05-testing
+    name: Testing & Validierung
+    type: testing
+    description: |
+      Validiere alle Änderungen:
+      1. CLI commands testen
+      2. API Endpoints testen
+      3. Quality Gates validieren
+    config:
+      skills: [helix]
+    input:
+      files:
+        - phases/04-integration/output/INTEGRATION_COMPLETE.md
+    output:
+      files:
+        - phases/05-testing/output/TEST_REPORT.md
+    quality_gate:
+      type: files_exist

@@ -1,0 +1,6 @@
+[
+  {
+    "role": "user",
+    "content": "Ich habe folgende Fragen zur Projektstruktur:\n\n1. Wo sollte ein neuer MCP Server f\u00fcr Hardware-Testst\u00e4nde liegen? Optionen:\n   - /home/aiuser01/mcp-hardware/\n   - /home/aiuser01/mcp/hardware/\n   - /home/aiuser01/docker/mcp-servers/hardware/\n\n2. Ich habe eine API-Dokumentation f\u00fcr die J-Link REST API geschrieben (auf einem FPGA-Board). Wo geh\u00f6rt diese Referenz-Doku hin damit sie f\u00fcr HELIX/Claude auffindbar ist?\n\nBitte ber\u00fccksichtige die bestehende Struktur unter /home/aiuser01/ und die HELIX Skills."
+  }
+]
