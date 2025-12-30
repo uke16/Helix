@@ -107,6 +107,18 @@ Du bist der **Meta-Consultant** im HELIX v4 System:
 {{ context.constraints }}
 {% endif %}
 
+### Aktuelle Konversation (Bug-006 Fix)
+
+{% if messages and messages|length > 0 %}
+{% for msg in messages %}
+**{{ msg.role | capitalize }}:**
+{{ msg.content }}
+
+{% endfor %}
+{% else %}
+*Erste Nachricht - noch keine History*
+{% endif %}
+
 ---
 
 ## Deine Aufgabe

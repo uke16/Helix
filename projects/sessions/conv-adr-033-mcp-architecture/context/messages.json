@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "Ich brauche ein ADR f\u00fcr eine MCP Server Architektur.\n\nKontext:\n- Wir haben bereits einen MCP Server f\u00fcr Hardware-Testst\u00e4nde (ADR-032) gebaut\n- Der liegt aktuell in mcp-backup-adr032/ (tempor\u00e4r verschoben)\n- Wir wollen einen \"Raw Blueprint\" MCP Server der Remote-f\u00e4hig ist (HTTPS, OAuth)\n- Dieser soll mit Claude Web und ChatGPT Web funktionieren\n- Services sollen modular mountbar sein\n- Intern vs Extern \u00fcber Config steuerbar\n\nBitte analysiere und erstelle ein ADR."
+  },
+  {
+    "role": "assistant",
+    "content": "Ich habe kl\u00e4rende Fragen zu Service-Modularit\u00e4t, Auth, Intern/Extern, HELIX Service, RAG Service und Deployment."
+  },
+  {
+    "role": "user",
+    "content": "Antworten:\n1. Mount-Points (FastMCP mount())\n2. Intern ohne Auth, Extern mit OAuth/Bearer\n3. Ja - Intern=LAN/alle Services, Extern=Internet/OAuth/limited\n4. HELIX Tools: project_status, phase_list, job_start, job_cancel, run_quality_gate, escalate_to_consultant\n5. RAG: skill_search, adr_search (Priorit\u00e4t)\n6. Single Container erstmal\n\nErstelle jetzt das ADR."
+  }
+]

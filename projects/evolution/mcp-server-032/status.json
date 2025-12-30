@@ -1,7 +1,7 @@
 {
   "project": "mcp-server-032",
   "adr": "ADR-032",
-  "status": "deployed",
+  "status": "integrated",
   "current_phase": null,
   "phases": {
     "0": {
@@ -32,6 +32,6 @@
   "manual_interventions": [],
   "bugs_found": [],
   "created_at": "2025-12-29T23:30:00Z",
-  "updated_at": "2025-12-30T01:20:58.121253",
+  "updated_at": "2025-12-30T01:21:39.661456",
   "error": null
 }

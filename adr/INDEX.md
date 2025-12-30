@@ -180,3 +180,16 @@ Das Workflow System wurde vollständig implementiert und dokumentiert.
 - `src/helix/verification/` - SubAgentVerifier, FeedbackChannel
 - `src/helix/planning/` - PlanningAgent, PhaseGenerator
 - `templates/workflows/` - 4 Workflow-Templates
+
+### Integration & Reliability (027-033)
+
+| Nr | ADR | Status | Kurzbeschreibung |
+|----|-----|--------|------------------|
+| 027 | [Stale Response Bugfix](027-stale-response-bugfix---open-webui-integration.md) | ✅ | Fix für stale response.md in Open WebUI |
+| 028 | [Claude Code Launcher Performance](028-claude-code-launcher-performance---pre-warmed-inst.md) | 📋 | Pre-warmed Instance Pool |
+| 029 | [Session Persistence](029-open-webui-session-persistence---x-conversation-id.md) | ✅ | X-Conversation-ID für stabile Sessions |
+| 030 | [Evolution Pipeline Reliability](030-evolution-pipeline-reliability.md) | ✅ | 10 Fixes für Pipeline-Stabilität |
+| 031 | [Pipeline Bugfixes Wave 2](031-pipeline-bugfixes-wave2.md) | ✅ | Weitere Pipeline-Fixes |
+| 033 | [MCP Blueprint Server](033-mcp-blueprint-server---modulare-remote-fähige-arch.md) | 📋 | Modulare MCP Architektur für Remote-Clients |
+| 034 | [Consultant Flow Refactoring](034-consultant-flow-refactoring-llm-native.md) | 📋 | LLM-Native statt State-Machine für Consultant Flow |
+

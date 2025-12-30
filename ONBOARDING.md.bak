@@ -259,7 +259,7 @@ helix-v4/
 
 ## Wie bedient man HELIX?
 
-### Option 1: Open WebUI (Browser) - Empfohlen
+### Option 1: Open WebUI (Browser)
 
 1. Öffne: https://helix2.duckdns.org:8443
 2. Wähle Model: `helix-consultant`
@@ -267,40 +267,10 @@ helix-v4/
 4. Beantworte die Fragen des Consultants
 5. Bestätige den Plan mit "Ja, starte!"
 
-### Option 2: Chat Completions API (curl)
-
-Der Consultant wird über die **OpenAI-kompatible Chat Completions API** bedient:
+### Option 2: API (curl)
 
 ```bash
-# Consultant-Session starten (mit Streaming)
-curl -N -X POST http://localhost:8001/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "helix-consultant",
-    "messages": [{"role": "user", "content": "Erstelle ein Feature für BOM Export"}],
-    "stream": true
-  }'
-
-# Ohne Streaming
-curl -X POST http://localhost:8001/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "helix-consultant",
-    "messages": [{"role": "user", "content": "Deine Anfrage hier"}],
-    "stream": false
-  }'
-
-# Mit Session-Persistenz (X-Conversation-ID Header)
-curl -X POST http://localhost:8001/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "X-Conversation-ID: meine-session-123" \
-  -d '{...}'
-```
-
-### Option 3: Projekt-Execution API
-
-```bash
-# Projekt ausführen (nachdem ADR + phases.yaml existieren)
+# Projekt ausführen
 curl -X POST http://localhost:8001/helix/execute \
   -H "Content-Type: application/json" \
   -d '{"project_path": "/path/to/project"}'
@@ -312,25 +282,17 @@ curl http://localhost:8001/helix/jobs/{job_id}
 curl -N http://localhost:8001/helix/stream/{job_id}
 ```
 
-### API Architektur
+### Option 3: CLI
 
-```
-Open WebUI / curl
-       │
-       │ POST /v1/chat/completions
-       ▼
-┌─────────────────────────────┐
-│  HELIX API (FastAPI)        │
-│  http://localhost:8001      │
-│                             │
-│  → Session erstellen        │
-│  → CLAUDE.md generieren     │
-│  → Claude Code starten      │
-│  → Antwort aus output/      │
-└─────────────────────────────┘
-```
+```bash
+cd /home/aiuser01/helix-v4
 
-→ Siehe: [src/helix/api/routes/openai.py](src/helix/api/routes/openai.py)
+# Consultant starten
+python -m helix.cli.main discuss ./projects/external/mein-projekt
+
+# Projekt ausführen
+python -m helix.cli.main run ./projects/external/mein-projekt
+```
 
 ---
 
@@ -411,46 +373,3 @@ POST /helix/evolution/sync-rag
 
 Claude Code instances are short-lived. Communication happens through files
 (spec.yaml, status.json), not real-time dialogue.
-
----
-
-## ⚠️ Anti-Pattern Warnung
-
-> **LLM-First Principle**: Wenn du Code für LLM-basierte Features schreibst,
-> baue KEINE State Machines, Keyword-Listen oder Index-basierte Logik.
-> Lass den LLM das selbst entscheiden.
-
-### Red Flags - NICHT machen:
-
-```python
-# ❌ FALSCH: Index-basierte Logik
-if len(messages) >= 3:
-    step = "generate"
-
-# ❌ FALSCH: Keyword Matching für Intent
-if "erstelle adr" in message.lower():
-    do_something()
-
-# ❌ FALSCH: Hardcoded Trigger Listen
-triggers = ["start", "los", "go", "ja"]
-```
-
-### Richtig - LLM entscheiden lassen:
-
-```python
-# ✅ RICHTIG: Dem LLM vertrauen
-# Gib dem LLM den Kontext, er entscheidet selbst
-
-# ✅ RICHTIG: Wenn Intent Detection nötig, nutze LLM
-intent = await llm.classify_intent(message)
-```
-
-### Vor jeder Implementation fragen:
-
-1. Baue ich eine State Machine? → Brauche ich die wirklich?
-2. Parse ich natürliche Sprache mit Code? → Lass den LLM das machen
-3. Habe ich Keyword-Listen? → Der LLM versteht Semantik
-4. Schränke ich User-Flexibilität ein? → Der LLM ist flexibler
-
-**Details**: `/home/aiuser01/claude-memory/lessons/2025-12-30-anti-patterns-root-cause.md`
-**Check**: `./scripts/check-anti-patterns.sh`

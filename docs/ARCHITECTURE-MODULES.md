@@ -123,7 +123,8 @@ src/helix/
 │   └── expert_manager.py       # Domain-Experten
 │        └── ExpertManager
 │            ├── load_experts()
-│            ├── select_experts()
+│            ├── suggest_experts()    # ADR-034: Advisory mode
+│            ├── select_experts()     # Deprecated alias
 │            └── setup_expert_directory()
 │
 ├── observability/               # OBSERVABILITY PACKAGE
@@ -278,6 +279,215 @@ def test_orchestrator_handles_gate_failure():
 ---
 
 *Erstellt: 2025-12-21*
+*Aktualisiert: 2025-12-30 (ADR-034)*
+
+---
+
+## Session Management (`src/helix/api/session_manager.py`)
+
+**Purpose:** Manage consultant sessions for multi-turn dialogs via Open WebUI.
+
+### ADR-029: X-Conversation-ID Support
+
+The SessionManager uses Open WebUI's `X-Conversation-ID` header for persistent session mapping:
+
+- Same conversation ID always maps to same session
+- Enables true multi-turn dialogs with context preservation
+- Falls back to hash-based session IDs when header is absent
+
+### ADR-034: LLM-Native Conversation Flow
+
+**Key Change:** Step detection moved from Python to LLM.
+
+Previously, Python analyzed user messages with fragile regex/keyword matching to detect the conversation step. This was replaced by an LLM-native approach:
+
+| Before (Broken) | After (ADR-034) |
+|-----------------|-----------------|
+| Python detects step from user messages | LLM sets step marker in response |
+| Index-based logic (4+ msgs = generate) | LLM understands conversation context |
+| Trigger word detection ("erstelle", "start") | LLM recognizes intent semantically |
+| False positives ("I started VS Code" → execute) | No false positives |
+| Template shows only current step | Unified template, LLM decides |
+
+### Key Methods
+
+```python
+from helix.api.session_manager import SessionManager, SessionState
+
+manager = SessionManager()
+
+# Get or create session with X-Conversation-ID support
+session_id, state = manager.get_or_create_session(
+    first_message="Build a new API endpoint",
+    conversation_id="abc-123-xyz"  # From X-Conversation-ID header
+)
+
+# Extract metadata from messages (ADR-034: no step detection)
+metadata = manager.extract_state_from_messages(messages)
+# Returns: {"original_request": "...", "message_count": N}
+
+# Extract step from LLM response (NEW in ADR-034)
+step = manager.extract_step_from_response(response_text)
+# Looks for: <!-- STEP: what|why|constraints|generate|finalize|done -->
+
+# Update session state with extracted step
+manager.update_state(session_id, step=step)
+```
+
+### Step Marker Format
+
+The LLM sets a step marker at the end of its response:
+
+```markdown
+Here's my analysis of your request...
+
+<!-- STEP: what -->
+```
+
+Valid step values:
+- `what` - Understanding what to build
+- `why` - Clarifying business case / motivation
+- `constraints` - Gathering technical/organizational constraints
+- `generate` - Creating ADR and phase plan
+- `finalize` - Finalizing ADR (validate, move, update INDEX)
+- `done` - Conversation complete
+
+**Important:** The step marker is for **observability only**, not flow control. The LLM freely decides which step is appropriate based on conversation context.
+
+### Session Directory Structure
+
+```
+projects/sessions/{session_id}/
+├── CLAUDE.md           # Generated from template
+├── status.json         # Session state (includes step from LLM)
+├── input/
+│   └── request.md      # Original user request
+├── context/
+│   ├── messages.json   # Full message history
+│   ├── what.md         # Context files
+│   ├── why.md
+│   └── constraints.md
+├── output/
+│   ├── response.md     # LLM response
+│   ├── ADR-*.md        # Generated ADR
+│   └── phases.yaml     # Phase plan
+└── logs/
+```
+
+### Integration with OpenAI Routes
+
+The `/v1/chat/completions` endpoint:
+
+1. Extracts `X-Conversation-ID` header
+2. Gets or creates session
+3. Generates `CLAUDE.md` from template
+4. Runs Claude Code in session directory
+5. **After response:** Extracts step marker and updates session state
+
+```python
+# In openai.py after LLM response
+step = session_manager.extract_step_from_response(response_text)
+if step:
+    session_manager.update_state(session_id, step=step)
+```
+
+### Related ADRs
+
+- [ADR-029: Open WebUI Session Persistence](../adr/029-open-webui-session-persistence.md)
+- [ADR-034: Consultant Flow Refactoring](../adr/034-consultant-flow-refactoring-llm-native.md)
+
+---
+
+## Consultant Template (`templates/consultant/session.md.j2`)
+
+**Purpose:** Instructions for the Meta-Consultant Claude Code instance.
+
+### ADR-034: Unified Template
+
+The template was refactored from multiple `{% if step == "X" %}` branches to a single unified template:
+
+**Before:** 6 separate step branches, each showing only its phase instructions
+**After:** One template explaining the full flow, letting the LLM choose what's relevant
+
+### Template Structure
+
+```jinja2
+# HELIX v4 Consultant Session
+
+## Session Information
+- Session ID: {{ session_id }}
+- Status: {{ status }}
+
+## Conversation Context
+{{ original_request }}
+{% if context.what %}### What: {{ context.what }}{% endif %}
+{% if context.why %}### Why: {{ context.why }}{% endif %}
+{% if context.constraints %}### Constraints: {{ context.constraints }}{% endif %}
+
+## Your Task
+Lead a natural conversation with the user...
+
+### Typical Flow (but flexible!)
+1. **Understand (WHAT)**: What exactly should be built?
+2. **Clarify (WHY)**: Why is this needed?
+3. **Constraints**: What are the technical/organizational constraints?
+4. **Specification (GENERATE)**: Create ADR + phase plan
+5. **Finalize**: Complete the ADR
+
+**Important:** You don't have to follow these steps linearly.
+If the user provides all information at once, go directly to specification.
+If the user wants to go back, go back. Be flexible!
+
+## STEP MARKER - IMPORTANT
+At the end of **every** response, set a step marker:
+<!-- STEP: what|why|constraints|generate|finalize|done -->
+```
+
+### Key Changes (ADR-034)
+
+| Aspect | Before | After |
+|--------|--------|-------|
+| Step instructions | Only current step shown | All steps explained |
+| User flexibility | Must follow linear path | Can jump around, backtrack |
+| Domain experts | Mandatory selection | Advisory hints |
+| Step marker | Not required | Required at end of response |
+
+---
+
+## Domain Expert Management (`src/helix/consultant/expert_manager.py`)
+
+**Purpose:** Manage domain expert configurations for consultant meetings.
+
+### ADR-034: Advisory Mode
+
+Expert selection changed from mandatory to advisory:
+
+```python
+from helix.consultant.expert_manager import ExpertManager
+
+manager = ExpertManager()
+
+# Suggest experts based on request keywords (advisory)
+suggestions = manager.suggest_experts("I need a Docker deployment")
+# Returns: ["infrastructure", "helix"]
+
+# Backward compatible alias (deprecated)
+suggestions = manager.select_experts(request)
+```
+
+The LLM (Meta-Consultant) decides which domain knowledge to apply based on conversation context. Keyword-based suggestions are hints, not mandatory assignments.
+
+### Default Experts
+
+| Expert ID | Domain | Triggers |
+|-----------|--------|----------|
+| `helix` | HELIX architecture, ADRs | helix, architektur, adr, workflow |
+| `pdm` | Product data, BOMs | pdm, stueckliste, bom, revision |
+| `encoder` | POSITAL encoders | encoder, drehgeber, posital |
+| `erp` | SAP integration | erp, sap, auftrag, order |
+| `infrastructure` | Docker, CI/CD | docker, container, kubernetes |
+| `database` | PostgreSQL, Neo4j | database, postgresql, neo4j |
+| `webshop` | E-commerce | webshop, shop, konfigurator |
 
 ---
 

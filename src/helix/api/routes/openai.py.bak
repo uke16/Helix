@@ -129,7 +129,7 @@ async def chat_completions(
     # Get existing context (what, why, constraints from previous turns)
     context = session_manager.get_context(session_id)
 
-    await _generate_session_claude_md(session_id, session_state, context, messages=messages)  # Bug-006: Pass messages
+    await _generate_session_claude_md(session_id, session_state, context)
 
     session_path = session_manager.get_session_path(session_id)
 
@@ -188,14 +188,9 @@ def _update_step_from_response(session_id: str, response_text: str) -> str | Non
 async def _generate_session_claude_md(
     session_id: str,
     state: SessionState,
-    context: dict[str, str],
-    messages: list[dict] | None = None,
+    context: dict[str, str]
 ) -> None:
-    """Generate CLAUDE.md for the session from template.
-    
-    Bug-006 Fix: Now includes full chat history so Claude sees
-    all messages, not just the original request.
-    """
+    """Generate CLAUDE.md for the session from template."""
     template = jinja_env.get_template("consultant/session.md.j2")
 
     content = template.render(
@@ -207,7 +202,6 @@ async def _generate_session_claude_md(
         context=context,
         project_name=state.project_name or "Neues Projekt",
         helix_root="/home/aiuser01/helix-v4",
-        messages=messages or [],  # Bug-006: Pass chat history to template
     )
 
     session_path = session_manager.get_session_path(session_id)
