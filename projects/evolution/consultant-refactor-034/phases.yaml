@@ -1,0 +1,117 @@
+project:
+  name: "consultant-refactor-034"
+  description: "ADR-034: Consultant Flow Refactoring - LLM-Native statt State-Machine"
+  adr: "ADR-034.md"
+
+phases:
+  - id: "01"
+    name: "Analysis"
+    type: development
+    description: |
+      Analysiere die aktuelle Implementation detailliert:
+      - extract_state_from_messages() in session_manager.py
+      - Template-Branches in session.md.j2
+      - Expert-Selection in expert_manager.py
+
+      Dokumentiere alle problematischen Stellen.
+    output:
+      - phases/01/output/ANALYSIS.md
+    quality_gate:
+      type: files_exist
+      required_files:
+        - output/ANALYSIS.md
+
+  - id: "02"
+    name: "Simplify State Extraction"
+    type: development
+    description: |
+      Vereinfache extract_state_from_messages():
+      - Entferne Index-basierte Logik
+      - Entferne Trigger-Detection
+      - Behalte nur: original_request, message_count
+
+      Erstelle neue Funktion extract_step_from_response() die
+      Step-Marker aus LLM-Output extrahiert.
+    input:
+      - phases/01/output/ANALYSIS.md
+    output:
+      - phases/02/output/modified/src/helix/api/session_manager.py
+    quality_gate:
+      type: syntax_check
+      file_patterns:
+        - "output/**/*.py"
+
+  - id: "03"
+    name: "Template Refactoring"
+    type: development
+    description: |
+      Refaktoriere session.md.j2:
+      - Entferne alle {% if step == "X" %} Branches
+      - Ein einheitliches Template das alle Phasen erklaert
+      - LLM waehlt selbst was relevant ist
+      - Step-Marker Instruktion am Ende
+    input:
+      - phases/02/output/modified/src/helix/api/session_manager.py
+    output:
+      - phases/03/output/modified/templates/consultant/session.md.j2
+    quality_gate:
+      type: files_exist
+      required_files:
+        - output/modified/templates/consultant/session.md.j2
+
+  - id: "04"
+    name: "Integration"
+    type: development
+    description: |
+      Integriere Step-Extraction in openai.py:
+      - Nach LLM-Response: extract_step_from_response() aufrufen
+      - Step in session state speichern
+      - Vereinfache expert_manager.py (optional)
+    input:
+      - phases/02/output/modified/src/helix/api/session_manager.py
+      - phases/03/output/modified/templates/consultant/session.md.j2
+    output:
+      - phases/04/output/modified/src/helix/api/routes/openai.py
+      - phases/04/output/modified/src/helix/consultant/expert_manager.py
+    quality_gate:
+      type: syntax_check
+      file_patterns:
+        - "output/**/*.py"
+
+  - id: "05"
+    name: "Testing"
+    type: test
+    description: |
+      Teste alle Szenarien:
+      - One-shot: User gibt alles in einer Message
+      - Iterativ: User antwortet auf Fragen
+      - Backtracking: User will zurueck
+      - ADR-Erstellung ohne Trigger-Woerter
+
+      Schreibe Integration Tests fuer den neuen Flow.
+    input:
+      - phases/04/output/modified/src/helix/api/routes/openai.py
+    output:
+      - phases/05/output/new/tests/test_consultant_flow.py
+      - phases/05/output/TEST_RESULTS.md
+    quality_gate:
+      type: files_exist
+      required_files:
+        - output/new/tests/test_consultant_flow.py
+        - output/TEST_RESULTS.md
+
+  - id: "06"
+    name: "Documentation"
+    type: documentation
+    description: |
+      Aktualisiere Dokumentation:
+      - docs/ARCHITECTURE-MODULES.md: Consultant-Section
+      - Docstrings in allen modifizierten Dateien
+      - Akzeptanzkriterien in ADR checken
+    output:
+      - phases/06/output/modified/docs/ARCHITECTURE-MODULES.md
+      - phases/06/output/DOCUMENTATION_COMPLETE.md
+    quality_gate:
+      type: files_exist
+      required_files:
+        - output/modified/docs/ARCHITECTURE-MODULES.md
