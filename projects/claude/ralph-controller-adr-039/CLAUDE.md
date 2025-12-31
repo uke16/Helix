@@ -1,158 +1,128 @@
 # Ralph Controller für ADR-039: Code Quality Hardening
 
-Du bist ein **Ralph Controller** - du arbeitest iterativ bis alles funktioniert.
+## 🔴 KRITISCH: Verifikations-Pflicht
 
-## WICHTIG: Ralph Loop Regeln
+**DU DARFST `<promise>ADR039_COMPLETE</promise>` NUR AUSGEBEN WENN:**
 
-1. Du bekommst denselben Prompt bei jeder Iteration
-2. Deine vorherige Arbeit ist in Dateien sichtbar (git history)
-3. Lies `status.md` um zu sehen was du schon gemacht hast
-4. Arbeite weiter wo du aufgehört hast
-5. Wenn ALLES fertig ist: Output `<promise>ADR039_COMPLETE</promise>`
-
----
-
-## Deine Aufgabe
-
-**ADR:** `../../adr/039-code-quality-hardening---paths-lsp-documentation.md`
-
-### Kern-Ziele von ADR-039
-
-1. **Hardcoded Paths eliminieren** - Keine `/home/aiuser01` mehr im Code
-2. **PathConfig erweitern** - Zentrale Pfad-Konfiguration
-3. **LSP aktivieren** - pyright Integration
-4. **Dokumentation** - PATHS.md, CONFIGURATION-GUIDE.md
-
----
-
-## Phase 1: PathConfig erweitern
-
-Datei: `src/helix/config/paths.py`
-
-Füge hinzu:
-```python
-@property
-def DOMAIN_EXPERTS_CONFIG(self) -> Path:
-    return self.HELIX_ROOT / "config" / "domain-experts.yaml"
-
-@property
-def LLM_PROVIDERS_CONFIG(self) -> Path:
-    return self.HELIX_ROOT / "config" / "llm-providers.yaml"
-
-@property
-def SKILLS_DIR(self) -> Path:
-    return self.HELIX_ROOT / "skills"
-
-@property
-def TEMPLATES_DIR(self) -> Path:
-    return self.HELIX_ROOT / "templates"
+```bash
+./control/verify-adr-039.sh
 ```
 
+**Exit code 0 = ALLE PHASEN OK → Promise erlaubt**
+**Exit code 1 = Mindestens eine Phase fehlt → KEIN Promise!**
+
+Führe das Script nach JEDER Änderung aus um zu sehen was noch fehlt.
+
 ---
 
-## Phase 2: Module migrieren
+## Status Check
 
-Ersetze hardcoded Paths in diesen Dateien:
-- `src/helix/consultant/expert_manager.py`
-- `src/helix/llm_client.py`
-- `src/helix/template_engine.py`
-- `src/helix/phase_loader.py`
-- `src/helix/context_manager.py`
-- `src/helix/api/routes/openai.py`
+Führe zuerst aus:
+```bash
+./control/verify-adr-039.sh
+```
 
-**Pattern:**
+Das zeigt dir welche Phasen noch fehlen.
+
+---
+
+## Offene Phasen
+
+### Phase 2: LSP aktivieren
+
+```bash
+# 1. config/env.sh erweitern
+echo 'export ENABLE_LSP_TOOL=1' >> config/env.sh
+
+# 2. pyproject.toml erweitern
+# Unter [tool.poetry.group.dev.dependencies] hinzufügen:
+# pyright = "^1.1.0"
+```
+
+### Phase 3: Dokumentation
+
+**Erstelle `docs/CONFIGURATION-GUIDE.md`:**
+```markdown
+# HELIX Configuration Guide
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| HELIX_ROOT | auto-detect | Root directory of HELIX |
+| HELIX_VENV | $HELIX_ROOT/.venv | Virtual environment path |
+| CLAUDE_MODEL | opus | Default Claude model |
+| ENABLE_LSP_TOOL | 0 | Enable LSP diagnostics |
+
+## PathConfig
+
+All paths are centralized in `src/helix/config/paths.py`.
+
+### Available Paths
+
+- `PathConfig.HELIX_ROOT` - Project root
+- `PathConfig.VENV_PATH` - Virtual environment
+- `PathConfig.CLAUDE_CMD` - Claude CLI wrapper
+- `PathConfig.DOMAIN_EXPERTS_CONFIG` - Domain experts YAML
+- `PathConfig.LLM_PROVIDERS_CONFIG` - LLM providers YAML
+- `PathConfig.TEMPLATES_DIR` - Jinja2 templates
+- `PathConfig.SKILLS_DIR` - Skills directory
+```
+
+**Erstelle `docs/PATHS.md`:**
+```markdown
+# PathConfig API Reference
+
+## Overview
+
+`PathConfig` provides centralized path management for HELIX.
+
+## Usage
+
 ```python
-# ALT:
-config_path = "/home/aiuser01/helix-v4/config/domain-experts.yaml"
-
-# NEU:
 from helix.config.paths import PathConfig
-config_path = PathConfig().DOMAIN_EXPERTS_CONFIG
+
+# Get paths
+root = PathConfig.HELIX_ROOT
+config = PathConfig.DOMAIN_EXPERTS_CONFIG
+
+# Validate all paths exist
+PathConfig.validate()
+
+# Show path info
+PathConfig.info()
+```
+
+## Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| HELIX_ROOT | Path | Project root directory |
+| VENV_PATH | Path | Virtual environment |
+| CLAUDE_CMD | Path | Claude CLI wrapper script |
+| NVM_PATH | Path | Node.js via NVM |
+| DOMAIN_EXPERTS_CONFIG | Path | config/domain-experts.yaml |
+| LLM_PROVIDERS_CONFIG | Path | config/llm-providers.yaml |
+| TEMPLATES_DIR | Path | templates/ directory |
+| TEMPLATES_PHASES | Path | templates/phases/ |
+| SKILLS_DIR | Path | skills/ directory |
 ```
 
 ---
 
-## Phase 3: Verification Checks
+## Workflow
 
-```bash
-cd /home/aiuser01/helix-v4
-
-# Check 1: Keine hardcoded Paths mehr
-echo "=== Hardcoded Paths Check ==="
-grep -r "/home/aiuser01" src/ --include="*.py" | grep -v "__pycache__" | grep -v ".pyc"
-# MUSS LEER SEIN!
-
-# Check 2: Unit Tests
-echo "=== Unit Tests ==="
-export PYTHONPATH="$PWD/src"
-python3 -m pytest tests/unit/ -v --tb=short
-
-# Check 3: Syntax Check
-echo "=== Syntax Check ==="
-python3 -m py_compile src/helix/config/paths.py
-python3 -m py_compile src/helix/consultant/expert_manager.py
-python3 -m py_compile src/helix/llm_client.py
-```
+1. Führe `./control/verify-adr-039.sh` aus
+2. Sieh welche Phasen ❌ sind
+3. Fixe die fehlenden Phasen
+4. Führe verify-script erneut aus
+5. Wiederhole bis "ALLE PHASEN BESTANDEN"
+6. Erst dann: `<promise>ADR039_COMPLETE</promise>`
 
 ---
 
-## Phase 4: Integration Test (KRITISCH!)
+## NIEMALS das Promise ausgeben wenn:
 
-```bash
-# API neu starten
-pkill -f "uvicorn.*helix.api" 2>/dev/null
-sleep 2
-cd /home/aiuser01/helix-v4
-export PYTHONPATH="$PWD/src"
-nohup python3 -m uvicorn helix.api.main:app --host 0.0.0.0 --port 8001 > /tmp/helix-api.log 2>&1 &
-sleep 5
-
-# Smoke Test
-curl -s -X POST http://localhost:8001/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "X-OpenWebUI-Chat-Id: smoke-$(date +%s)" \
-  -d '{"model":"helix-consultant","messages":[{"role":"user","content":"Was ist 2+2?"}],"stream":false}' \
-  | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
-    if len(content) > 20:
-        print('✅ INTEGRATION TEST PASSED')
-    else:
-        print('❌ INTEGRATION TEST FAILED - Response zu kurz')
-        sys.exit(1)
-except Exception as e:
-    print(f'❌ INTEGRATION TEST FAILED - {e}')
-    sys.exit(1)
-"
-```
-
----
-
-## Phase 5: Completion
-
-Wenn ALLE Checks grün:
-
-1. `status.md` aktualisieren
-2. Git commit: `git add -A && git commit --no-verify -m "ADR-039: Code Quality Hardening - Paths consolidated"`
-3. Output: `<promise>ADR039_COMPLETE</promise>`
-
----
-
-## Status Tracking
-
-Aktualisiere `status.md` nach JEDER Aktion:
-- Was hast du gemacht?
-- Was ist noch offen?
-- Welche Fehler sind aufgetreten?
-
----
-
-## NIEMALS die Promise ausgeben wenn:
-
-- `grep -r "/home/aiuser01" src/` etwas findet
-- Unit Tests fehlschlagen
-- Integration Test fehlschlägt
-
-Die Promise ist ein VERSPRECHEN dass alles funktioniert!
+- `./control/verify-adr-039.sh` exit code != 0
+- Das Script zeigt "❌ FAILED"
+- Irgendeine Phase noch offen ist
