@@ -19,6 +19,9 @@ from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+
+from .middleware import limiter, RateLimitExceededHandler
 
 # Ensure src is in path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -73,6 +76,10 @@ app = FastAPI(
     version="4.0.0",
     lifespan=lifespan,
 )
+
+# ADR-035: Rate Limiter Integration
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, RateLimitExceededHandler)
 
 
 # Global Exception Handler (ADR-030 Fix 8)

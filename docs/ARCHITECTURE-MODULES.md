@@ -279,7 +279,66 @@ def test_orchestrator_handles_gate_failure():
 ---
 
 *Erstellt: 2025-12-21*
-*Aktualisiert: 2025-12-30 (ADR-034)*
+*Aktualisiert: 2025-12-30 (ADR-035)*
+
+---
+
+## API Middleware (`src/helix/api/middleware/`)
+
+**Purpose:** Security and reliability middleware for the HELIX API.
+
+### ADR-035: Consultant API Hardening
+
+The middleware package provides two critical security layers:
+
+#### Input Validation (`input_validator.py`)
+
+Validates incoming chat completion requests:
+
+| Check | Limit | Description |
+|-------|-------|-------------|
+| Message count | 100 max | Prevents request flooding |
+| Message length | 100KB max | Prevents resource exhaustion |
+| Role validation | user/assistant/system | Prevents role injection |
+
+```python
+from helix.api.middleware import InputValidator
+
+# In endpoint (already integrated):
+InputValidator.validate_chat_request(request)
+```
+
+#### Rate Limiting (`rate_limiter.py`)
+
+IP-based rate limiting using slowapi:
+
+| Endpoint | Limit | Reason |
+|----------|-------|--------|
+| `/v1/chat/completions` | 10/min | Each request spawns Claude Code process |
+| Other endpoints | 10/min | Default limit |
+
+```python
+from helix.api.middleware import limiter, CHAT_COMPLETIONS_LIMIT
+
+@router.post("/chat/completions")
+@limiter.limit(CHAT_COMPLETIONS_LIMIT)
+async def chat_completions(request: Request, ...):
+    ...
+```
+
+#### Integration (main.py)
+
+```python
+from slowapi.errors import RateLimitExceeded
+from .middleware import limiter, RateLimitExceededHandler
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, RateLimitExceededHandler)
+```
+
+### Related ADRs
+
+- [ADR-035: Consultant API Hardening](../adr/035-consultant-api-hardening.md)
 
 ---
 

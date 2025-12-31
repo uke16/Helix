@@ -69,3 +69,34 @@ if not response_text:
 
 ## Verwandt
 - ADR-035 (API Hardening)
+
+---
+
+## Update 2025-12-31: Rate Limiter Parameter Bug
+
+### Symptom
+`"parameter 'request' must be an instance of starlette.requests.Request"`
+
+### Root Cause
+slowapi's `@limiter.limit()` decorator sucht nach einem Parameter namens `request` (genau dieser Name).
+Der Parameter hieß aber `http_request`.
+
+### Fix
+```python
+# Vorher (broken):
+async def chat_completions(
+    http_request: Request,
+    request: ChatCompletionRequest,
+    ...
+)
+
+# Nachher (working):
+async def chat_completions(
+    request: Request,  # MUST be named 'request' for slowapi
+    chat_request: ChatCompletionRequest,
+    ...
+)
+```
+
+### Betroffene Dateien
+- `src/helix/api/routes/openai.py`

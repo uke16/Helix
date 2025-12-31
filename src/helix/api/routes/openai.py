@@ -39,6 +39,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from helix.claude_runner import ClaudeRunner
 
+from ..middleware import InputValidator, limiter, CHAT_COMPLETIONS_LIMIT
 from ..models import (
     ChatCompletionRequest,
     ChatCompletionResponse,
@@ -75,9 +76,10 @@ async def list_models() -> dict:
 
 
 @router.post("/chat/completions")
+@limiter.limit(CHAT_COMPLETIONS_LIMIT)
 async def chat_completions(
-    request: ChatCompletionRequest,
-    http_request: Request,
+    request: Request,  # MUST be named 'request' for slowapi rate limiter
+    chat_request: ChatCompletionRequest,
     x_conversation_id: Optional[str] = Header(None, alias="X-Conversation-ID"),
 ):
     """Handle chat completion with Claude Code consultant.
@@ -92,15 +94,20 @@ async def chat_completions(
 
     ADR-034: Step detection is now handled by the LLM, not by Python.
     The LLM reports its current step via markers in its response.
+
+    ADR-035: Rate limiting (10/min) and input validation for security.
     """
+    # ADR-035: Validate input before processing
+    InputValidator.validate_chat_request(chat_request)
+
     completion_id = f"chatcmpl-{uuid.uuid4().hex[:8]}"
     created = int(time.time())
 
     # Get messages
-    messages = [{"role": m.role, "content": m.content} for m in request.messages]
+    messages = [{"role": m.role, "content": m.content} for m in chat_request.messages]
 
     if not messages:
-        return _error_response(completion_id, created, request.model, "No messages provided")
+        return _error_response(completion_id, created, chat_request.model, "No messages provided")
 
     # Get first user message for session creation
     first_user_message = ""
@@ -110,7 +117,7 @@ async def chat_completions(
             break
 
     if not first_user_message:
-        return _error_response(completion_id, created, request.model, "No user message found")
+        return _error_response(completion_id, created, chat_request.model, "No user message found")
 
     # ADR-029: Get or create session using X-Conversation-ID if available
     session_id, session_state = session_manager.get_or_create_session(
@@ -133,11 +140,11 @@ async def chat_completions(
 
     session_path = session_manager.get_session_path(session_id)
 
-    if request.stream:
+    if chat_request.stream:
         # Use live streaming - events are sent as Claude works
         return StreamingResponse(
             _run_consultant_streaming(
-                session_path, session_id, completion_id, created, request.model
+                session_path, session_id, completion_id, created, chat_request.model
             ),
             media_type="text/event-stream",
         )
@@ -151,7 +158,7 @@ async def chat_completions(
     return ChatCompletionResponse(
         id=completion_id,
         created=created,
-        model=request.model,
+        model=chat_request.model,
         choices=[
             ChatCompletionChoice(
                 index=0,
