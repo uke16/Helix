@@ -122,7 +122,7 @@
 
 ## Neue ADRs erstellen
 
-1. Nächste freie Nummer verwenden (aktuell: 027)
+1. Nächste freie Nummer verwenden (aktuell: 039)
 2. Format: `NNN-kurzer-name.md`
 3. YAML Header mit adr_id, title, status, files, depends_on
 4. Sections: Kontext, Entscheidung, Implementation, Akzeptanzkriterien
@@ -192,4 +192,6 @@ Das Workflow System wurde vollständig implementiert und dokumentiert.
 | 031 | [Pipeline Bugfixes Wave 2](031-pipeline-bugfixes-wave2.md) | ✅ | Weitere Pipeline-Fixes |
 | 033 | [MCP Blueprint Server](033-mcp-blueprint-server---modulare-remote-fähige-arch.md) | 📋 | Modulare MCP Architektur für Remote-Clients |
 | 034 | [Consultant Flow Refactoring](034-consultant-flow-refactoring-llm-native.md) | 📋 | LLM-Native statt State-Machine für Consultant Flow |
+| 035 | [Consultant API Hardening](035-consultant-api-hardening.md) | ✅ | Security & Reliability Fixes |
+| 038 | [Deterministic LLM Response Enforcement](038-deterministic-llm-response-enforcement.md) | 📋 | Response Validation, Retry & Fallback, Cleanup |
 

@@ -11,7 +11,7 @@ Enhanced with ADR-013 live streaming:
 - Prevents timeout in Open WebUI
 
 Enhanced with ADR-029 session persistence:
-- X-Conversation-ID header support for stable session mapping
+- X-OpenWebUI-Chat-Id header support for stable session mapping
 - Same conversation always maps to same session
 - Enables true multi-turn dialogs with context
 
@@ -80,7 +80,7 @@ async def list_models() -> dict:
 async def chat_completions(
     request: Request,  # MUST be named 'request' for slowapi rate limiter
     chat_request: ChatCompletionRequest,
-    x_conversation_id: Optional[str] = Header(None, alias="X-Conversation-ID"),
+    x_chat_id: Optional[str] = Header(None, alias="X-OpenWebUI-Chat-Id"),
 ):
     """Handle chat completion with Claude Code consultant.
 
@@ -88,7 +88,7 @@ async def chat_completions(
     Each conversation maps to a session directory where
     Claude Code runs as the consultant.
 
-    ADR-029: Extracts X-Conversation-ID header for persistent session mapping.
+    ADR-029: Extracts X-OpenWebUI-Chat-Id header for persistent session mapping.
     When this header is present (sent by Open WebUI), the same conversation
     always maps to the same session, enabling true multi-turn dialogs.
 
@@ -119,10 +119,10 @@ async def chat_completions(
     if not first_user_message:
         return _error_response(completion_id, created, chat_request.model, "No user message found")
 
-    # ADR-029: Get or create session using X-Conversation-ID if available
+    # ADR-029: Get or create session using X-OpenWebUI-Chat-Id if available
     session_id, session_state = session_manager.get_or_create_session(
         first_message=first_user_message,
-        conversation_id=x_conversation_id,
+        conversation_id=x_chat_id,
     )
 
     # Save current messages

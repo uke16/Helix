@@ -1,0 +1,10 @@
+{
+  "session_id": "session-4bbefeb896934aceb5380b49d8b63940",
+  "status": "discussing",
+  "step": "what",
+  "created_at": "2025-12-31T11:29:06.916061",
+  "updated_at": "2025-12-31T11:29:06.916104",
+  "original_request": "schau dir mal den consultant code an und bewertre ihn kritisch und begründe was gut und was ok und was schlecht ist\n  \nschau dir auch die major git commits an und schau ob da was auffällig ist oder nicht integriert. nutze das lsp protokoll und gib mir feedback dazu",
+  "project_name": null,
+  "conversation_id": null
+}

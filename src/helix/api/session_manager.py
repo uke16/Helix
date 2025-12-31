@@ -3,7 +3,9 @@
 Manages consultant sessions where Claude Code instances
 conduct multi-turn dialogs with users.
 
-Enhanced with ADR-029: X-Conversation-ID support for Open WebUI integration.
+Enhanced with ADR-029: X-OpenWebUI-Chat-Id support for Open WebUI integration.
+
+Open WebUI sends this header when ENABLE_FORWARD_USER_INFO_HEADERS=true is set.
 Uses stable conversation IDs from headers for persistent session mapping.
 
 Refactored with ADR-034: LLM-Native flow instead of State-Machine.
@@ -31,7 +33,7 @@ class SessionState(BaseModel):
     updated_at: datetime
     original_request: str
     project_name: str | None = None
-    conversation_id: str | None = None  # X-Conversation-ID from Open WebUI
+    conversation_id: str | None = None  # X-OpenWebUI-Chat-Id from Open WebUI
 
 
 class SessionManager:
@@ -40,8 +42,8 @@ class SessionManager:
     Each session is a directory under projects/sessions/{session_id}/
     containing CLAUDE.md, status.json, and context files.
 
-    Supports X-Conversation-ID header (ADR-029) for persistent session mapping.
-    When Open WebUI sends X-Conversation-ID, the same conversation always
+    Supports X-OpenWebUI-Chat-Id header (ADR-029) for persistent session mapping.
+    When Open WebUI sends X-OpenWebUI-Chat-Id, the same conversation always
     maps to the same session, enabling true multi-turn dialogs.
 
     ADR-034: Step detection is now handled by the LLM, not Python.
@@ -71,7 +73,7 @@ class SessionManager:
         ADR-035 Fix 5: Path traversal prevention with strict sanitization.
 
         Args:
-            conversation_id: Raw conversation ID from X-Conversation-ID header.
+            conversation_id: Raw conversation ID from X-OpenWebUI-Chat-Id header.
 
         Returns:
             Sanitized ID suitable for filesystem use.
@@ -170,11 +172,11 @@ class SessionManager:
         """Get existing session or create a new one.
 
         This is the primary method for session management with Open WebUI.
-        Uses X-Conversation-ID for stable session mapping when available.
+        Uses X-OpenWebUI-Chat-Id for stable session mapping when available.
 
         Args:
             first_message: The first/current message in the conversation.
-            conversation_id: Optional X-Conversation-ID from Open WebUI header.
+            conversation_id: Optional X-OpenWebUI-Chat-Id from Open WebUI header.
 
         Returns:
             Tuple of (session_id, SessionState).
@@ -257,7 +259,7 @@ class SessionManager:
         Args:
             session_id: The session ID to use.
             original_request: The original user request/message.
-            conversation_id: Optional X-Conversation-ID from Open WebUI.
+            conversation_id: Optional X-OpenWebUI-Chat-Id from Open WebUI.
 
         Returns:
             SessionState for the new session.

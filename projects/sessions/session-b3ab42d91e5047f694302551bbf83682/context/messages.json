@@ -1,0 +1,6 @@
+[
+  {
+    "role": "user",
+    "content": "schau dir mal den consultant code an und bewertre ihn kritisch und begr\u00fcnde was gut und was ok und was schlecht ist\n  \nschau dir auch die major git commits an und schau ob da was auff\u00e4llig ist oder nicht integriert. nutze das lsp protokoll und gib mir feedback dazu"
+  }
+]

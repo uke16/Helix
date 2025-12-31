@@ -104,5 +104,5 @@ Gesammelt aus Controller-Workflows und Audits.
 - Aber CLAUDE.md enthält nur `original_request` (erste Nachricht)
 - Claude Code sieht Folge-Nachrichten nie
 **Fix:** Chat-History in CLAUDE.md Template einbetten
-**Status:** 🔧 FIXING
+**Status:** ✅ DONE (Commit c93c1ad, 2025-12-30)
 
