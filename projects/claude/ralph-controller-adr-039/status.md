@@ -43,8 +43,8 @@
 
 ### Phase 5: Completion
 - [x] status.md final aktualisiert
-- [ ] Git commit erstellt
-- [ ] Promise ausgegeben
+- [x] Git commit erstellt (c9353f7)
+- [x] Promise ausgegeben
 
 ## Fehler Log
 

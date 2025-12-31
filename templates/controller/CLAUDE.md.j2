@@ -1,56 +1,109 @@
-# Controller: {{ adr_id }}
+# Ralph Controller für {{ adr_id }}: {{ adr_title }}
 
-Du supervisest den Evolution Workflow für {{ adr_title }}.
+Du bist ein **Ralph Controller** - du arbeitest iterativ bis alles funktioniert.
 
-## Aufgaben
+## WICHTIG: Ralph Loop Regeln
 
-1. **Skills lesen** - Verstehe das System
-2. **Consultant nutzen** - Projekt erstellen lassen (oder manuell)
-3. **Überwachen** - Job-Status tracken
-4. **Eingreifen** - Bei Problemen dokumentieren + fixen
-5. **Deployen** - deploy → validate → integrate
-6. **Dokumentieren** - MANUAL_INTERVENTIONS.md + BUGS.md
+1. Du bekommst denselben Prompt bei jeder Iteration
+2. Deine vorherige Arbeit ist in Dateien sichtbar (git history)
+3. Lies `status.md` um zu sehen was du schon gemacht hast
+4. Arbeite weiter wo du aufgehört hast
+5. Wenn ALLES fertig ist: Output `<promise>{{ completion_promise }}</promise>`
 
-## Skills zuerst
+---
+
+## Deine Aufgabe
+
+**ADR:** `../../adr/{{ adr_file }}`
+
+### Phasen
+
+1. **Implementation** - Code laut ADR schreiben
+2. **Unit Tests** - `pytest tests/unit/ -v` muss grün sein
+3. **Integration Test** - Consultant muss funktionieren
+4. **Dokumentation** - status.md aktualisieren
+
+---
+
+## Phase 1: Implementation
+
+Lies das ADR und implementiere alle Änderungen:
+- `files.create` → Neue Dateien erstellen
+- `files.modify` → Bestehende Dateien ändern
+
+**Nach jeder Änderung:** Update `status.md`
+
+---
+
+## Phase 2: Unit Tests
 
 ```bash
-cat skills/helix/SKILL.md
-cat skills/helix/evolution/SKILL.md
-cat skills/helix/adr/SKILL.md
+cd /home/aiuser01/helix-v4
+export PYTHONPATH="$PWD/src"
+python3 -m pytest tests/unit/ -v
 ```
 
-## ADR
+Wenn Tests FAILED → Fixen und wiederholen.
 
-`{{ adr_path }}`
+---
 
-## Workflow starten
+## Phase 3: Integration Test (KRITISCH!)
 
 ```bash
-# Via Consultant (wenn verfügbar)
-curl -X POST http://localhost:8001/v1/chat/completions \
+# API neu starten
+pkill -f "uvicorn.*helix.api" 2>/dev/null
+sleep 2
+cd /home/aiuser01/helix-v4
+export PYTHONPATH="$PWD/src"
+nohup python3 -m uvicorn helix.api.main:app --host 0.0.0.0 --port 8001 > /tmp/helix-api.log 2>&1 &
+sleep 5
+
+# Consultant Smoke Test
+curl -s -X POST http://localhost:8001/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"helix-consultant","messages":[{"role":"user","content":"Erstelle Evolution-Projekt für {{ adr_id }}"}]}'
-
-# Oder manuell
-curl -X POST http://localhost:8001/helix/execute \
-  -d '{"project_path": "projects/evolution/{{ project_name }}"}'
+  -H "X-OpenWebUI-Chat-Id: smoke-test-$(date +%s)" \
+  -d '{
+    "model": "helix-consultant",
+    "messages": [{"role": "user", "content": "Antworte mit genau einem Satz: Was ist HELIX?"}],
+    "stream": false
+  }' | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+if len(content) > 50 and 'STEP' not in content[:50]:
+    print('INTEGRATION_TEST: PASSED')
+    print(f'Response: {content[:100]}...')
+else:
+    print('INTEGRATION_TEST: FAILED')
+    print(f'Response: {content[:200]}')
+    sys.exit(1)
+"
 ```
 
-## Überwachen
+---
 
-```bash
-curl http://localhost:8001/helix/jobs/{job_id}
-```
+## Phase 4: Completion
 
-## Deploy Pipeline
+Wenn ALLE Phasen erfolgreich:
 
-```bash
-curl -X POST http://localhost:8001/helix/evolution/projects/{{ project_name }}/deploy
-curl -X POST http://localhost:8001/helix/evolution/projects/{{ project_name }}/validate
-curl -X POST http://localhost:8001/helix/evolution/projects/{{ project_name }}/integrate
-```
+1. Git commit: `git add -A && git commit -m "{{ adr_id }}: {{ adr_title }}"`
+2. Update `status.md` mit finalem Status
+3. Output: `<promise>{{ completion_promise }}</promise>`
 
-## Dokumentation
+---
 
-Bei JEDEM manuellen Eingriff → `MANUAL_INTERVENTIONS.md`
-Nach Abschluss → `BUGS_AND_IMPROVEMENTS.md`
+## Dateien
+
+- `status.md` - Dein Fortschritt (IMMER aktualisieren!)
+- `BUGS_AND_IMPROVEMENTS.md` - Gefundene Probleme
+- `../../adr/{{ adr_file }}` - Das ADR
+
+---
+
+## NIEMALS die Promise ausgeben wenn:
+
+- Unit Tests fehlschlagen
+- Integration Test fehlschlägt
+- Nicht alle ADR-Anforderungen umgesetzt sind
+
+Die Promise ist ein VERSPRECHEN dass alles funktioniert!
