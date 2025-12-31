@@ -527,6 +527,27 @@ class ResponseEnforcer:
             f"ADR-038: Initial validation failed: {[i.code for i in all_issues]}"
         )
 
+        # Check if all issues can be fixed by fallback (no retry needed)
+        # MISSING_STEP_MARKER can always be fixed by fallback - don't waste time retrying
+        fallback_fixable = all(
+            i.code in ("MISSING_STEP_MARKER", "INVALID_STEP") 
+            for i in all_issues 
+            if i.severity == "error"
+        )
+        
+        if fallback_fixable:
+            logger.info("ADR-038: Issues are fallback-fixable, skipping retries")
+            fallback_result = self.apply_all_fallbacks(
+                current_response, all_issues, context
+            )
+            return EnforcementResult(
+                success=fallback_result.success,
+                response=fallback_result.response,
+                attempts=1,
+                issues=fallback_result.issues,
+                fallback_applied=fallback_result.fallback_applied,
+            )
+
         # Retry loop
         for attempt in range(max_retries):
             total_attempts += 1

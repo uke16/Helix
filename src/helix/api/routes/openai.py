@@ -86,7 +86,8 @@ async def list_models() -> dict:
 
 
 @router.post("/chat/completions")
-@limiter.limit(CHAT_COMPLETIONS_LIMIT)
+# NOTE: Rate limiting disabled for streaming endpoint (slowapi incompatible with StreamingResponse)
+# Rate limiting should be handled at the reverse proxy level (nginx/traefik)
 async def chat_completions(
     request: Request,  # MUST be named 'request' for slowapi rate limiter
     chat_request: ChatCompletionRequest,

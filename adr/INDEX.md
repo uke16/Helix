@@ -122,7 +122,7 @@
 
 ## Neue ADRs erstellen
 
-1. Nächste freie Nummer verwenden (aktuell: 039)
+1. Nächste freie Nummer verwenden (aktuell: 040)
 2. Format: `NNN-kurzer-name.md`
 3. YAML Header mit adr_id, title, status, files, depends_on
 4. Sections: Kontext, Entscheidung, Implementation, Akzeptanzkriterien
@@ -194,4 +194,5 @@ Das Workflow System wurde vollständig implementiert und dokumentiert.
 | 034 | [Consultant Flow Refactoring](034-consultant-flow-refactoring-llm-native.md) | 📋 | LLM-Native statt State-Machine für Consultant Flow |
 | 035 | [Consultant API Hardening](035-consultant-api-hardening.md) | ✅ | Security & Reliability Fixes |
 | 038 | [Deterministic LLM Response Enforcement](038-deterministic-llm-response-enforcement.md) | 📋 | Response Validation, Retry & Fallback, Cleanup |
+| 039 | [Code Quality Hardening](039-code-quality-hardening---paths-lsp-documentation.md) | 📋 | Paths, LSP, Documentation Consolidation |
 
