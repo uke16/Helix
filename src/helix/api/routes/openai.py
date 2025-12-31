@@ -39,8 +39,15 @@ from jinja2 import Environment, FileSystemLoader
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from helix.claude_runner import ClaudeRunner
-from helix.enforcement.validators import StepMarkerValidator
-from helix.enforcement.validators.base import ValidationIssue
+from helix.enforcement.response_enforcer import ResponseEnforcer
+from helix.enforcement.validators import (
+    StepMarkerValidator,
+    ADRStructureValidator,
+    FileExistenceValidator,
+)
+
+# HELIX root for file existence validation
+HELIX_ROOT = Path("/home/aiuser01/helix-v4")
 
 from ..middleware import InputValidator, limiter, CHAT_COMPLETIONS_LIMIT
 from ..models import (
@@ -343,19 +350,62 @@ async def _run_consultant_streaming(
             if not response_text:
                 response_text = "Verarbeitung abgeschlossen."
 
-        # ADR-038: Validate response and apply fallbacks if needed
-        # This ensures STEP markers are always present for step tracking
-        step_validator = StepMarkerValidator()
-        validation_issues = step_validator.validate(response_text, {})
-        if validation_issues:
-            # Apply fallback heuristics to fix the response
-            fixed_response = step_validator.apply_fallback(response_text, {})
-            if fixed_response:
-                response_text = fixed_response
-                # Log that fallback was applied
-                logging.getLogger(__name__).info(
-                    f"ADR-038: Applied STEP marker fallback for session {session_id}"
-                )
+        # =====================================================================
+        # ADR-038: Full Response Enforcement with all 3 Validators
+        # =====================================================================
+        logger = logging.getLogger(__name__)
+
+        # Create enforcer with all validators
+        enforcer = ResponseEnforcer(
+            runner=runner,
+            max_retries=2,
+            validators=[
+                StepMarkerValidator(),
+                ADRStructureValidator(),
+                FileExistenceValidator(helix_root=HELIX_ROOT),
+            ]
+        )
+
+        # Validation context for FileExistenceValidator
+        validation_context = {"helix_root": HELIX_ROOT}
+
+        # Run full enforcement pipeline
+        enforcement_result = await enforcer.enforce_streaming_response(
+            response=response_text,
+            phase_dir=session_path,
+            runner=runner,
+            context=validation_context,
+            max_retries=2,
+        )
+
+        # Log enforcement results
+        if enforcement_result.fallback_applied:
+            logger.info(
+                f"ADR-038: Fallback applied for session {session_id}, "
+                f"issues: {[i.code for i in enforcement_result.issues]}"
+            )
+        elif enforcement_result.attempts > 1:
+            logger.info(
+                f"ADR-038: Retry succeeded for session {session_id} "
+                f"after {enforcement_result.attempts} attempts"
+            )
+
+        # Check if enforcement completely failed
+        if not enforcement_result.success:
+            # Stream error information to user
+            logger.error(
+                f"ADR-038: Enforcement failed for session {session_id}: "
+                f"{[i.code for i in enforcement_result.issues]}"
+            )
+            yield _make_chunk(completion_id, created, model, "\n\n---\n\n")
+            yield _make_chunk(
+                completion_id, created, model,
+                "⚠️ **Hinweis:** Die Antwort konnte nicht vollständig validiert werden.\n\n"
+            )
+            # Still stream the response (best effort)
+            response_text = enforcement_result.response
+        else:
+            response_text = enforcement_result.response
 
         # Stream the actual response
         yield _make_chunk(completion_id, created, model, "\n\n---\n\n")
@@ -431,8 +481,12 @@ def _make_final_chunk(completion_id: str, created: int, model: str) -> str:
 
 
 async def _run_consultant(session_id: str, state: SessionState) -> str:
-    """Run Claude Code for the consultant session (non-streaming)."""
+    """Run Claude Code for the consultant session (non-streaming).
+
+    ADR-038: Full enforcement with all 3 validators, retry logic, and fallbacks.
+    """
     session_path = session_manager.get_session_path(session_id)
+    logger = logging.getLogger(__name__)
 
     # Set NVM path
     nvm_path = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
@@ -456,11 +510,13 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
             timeout=600,  # 10 minutes max for consultant
         )
 
+        response_text = None
+
         if result.success:
             # Read response from output
             response_file = session_path / "output" / "response.md"
             if response_file.exists():
-                return response_file.read_text()
+                response_text = response_file.read_text()
             else:
                 # Claude didn't write response file - parse stdout
                 # With stream-json output, we need to extract the result
@@ -474,12 +530,14 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
                     try:
                         data = json.loads(line)
                         if data.get("type") == "result" and data.get("result"):
-                            return data["result"]
+                            response_text = data["result"]
+                            break
                     except json.JSONDecodeError:
                         continue
 
                 # Fallback to raw stdout if no result found
-                return stdout or "Ich habe deine Anfrage analysiert, aber keine Antwort generiert."
+                if not response_text:
+                    response_text = stdout or "Ich habe deine Anfrage analysiert, aber keine Antwort generiert."
         else:
             # Error case - also try to parse stream-json for error message
             stderr = result.stderr or ""
@@ -498,6 +556,57 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
                     continue
 
             return f"Fehler bei der Verarbeitung:\n```\n{stderr[:500]}\n```"
+
+        # =====================================================================
+        # ADR-038: Full Response Enforcement with all 3 Validators
+        # =====================================================================
+        enforcer = ResponseEnforcer(
+            runner=runner,
+            max_retries=2,
+            validators=[
+                StepMarkerValidator(),
+                ADRStructureValidator(),
+                FileExistenceValidator(helix_root=HELIX_ROOT),
+            ]
+        )
+
+        # Validation context for FileExistenceValidator
+        validation_context = {"helix_root": HELIX_ROOT}
+
+        # Run full enforcement pipeline
+        enforcement_result = await enforcer.enforce_streaming_response(
+            response=response_text,
+            phase_dir=session_path,
+            runner=runner,
+            context=validation_context,
+            max_retries=2,
+        )
+
+        # Log enforcement results
+        if enforcement_result.fallback_applied:
+            logger.info(
+                f"ADR-038: Fallback applied for session {session_id}, "
+                f"issues: {[i.code for i in enforcement_result.issues]}"
+            )
+        elif enforcement_result.attempts > 1:
+            logger.info(
+                f"ADR-038: Retry succeeded for session {session_id} "
+                f"after {enforcement_result.attempts} attempts"
+            )
+
+        # Check if enforcement completely failed
+        if not enforcement_result.success:
+            logger.error(
+                f"ADR-038: Enforcement failed for session {session_id}: "
+                f"{[i.code for i in enforcement_result.issues]}"
+            )
+            # Return response with warning
+            return (
+                enforcement_result.response +
+                "\n\n---\n\n⚠️ **Hinweis:** Die Antwort konnte nicht vollständig validiert werden."
+            )
+
+        return enforcement_result.response
 
     except asyncio.TimeoutError:
         return "Timeout - die Verarbeitung hat zu lange gedauert."

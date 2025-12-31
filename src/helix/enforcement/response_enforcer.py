@@ -5,16 +5,21 @@ Validates LLM responses against configurable validators and automatically
 retries with feedback when validation fails.
 
 ADR-038: Deterministic LLM Response Enforcement
+
+Integration modes:
+1. run_with_enforcement() - For non-streaming with built-in retry
+2. validate_response() + run_retry_phase() - For post-streaming validation
 """
 
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional, AsyncIterator, Any, TYPE_CHECKING
 
 from .validators.base import ResponseValidator, ValidationIssue
 
 if TYPE_CHECKING:
-    from helix.consultant.claude_runner import ClaudeRunner
+    from helix.claude_runner import ClaudeRunner
 
 logger = logging.getLogger(__name__)
 
@@ -321,3 +326,249 @@ class ResponseEnforcer:
 
         yield "data: Bitte versuche es erneut oder kontaktiere den Administrator.\n\n"
         yield "data: [DONE]\n\n"
+
+    # =========================================================================
+    # Post-Streaming Validation API (ADR-038 Integration)
+    # =========================================================================
+
+    def validate_response(
+        self,
+        response: str,
+        context: Optional[dict] = None,
+        validator_names: Optional[list[str]] = None,
+    ) -> EnforcementResult:
+        """
+        Validate a response that was already obtained (e.g., from streaming).
+
+        This is the first step in post-streaming enforcement:
+        1. Call validate_response() after streaming completes
+        2. If validation fails, call run_retry_phase() for retry
+        3. If still failing after retries, apply_all_fallbacks()
+
+        Args:
+            response: The LLM response text to validate
+            context: Additional context for validators (e.g., helix_root)
+            validator_names: List of validator names to use (None = all)
+
+        Returns:
+            EnforcementResult with success=True if valid, else issues list
+        """
+        context = context or {}
+        active_validators = self._get_validators(validator_names)
+        issues: list[ValidationIssue] = []
+
+        for validator in active_validators:
+            issues.extend(validator.validate(response, context))
+
+        # Separate errors from warnings
+        errors = [i for i in issues if i.severity == "error"]
+        warnings = [i for i in issues if i.severity == "warning"]
+
+        if not errors:
+            return EnforcementResult(
+                success=True,
+                response=response,
+                attempts=1,
+                issues=warnings,
+                fallback_applied=False,
+            )
+
+        return EnforcementResult(
+            success=False,
+            response=response,
+            attempts=1,
+            issues=errors,
+            fallback_applied=False,
+        )
+
+    async def run_retry_phase(
+        self,
+        phase_dir: Path,
+        issues: list[ValidationIssue],
+        runner: "ClaudeRunner",
+        context: Optional[dict] = None,
+        timeout: int = 300,
+    ) -> EnforcementResult:
+        """
+        Run a retry phase with feedback about validation issues.
+
+        Sends a feedback prompt to Claude Code asking it to correct
+        the validation issues. The retry uses the same phase directory
+        so Claude has full context.
+
+        Args:
+            phase_dir: Path to the session/phase directory
+            issues: Validation issues to address
+            runner: ClaudeRunner instance for execution
+            context: Validation context
+            timeout: Timeout in seconds for the retry
+
+        Returns:
+            EnforcementResult with the retry response
+        """
+        context = context or {}
+        feedback_prompt = self._build_feedback_prompt(issues)
+
+        # Run retry with feedback prompt
+        result = await runner.run_phase(
+            phase_dir=phase_dir,
+            prompt=feedback_prompt,
+            timeout=timeout,
+        )
+
+        response = result.stdout if result.success else ""
+
+        # Try to extract actual response from stream-json format
+        if response:
+            import json
+            for line in response.strip().split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    if data.get("type") == "result" and data.get("result"):
+                        response = data["result"]
+                        break
+                except json.JSONDecodeError:
+                    continue
+
+        # Validate the retry response
+        return self.validate_response(response, context)
+
+    def apply_all_fallbacks(
+        self,
+        response: str,
+        issues: list[ValidationIssue],
+        context: Optional[dict] = None,
+    ) -> EnforcementResult:
+        """
+        Apply all available fallback heuristics to fix issues.
+
+        Called after retries have been exhausted. Iterates through
+        validators and applies their fallback methods.
+
+        Args:
+            response: The response with validation issues
+            issues: Unresolved validation issues
+            context: Validation context
+
+        Returns:
+            EnforcementResult with potentially corrected response
+        """
+        context = context or {}
+        corrected = self._apply_fallbacks(response, issues, context)
+
+        if corrected:
+            logger.info(
+                f"ADR-038: Applied fallbacks for issues: {[i.code for i in issues]}"
+            )
+            return EnforcementResult(
+                success=True,
+                response=corrected,
+                attempts=0,  # 0 indicates fallback path
+                issues=issues,
+                fallback_applied=True,
+            )
+
+        return EnforcementResult(
+            success=False,
+            response=response,
+            attempts=0,
+            issues=issues,
+            fallback_applied=False,
+        )
+
+    async def enforce_streaming_response(
+        self,
+        response: str,
+        phase_dir: Path,
+        runner: "ClaudeRunner",
+        context: Optional[dict] = None,
+        max_retries: int = 2,
+    ) -> EnforcementResult:
+        """
+        Full enforcement pipeline for post-streaming validation.
+
+        Convenience method that combines validate_response(),
+        run_retry_phase(), and apply_all_fallbacks() into a
+        single workflow.
+
+        Flow:
+        1. Validate response
+        2. If errors: retry up to max_retries times
+        3. If still errors: apply fallbacks
+        4. Return final result
+
+        Args:
+            response: The streamed response to enforce
+            phase_dir: Path to session directory for retries
+            runner: ClaudeRunner for retry execution
+            context: Validation context
+            max_retries: Maximum retry attempts
+
+        Returns:
+            EnforcementResult with final enforced response
+        """
+        context = context or {}
+        current_response = response
+        all_issues: list[ValidationIssue] = []
+        total_attempts = 1
+
+        # Initial validation
+        result = self.validate_response(current_response, context)
+
+        if result.success:
+            logger.debug("ADR-038: Response passed initial validation")
+            return result
+
+        all_issues = result.issues
+        logger.info(
+            f"ADR-038: Initial validation failed: {[i.code for i in all_issues]}"
+        )
+
+        # Retry loop
+        for attempt in range(max_retries):
+            total_attempts += 1
+            logger.info(
+                f"ADR-038: Retry attempt {attempt + 1}/{max_retries}"
+            )
+
+            result = await self.run_retry_phase(
+                phase_dir=phase_dir,
+                issues=all_issues,
+                runner=runner,
+                context=context,
+            )
+
+            if result.success:
+                logger.info(
+                    f"ADR-038: Retry {attempt + 1} succeeded"
+                )
+                return EnforcementResult(
+                    success=True,
+                    response=result.response,
+                    attempts=total_attempts,
+                    issues=result.issues,
+                    fallback_applied=False,
+                )
+
+            current_response = result.response
+            all_issues = result.issues
+
+        # Max retries exhausted - try fallbacks
+        logger.info(
+            f"ADR-038: Max retries exhausted, applying fallbacks"
+        )
+
+        fallback_result = self.apply_all_fallbacks(
+            current_response, all_issues, context
+        )
+
+        return EnforcementResult(
+            success=fallback_result.success,
+            response=fallback_result.response,
+            attempts=total_attempts,
+            issues=fallback_result.issues,
+            fallback_applied=fallback_result.fallback_applied,
+        )
