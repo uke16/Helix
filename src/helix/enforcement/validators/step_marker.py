@@ -56,9 +56,11 @@ class StepMarkerValidator(ResponseValidator):
         Returns:
             List of validation issues (empty if valid)
         """
-        match = re.search(self.PATTERN, response)
+        # Find ALL step markers and validate the LAST one
+        # (responses may contain examples with <!-- STEP: X --> in docs)
+        matches = re.findall(self.PATTERN, response)
 
-        if not match:
+        if not matches:
             return [
                 ValidationIssue(
                     code="MISSING_STEP_MARKER",
@@ -67,7 +69,8 @@ class StepMarkerValidator(ResponseValidator):
                 )
             ]
 
-        step = match.group(1).lower()
+        # Use the LAST step marker (the actual one, not examples)
+        step = matches[-1].lower()
         if step not in self.VALID_STEPS:
             return [
                 ValidationIssue(
