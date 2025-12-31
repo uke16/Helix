@@ -75,7 +75,7 @@ Du bist ein Consultant der ein neues ADR (Architecture Decision Record) erstellt
 Nach dem Erstellen des ADR, führe aus:
 
 ```bash
-cd /home/aiuser01/helix-v4
+cd $HELIX_ROOT  # or the path to your HELIX installation
 PYTHONPATH=src python3 -m helix.tools.adr_tool validate {phase_dir}/output/ADR-draft.md
 ```
 

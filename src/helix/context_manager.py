@@ -9,6 +9,8 @@ from typing import Any
 
 import yaml
 
+from helix.config.paths import PathConfig
+
 
 class ContextManager:
     """Manages skills and prepares context for phase execution.
@@ -18,7 +20,7 @@ class ContextManager:
     - Creating symlinks to skills in phase directories
     - Mapping domains and languages to relevant skills
 
-    Skills are stored in /home/aiuser01/helix-v4/skills/ and contain
+    Skills are stored in the HELIX skills directory and contain
     reusable knowledge and patterns for specific domains.
 
     Example:
@@ -29,7 +31,7 @@ class ContextManager:
         )
     """
 
-    DEFAULT_SKILLS_DIR = Path("/home/aiuser01/helix-v4/skills")
+    DEFAULT_SKILLS_DIR = PathConfig.SKILLS_DIR
 
     DOMAIN_SKILL_MAP: dict[str, list[str]] = {
         # Maps domains to actual existing skills
@@ -63,7 +65,7 @@ class ContextManager:
 
         Args:
             skills_dir: Directory containing skill definitions.
-                       Defaults to /home/aiuser01/helix-v4/skills/.
+                       Defaults to PathConfig.SKILLS_DIR.
         """
         self.skills_dir = skills_dir or self.DEFAULT_SKILLS_DIR
         self._skill_cache: dict[str, dict[str, Any]] | None = None

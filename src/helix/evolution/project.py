@@ -23,6 +23,8 @@ from typing import Optional
 
 import yaml
 
+from helix.config.paths import PathConfig
+
 
 class EvolutionStatus(str, Enum):
     """Status of an evolution project."""
@@ -410,15 +412,13 @@ class EvolutionProjectManager:
 
     def __init__(self, helix_root: Optional[Path] = None):
         """Initialize project manager.
-        
+
         Args:
-            helix_root: Root path of HELIX (default: auto-detect)
+            helix_root: Root path of HELIX (default: PathConfig.HELIX_ROOT)
         """
         if helix_root is None:
-            # Auto-detect from environment or default
-            helix_root = Path(
-                os.environ.get("HELIX_ROOT", "/home/aiuser01/helix-v4")
-            )
+            # Use PathConfig (which checks HELIX_ROOT env var)
+            helix_root = PathConfig.HELIX_ROOT
         
         self.helix_root = Path(helix_root)
         self.evolution_path = self.helix_root / "projects" / "evolution"

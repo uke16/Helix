@@ -23,13 +23,12 @@ from slowapi.errors import RateLimitExceeded
 
 from .middleware import limiter, RateLimitExceededHandler
 
-# Ensure src is in path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from helix.config.paths import PathConfig
 
 from .routes import openai, helix, stream, evolution
 
 # Configure logging
-LOG_DIR = Path(__file__).parent.parent.parent.parent / "logs"
+LOG_DIR = PathConfig.HELIX_ROOT / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
 logging.basicConfig(
@@ -59,10 +58,8 @@ async def lifespan(app: FastAPI):
     logger.info(f"Docs: http://localhost:{os.environ.get('PORT', 8001)}/docs")
     logger.info("=" * 60)
     
-    # Set NVM path
-    nvm_path = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
-    if nvm_path not in os.environ.get("PATH", ""):
-        os.environ["PATH"] = f"{nvm_path}:{os.environ.get('PATH', '')}"
+    # Set NVM path via PathConfig
+    PathConfig.ensure_claude_path()
     
     yield
     

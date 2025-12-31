@@ -153,6 +153,32 @@ class PathConfig:
         str(HELIX_ROOT / "control")
     ))
 
+    # Config files
+    DOMAIN_EXPERTS_CONFIG: Path = Path(os.environ.get(
+        "HELIX_DOMAIN_EXPERTS_CONFIG",
+        str(HELIX_ROOT / "config" / "domain-experts.yaml")
+    ))
+
+    LLM_PROVIDERS_CONFIG: Path = Path(os.environ.get(
+        "HELIX_LLM_PROVIDERS_CONFIG",
+        str(HELIX_ROOT / "config" / "llm-providers.yaml")
+    ))
+
+    # Skills directory
+    SKILLS_DIR: Path = Path(os.environ.get(
+        "HELIX_SKILLS_DIR",
+        str(HELIX_ROOT / "skills")
+    ))
+
+    # Templates directory (alternative access - same as TEMPLATES_PATH)
+    TEMPLATES_DIR: Path = TEMPLATES_PATH
+
+    # Phases templates directory
+    TEMPLATES_PHASES: Path = Path(os.environ.get(
+        "HELIX_TEMPLATES_PHASES",
+        str(TEMPLATES_PATH / "phases")
+    ))
+
     @classmethod
     def ensure_claude_path(cls) -> None:
         """Add NVM to PATH if needed.
@@ -237,6 +263,10 @@ class PathConfig:
             "SESSIONS_PATH": cls.SESSIONS_PATH.exists(),
             "TEMPLATES_PATH": cls.TEMPLATES_PATH.exists(),
             "CONTROL_PATH": cls.CONTROL_PATH.exists(),
+            "DOMAIN_EXPERTS_CONFIG": cls.DOMAIN_EXPERTS_CONFIG.exists(),
+            "LLM_PROVIDERS_CONFIG": cls.LLM_PROVIDERS_CONFIG.exists(),
+            "SKILLS_DIR": cls.SKILLS_DIR.exists(),
+            "TEMPLATES_PHASES": cls.TEMPLATES_PHASES.exists(),
         }
 
     @classmethod
@@ -254,4 +284,8 @@ class PathConfig:
             "SESSIONS_PATH": str(cls.SESSIONS_PATH),
             "TEMPLATES_PATH": str(cls.TEMPLATES_PATH),
             "CONTROL_PATH": str(cls.CONTROL_PATH),
+            "DOMAIN_EXPERTS_CONFIG": str(cls.DOMAIN_EXPERTS_CONFIG),
+            "LLM_PROVIDERS_CONFIG": str(cls.LLM_PROVIDERS_CONFIG),
+            "SKILLS_DIR": str(cls.SKILLS_DIR),
+            "TEMPLATES_PHASES": str(cls.TEMPLATES_PHASES),
         }

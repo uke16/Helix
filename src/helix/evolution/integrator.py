@@ -11,6 +11,7 @@ Workflow:
 """
 
 import asyncio
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from helix.config.paths import PathConfig
 from .project import EvolutionProject, EvolutionStatus
 
 
@@ -36,8 +38,8 @@ class IntegrationResult:
 class Integrator:
     """Integrates evolution projects into production."""
 
-    PRODUCTION_ROOT = Path("/home/aiuser01/helix-v4")
-    TEST_ROOT = Path("/home/aiuser01/helix-v4-test")
+    PRODUCTION_ROOT = PathConfig.HELIX_ROOT
+    TEST_ROOT = Path(os.environ.get("HELIX_TEST_ROOT", str(PathConfig.HELIX_ROOT) + "-test"))
     CONTROL_SCRIPT = "control/helix-control.sh"
 
     def __init__(
@@ -48,8 +50,8 @@ class Integrator:
         """Initialize the integrator.
 
         Args:
-            production_root: Path to production HELIX
-            test_root: Path to test HELIX
+            production_root: Path to production HELIX (default: PathConfig.HELIX_ROOT)
+            test_root: Path to test HELIX (default: HELIX_ROOT-test or HELIX_TEST_ROOT env)
         """
         self.production_root = Path(production_root or self.PRODUCTION_ROOT)
         self.test_root = Path(test_root or self.TEST_ROOT)

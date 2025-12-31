@@ -20,6 +20,8 @@ from typing import Any
 
 import yaml
 
+from helix.config.paths import PathConfig
+
 
 @dataclass
 class ExpertConfig:
@@ -76,7 +78,7 @@ class ExpertManager:
         config_path: Path to the domain-experts.yaml configuration file.
     """
 
-    DEFAULT_CONFIG_PATH = Path("/home/aiuser01/helix-v4/config/domain-experts.yaml")
+    DEFAULT_CONFIG_PATH = PathConfig.DOMAIN_EXPERTS_CONFIG
 
     # Default expert configurations (FRABA-specific)
     DEFAULT_EXPERTS: dict[str, dict[str, Any]] = {
@@ -190,7 +192,7 @@ class ExpertManager:
 
         Args:
             config_path: Optional path to the configuration file.
-                        Defaults to /home/aiuser01/helix-v4/config/domain-experts.yaml
+                        Defaults to PathConfig.DOMAIN_EXPERTS_CONFIG.
         """
         self.config_path = config_path or self.DEFAULT_CONFIG_PATH
         self._experts_cache: dict[str, ExpertConfig] | None = None

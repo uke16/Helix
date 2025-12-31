@@ -35,10 +35,8 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 from jinja2 import Environment, FileSystemLoader
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
 from helix.claude_runner import ClaudeRunner
+from helix.config.paths import PathConfig
 from helix.enforcement.response_enforcer import ResponseEnforcer
 from helix.enforcement.validators import (
     StepMarkerValidator,
@@ -47,7 +45,7 @@ from helix.enforcement.validators import (
 )
 
 # HELIX root for file existence validation
-HELIX_ROOT = Path("/home/aiuser01/helix-v4")
+HELIX_ROOT = PathConfig.HELIX_ROOT
 
 from ..middleware import InputValidator, limiter, CHAT_COMPLETIONS_LIMIT
 from ..models import (
@@ -65,7 +63,7 @@ from ..session_manager import session_manager, SessionState
 router = APIRouter(prefix="/v1", tags=["OpenAI Compatible"])
 
 # Template environment
-TEMPLATE_DIR = Path(__file__).parent.parent.parent.parent.parent / "templates"
+TEMPLATE_DIR = PathConfig.TEMPLATES_DIR
 jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
 
 
@@ -224,7 +222,7 @@ async def _generate_session_claude_md(
         original_request=state.original_request,
         context=context,
         project_name=state.project_name or "Neues Projekt",
-        helix_root="/home/aiuser01/helix-v4",
+        helix_root=str(PathConfig.HELIX_ROOT),
         messages=messages or [],  # Bug-006: Pass chat history to template
     )
 
@@ -264,13 +262,12 @@ async def _run_consultant_streaming(
     # Track start time for timestamp validation (FIX 2)
     start_time = time.time()
 
-    # Set NVM path
-    nvm_path = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
-    os.environ["PATH"] = f"{nvm_path}:{os.environ.get('PATH', '')}"
+    # Set paths via PathConfig
+    PathConfig.ensure_claude_path()
 
     # Create runner
     runner = ClaudeRunner(
-        claude_cmd="/home/aiuser01/helix-v4/control/claude-wrapper.sh",
+        claude_cmd=PathConfig.get_claude_wrapper(),
         use_stdbuf=True,
     )
 
@@ -511,13 +508,12 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
     session_path = session_manager.get_session_path(session_id)
     logger = logging.getLogger(__name__)
 
-    # Set NVM path
-    nvm_path = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
-    os.environ["PATH"] = f"{nvm_path}:{os.environ.get('PATH', '')}"
+    # Set paths via PathConfig
+    PathConfig.ensure_claude_path()
 
     # Create runner
     runner = ClaudeRunner(
-        claude_cmd="/home/aiuser01/helix-v4/control/claude-wrapper.sh",
+        claude_cmd=PathConfig.get_claude_wrapper(),
         use_stdbuf=True,
     )
 

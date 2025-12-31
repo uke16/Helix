@@ -11,6 +11,8 @@ from typing import Any
 import httpx
 import yaml
 
+from helix.config.paths import PathConfig
+
 
 @dataclass
 class ModelConfig:
@@ -75,7 +77,7 @@ class LLMClient:
         )
     """
 
-    DEFAULT_CONFIG_PATH = Path("/home/aiuser01/helix-v4/config/llm-providers.yaml")
+    DEFAULT_CONFIG_PATH = PathConfig.LLM_PROVIDERS_CONFIG
 
     DEFAULT_PROVIDERS: dict[str, ProviderConfig] = {
         "openrouter": ProviderConfig(
@@ -133,7 +135,7 @@ class LLMClient:
 
         Args:
             config_path: Path to llm-providers.yaml.
-                        Defaults to /home/aiuser01/helix-v4/config/llm-providers.yaml.
+                        Defaults to PathConfig.LLM_PROVIDERS_CONFIG.
         """
         self.config_path = config_path or self.DEFAULT_CONFIG_PATH
         self.providers: dict[str, ProviderConfig] = {}

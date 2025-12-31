@@ -9,6 +9,8 @@ from typing import Any
 
 import yaml
 
+from helix.config.paths import PathConfig
+
 
 @dataclass
 class PhaseConfig:
@@ -52,9 +54,9 @@ class PhaseLoader:
 
         Args:
             templates_dir: Optional directory containing phase templates.
-                          Defaults to /home/aiuser01/helix-v4/templates/phases/.
+                          Defaults to PathConfig.TEMPLATES_PHASES.
         """
-        self.templates_dir = templates_dir or Path("/home/aiuser01/helix-v4/templates/phases")
+        self.templates_dir = templates_dir or PathConfig.TEMPLATES_PHASES
 
     def load_phases(self, project_dir: Path) -> list[PhaseConfig]:
         """Load all phases from a project's phases.yaml.

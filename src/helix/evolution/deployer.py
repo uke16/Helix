@@ -1,7 +1,7 @@
 """Evolution Deployer.
 
 Handles deployment of evolution projects to the test system.
-The test system is a separate HELIX instance at /home/aiuser01/helix-v4-test/
+The test system is a separate HELIX instance (configured via PathConfig)
 running on port 9001 with isolated databases.
 
 Workflow:
@@ -12,6 +12,7 @@ Workflow:
 """
 
 import asyncio
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from helix.config.paths import PathConfig
 from .project import EvolutionProject, EvolutionStatus
 
 
@@ -36,9 +38,9 @@ class DeployResult:
 class Deployer:
     """Deploys evolution projects to the test system."""
 
-    # Paths
-    PRODUCTION_ROOT = Path("/home/aiuser01/helix-v4")
-    TEST_ROOT = Path("/home/aiuser01/helix-v4-test")
+    # Paths (use PathConfig as defaults)
+    PRODUCTION_ROOT = PathConfig.HELIX_ROOT
+    TEST_ROOT = Path(os.environ.get("HELIX_TEST_ROOT", str(PathConfig.HELIX_ROOT) + "-test"))
     CONTROL_SCRIPT = "control/helix-control.sh"
 
     def __init__(
@@ -49,8 +51,8 @@ class Deployer:
         """Initialize the deployer.
 
         Args:
-            production_root: Path to production HELIX (default: /home/aiuser01/helix-v4)
-            test_root: Path to test HELIX (default: /home/aiuser01/helix-v4-test)
+            production_root: Path to production HELIX (default: PathConfig.HELIX_ROOT)
+            test_root: Path to test HELIX (default: HELIX_ROOT-test or HELIX_TEST_ROOT env)
         """
         self.production_root = Path(production_root or self.PRODUCTION_ROOT)
         self.test_root = Path(test_root or self.TEST_ROOT)

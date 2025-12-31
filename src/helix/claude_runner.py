@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Callable, Awaitable
 
 
+from .config.paths import PathConfig
 from .llm_client import LLMClient
 
 
@@ -76,9 +77,9 @@ class ClaudeRunner:
         )
     """
 
-    DEFAULT_CLAUDE_CMD = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin/claude"
+    DEFAULT_CLAUDE_CMD = PathConfig.CLAUDE_CMD
     DEFAULT_TIMEOUT = 1800  # 30 minutes
-    DEFAULT_VENV_PATH = Path("/home/aiuser01/helix-v4/.venv")
+    DEFAULT_VENV_PATH = PathConfig.VENV_PATH
 
     def __init__(
         self,
@@ -98,9 +99,7 @@ class ClaudeRunner:
                       Set to None to disable virtualenv PATH injection.
         """
         # Ensure NVM node is in PATH for Claude CLI
-        nvm_path = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
-        if nvm_path not in os.environ.get("PATH", ""):
-            os.environ["PATH"] = f"{nvm_path}:{os.environ.get('PATH', '')}"
+        PathConfig.ensure_claude_path()
 
         self.claude_cmd = claude_cmd or self.DEFAULT_CLAUDE_CMD
         self.llm_client = llm_client or LLMClient()
@@ -483,9 +482,9 @@ class ClaudeRunner:
             Dictionary of environment variables to set.
         """
         # Include nvm node in PATH so claude CLI can find node
-        nvm_bin = "/home/aiuser01/.nvm/versions/node/v20.19.6/bin"
+        nvm_bin = PathConfig.NVM_PATH
         current_path = os.environ.get("PATH", "")
-        if nvm_bin not in current_path:
+        if nvm_bin and nvm_bin not in current_path:
             current_path = f"{nvm_bin}:{current_path}"
 
         env: dict[str, str] = {

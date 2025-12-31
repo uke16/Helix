@@ -16,6 +16,7 @@ Supports three output conventions:
 """
 
 import asyncio
+import os
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -23,6 +24,8 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Optional
+
+from helix.config.paths import PathConfig
 
 
 class ValidationLevel(str, Enum):
@@ -173,7 +176,7 @@ class OutputValidator:
 class Validator:
     """Validates evolution projects in the test system."""
 
-    TEST_ROOT = Path("/home/aiuser01/helix-v4-test")
+    TEST_ROOT = Path(os.environ.get("HELIX_TEST_ROOT", str(PathConfig.HELIX_ROOT) + "-test"))
     TEST_API_URL = "http://localhost:9001"
 
     def __init__(
@@ -184,7 +187,7 @@ class Validator:
         """Initialize the validator.
 
         Args:
-            test_root: Path to test HELIX
+            test_root: Path to test HELIX (default: HELIX_ROOT-test or HELIX_TEST_ROOT env)
             test_api_url: URL of test API
         """
         self.test_root = Path(test_root or self.TEST_ROOT)

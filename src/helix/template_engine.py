@@ -8,6 +8,8 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
 
+from helix.config.paths import PathConfig
+
 
 class TemplateEngine:
     """Jinja2-based template engine for generating CLAUDE.md files.
@@ -31,14 +33,14 @@ class TemplateEngine:
         )
     """
 
-    DEFAULT_TEMPLATES_DIR = Path("/home/aiuser01/helix-v4/templates")
+    DEFAULT_TEMPLATES_DIR = PathConfig.TEMPLATES_DIR
 
     def __init__(self, templates_dir: Path | None = None) -> None:
         """Initialize the TemplateEngine.
 
         Args:
             templates_dir: Directory containing Jinja2 templates.
-                          Defaults to /home/aiuser01/helix-v4/templates/.
+                          Defaults to PathConfig.TEMPLATES_DIR.
         """
         self.templates_dir = templates_dir or self.DEFAULT_TEMPLATES_DIR
         self._env: Environment | None = None
