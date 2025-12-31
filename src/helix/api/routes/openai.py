@@ -370,10 +370,32 @@ async def _run_consultant_streaming(
         # Validation context for FileExistenceValidator
         validation_context = {"helix_root": HELIX_ROOT}
 
+        # Extract session_id for retry continuation
+        # The session_id allows --resume to continue the conversation
+        claude_session_id = result.session_id
+        if not claude_session_id:
+            # Fallback: try to extract from stdout buffer
+            for line in stdout_buffer:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    if "session_id" in data:
+                        claude_session_id = data["session_id"]
+                        break
+                except json.JSONDecodeError:
+                    continue
+        
+        if not claude_session_id:
+            # Last resort: generate a placeholder (retries won't work properly)
+            logger.warning("ADR-038: No session_id found, retries will start fresh sessions")
+            claude_session_id = f"unknown-{session_id}"
+
         # Run full enforcement pipeline
         enforcement_result = await enforcer.enforce_streaming_response(
             response=response_text,
-            phase_dir=session_path,
+            session_id=claude_session_id,
             runner=runner,
             context=validation_context,
             max_retries=2,
@@ -574,10 +596,32 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
         # Validation context for FileExistenceValidator
         validation_context = {"helix_root": HELIX_ROOT}
 
+        # Extract session_id for retry continuation
+        # The session_id allows --resume to continue the conversation
+        claude_session_id = result.session_id
+        if not claude_session_id and result.stdout:
+            # Fallback: try to extract from stdout (non-streaming uses result.stdout)
+            for line in result.stdout.strip().split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    if "session_id" in data:
+                        claude_session_id = data["session_id"]
+                        break
+                except json.JSONDecodeError:
+                    continue
+        
+        if not claude_session_id:
+            # Last resort: generate a placeholder (retries won't work properly)
+            logger.warning("ADR-038: No session_id found, retries will start fresh sessions")
+            claude_session_id = f"unknown-{session_id}"
+
         # Run full enforcement pipeline
         enforcement_result = await enforcer.enforce_streaming_response(
             response=response_text,
-            phase_dir=session_path,
+            session_id=claude_session_id,
             runner=runner,
             context=validation_context,
             max_retries=2,

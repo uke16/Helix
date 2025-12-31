@@ -383,39 +383,43 @@ class ResponseEnforcer:
 
     async def run_retry_phase(
         self,
-        phase_dir: Path,
+        session_id: str,
         issues: list[ValidationIssue],
         runner: "ClaudeRunner",
         context: Optional[dict] = None,
         timeout: int = 300,
-    ) -> EnforcementResult:
+    ) -> tuple[EnforcementResult, str]:
         """
-        Run a retry phase with feedback about validation issues.
+        Run a retry phase using --resume to continue the Claude session.
 
-        Sends a feedback prompt to Claude Code asking it to correct
-        the validation issues. The retry uses the same phase directory
-        so Claude has full context.
+        CRITICAL: Uses runner.continue_session() instead of run_phase()
+        so Claude has the conversation context and knows what "your last
+        response" refers to.
 
         Args:
-            phase_dir: Path to the session/phase directory
-            issues: Validation issues to address
-            runner: ClaudeRunner instance for execution
-            context: Validation context
-            timeout: Timeout in seconds for the retry
+            session_id: Claude CLI session ID from initial execution.
+            issues: Validation issues to address.
+            runner: ClaudeRunner instance for execution.
+            context: Validation context.
+            timeout: Timeout in seconds for the retry.
 
         Returns:
-            EnforcementResult with the retry response
+            Tuple of (EnforcementResult, new_session_id) for chaining retries.
         """
         context = context or {}
         feedback_prompt = self._build_feedback_prompt(issues)
 
-        # Run retry with feedback prompt
-        result = await runner.run_phase(
-            phase_dir=phase_dir,
+        logger.info(f"ADR-038: Retrying with --resume {session_id[:8]}...")
+
+        # CRITICAL: Use continue_session, NOT run_phase!
+        # This keeps the conversation context so Claude knows what to fix
+        result = await runner.continue_session(
+            session_id=session_id,
             prompt=feedback_prompt,
             timeout=timeout,
         )
 
+        new_session_id = result.session_id or session_id
         response = result.stdout if result.success else ""
 
         # Try to extract actual response from stream-json format
@@ -434,7 +438,8 @@ class ResponseEnforcer:
                     continue
 
         # Validate the retry response
-        return self.validate_response(response, context)
+        validation_result = self.validate_response(response, context)
+        return validation_result, new_session_id
 
     def apply_all_fallbacks(
         self,
@@ -482,7 +487,7 @@ class ResponseEnforcer:
     async def enforce_streaming_response(
         self,
         response: str,
-        phase_dir: Path,
+        session_id: str,
         runner: "ClaudeRunner",
         context: Optional[dict] = None,
         max_retries: int = 2,
@@ -494,21 +499,24 @@ class ResponseEnforcer:
         run_retry_phase(), and apply_all_fallbacks() into a
         single workflow.
 
+        CRITICAL: Requires session_id from initial Claude execution
+        so retries can use --resume to continue the conversation.
+
         Flow:
         1. Validate response
-        2. If errors: retry up to max_retries times
+        2. If errors: retry up to max_retries with --resume (keeps context!)
         3. If still errors: apply fallbacks
         4. Return final result
 
         Args:
-            response: The streamed response to enforce
-            phase_dir: Path to session directory for retries
-            runner: ClaudeRunner for retry execution
-            context: Validation context
-            max_retries: Maximum retry attempts
+            response: The streamed response to enforce.
+            session_id: Claude CLI session ID from initial run (for --resume).
+            runner: ClaudeRunner for retry execution.
+            context: Validation context.
+            max_retries: Maximum retry attempts.
 
         Returns:
-            EnforcementResult with final enforced response
+            EnforcementResult with final enforced response.
         """
         context = context or {}
         current_response = response
@@ -548,19 +556,22 @@ class ResponseEnforcer:
                 fallback_applied=fallback_result.fallback_applied,
             )
 
-        # Retry loop
+        # Retry loop - uses --resume to continue the conversation
+        current_session_id = session_id
         for attempt in range(max_retries):
             total_attempts += 1
             logger.info(
-                f"ADR-038: Retry attempt {attempt + 1}/{max_retries}"
+                f"ADR-038: Retry attempt {attempt + 1}/{max_retries} "
+                f"(session {current_session_id[:8]}...)"
             )
 
-            result = await self.run_retry_phase(
-                phase_dir=phase_dir,
+            result, new_session_id = await self.run_retry_phase(
+                session_id=current_session_id,
                 issues=all_issues,
                 runner=runner,
                 context=context,
             )
+            current_session_id = new_session_id  # Update for next retry
 
             if result.success:
                 logger.info(

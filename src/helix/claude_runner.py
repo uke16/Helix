@@ -36,12 +36,14 @@ class ClaudeResult:
         stderr: Standard error from the process.
         output_json: Parsed JSON output if available.
         duration_seconds: Execution duration in seconds.
+        session_id: Claude CLI session ID for --resume continuation.
     """
     success: bool
     exit_code: int
     stdout: str
     stderr: str
     output_json: dict[str, Any] | None = None
+    session_id: str | None = None
     duration_seconds: float = 0.0
 
 
@@ -260,6 +262,7 @@ class ClaudeRunner:
             exit_code = process.returncode or 0
 
             output_json = self._extract_json_output(stdout, phase_dir)
+            session_id = self._extract_session_id(stdout)
 
             duration = time.time() - start_time
 
@@ -269,6 +272,7 @@ class ClaudeRunner:
                 stdout=stdout,
                 stderr=stderr,
                 output_json=output_json,
+                session_id=session_id,
                 duration_seconds=duration,
             )
 
@@ -419,6 +423,7 @@ class ClaudeRunner:
             exit_code = process.returncode or 0
 
             output_json = self._extract_json_output(stdout, phase_dir)
+            session_id = self._extract_session_id(stdout)
 
             duration = time.time() - start_time
 
@@ -428,6 +433,7 @@ class ClaudeRunner:
                 stdout=stdout,
                 stderr=stderr,
                 output_json=output_json,
+                session_id=session_id,
                 duration_seconds=duration,
             )
 
@@ -554,6 +560,134 @@ class ClaudeRunner:
                     continue
 
         return None
+
+    def _extract_session_id(self, stdout: str) -> str | None:
+        """Extract Claude CLI session ID from JSONL output.
+
+        The session_id appears in every JSONL event and is needed for
+        --resume to continue a conversation.
+
+        Args:
+            stdout: Standard output containing JSONL events.
+
+        Returns:
+            Session ID string or None if not found.
+        """
+        import json as json_module
+        
+        for line in stdout.strip().split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json_module.loads(line)
+                # Session ID appears in init message and all subsequent events
+                if "session_id" in data:
+                    return data["session_id"]
+            except json_module.JSONDecodeError:
+                continue
+        
+        return None
+
+    async def continue_session(
+        self,
+        session_id: str,
+        prompt: str,
+        model: str | None = None,
+        timeout: int = 300,
+        env_overrides: dict[str, str] | None = None,
+    ) -> ClaudeResult:
+        """Continue an existing Claude session with --resume.
+
+        This is critical for retry logic - Claude needs the conversation
+        context to understand what "your last response" refers to.
+
+        Args:
+            session_id: Claude CLI session ID from previous execution.
+            prompt: New prompt to send (e.g., retry feedback).
+            model: Optional model spec to use.
+            timeout: Timeout in seconds.
+            env_overrides: Optional environment variable overrides.
+
+        Returns:
+            ClaudeResult with execution details including new session_id.
+        """
+        import time
+
+        start_time = time.time()
+
+        env = self.get_claude_env(model)
+        if env_overrides:
+            env.update(env_overrides)
+
+        # Build command with --resume flag
+        cmd = self._build_command([
+            "--resume", session_id,
+            "--output-format", "stream-json",
+            prompt
+        ])
+
+        logger.info(f"Continuing session {session_id[:8]}... with prompt: {prompt[:50]}...")
+
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
+            )
+
+            try:
+                stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                    process.communicate(),
+                    timeout=timeout,
+                )
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                duration = time.time() - start_time
+                return ClaudeResult(
+                    success=False,
+                    exit_code=-1,
+                    stdout="",
+                    stderr=f"Timeout after {timeout}s during session continuation",
+                    output_json=None,
+                    session_id=session_id,  # Keep original session_id
+                )
+
+            stdout = stdout_bytes.decode("utf-8", errors="replace")
+            stderr = stderr_bytes.decode("utf-8", errors="replace")
+            exit_code = process.returncode or 0
+            duration = time.time() - start_time
+
+            # Extract new session_id (may be same or different)
+            new_session_id = self._extract_session_id(stdout) or session_id
+
+            logger.info(
+                f"Session continuation completed: exit={exit_code}, "
+                f"duration={duration:.1f}s, session={new_session_id[:8]}..."
+            )
+
+            return ClaudeResult(
+                success=exit_code == 0,
+                exit_code=exit_code,
+                stdout=stdout,
+                stderr=stderr,
+                output_json=None,  # Don't parse for continuation
+                session_id=new_session_id,
+            )
+
+        except Exception as e:
+            duration = time.time() - start_time
+            logger.error(f"Session continuation failed: {e}")
+            return ClaudeResult(
+                success=False,
+                exit_code=-1,
+                stdout="",
+                stderr=str(e),
+                output_json=None,
+                session_id=session_id,
+            )
 
     async def run_with_retry(
         self,

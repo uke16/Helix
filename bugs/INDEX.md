@@ -106,3 +106,67 @@ Gesammelt aus Controller-Workflows und Audits.
 **Fix:** Chat-History in CLAUDE.md Template einbetten
 **Status:** ✅ DONE (Commit c93c1ad, 2025-12-30)
 
+
+---
+
+## BUG-007: ResponseEnforcer Retry nutzt nicht --continue (2025-12-31)
+
+**Schwere:** KRITISCH
+**ADR:** ADR-038
+**Status:** 🟢 GEFIXT
+
+### Problem
+
+ADR-038 spezifiziert:
+```python
+result = await self.runner.continue_session(
+    session_id=session_id,
+    prompt=feedback_prompt,
+)
+```
+
+Aber implementiert wurde:
+```python
+result = await runner.run_phase(
+    phase_dir=phase_dir,
+    prompt=feedback_prompt,
+)
+```
+
+### Impact
+
+- `run_phase` startet eine **NEUE** Claude Session
+- Claude hat keinen Kontext was die "letzte Antwort" war
+- Retry-Feedback "Deine letzte Antwort hatte Fehler" macht keinen Sinn
+- Claude generiert wirres Zeug (z.B. Follow-up Fragen statt Korrektur)
+
+### Root Cause
+
+`ClaudeRunner.continue_session()` wurde **nie implementiert**.
+
+Claude CLI hat:
+- `--continue`: Continue most recent conversation
+- `--resume <session-id>`: Resume specific session
+
+### FIX IMPLEMENTIERT (2025-12-31)
+
+1. `ClaudeRunner.continue_session()` implementiert mit `--resume <session_id>`
+2. `ResponseEnforcer.run_retry_phase()` nutzt jetzt `continue_session`
+3. Session-ID wird aus JSONL extrahiert und durch Retry-Chain weitergegeben
+4. Für simple Issues (MISSING_STEP_MARKER) → direkter Fallback statt Retry
+
+### Ursprünglicher Workaround (vor Fix)
+
+Für fallback-fixable Issues (MISSING_STEP_MARKER) wird sofort Fallback angewandt, keine Retries.
+
+### Echter Fix (jetzt implementiert)
+
+1. Session-ID aus erster Claude-Ausführung extrahieren (aus JSONL)
+2. `ClaudeRunner.continue_session(session_id, prompt)` implementieren
+3. ResponseEnforcer anpassen um continue_session zu nutzen
+
+### Betroffene Dateien
+
+- `src/helix/claude_runner.py` - continue_session fehlt
+- `src/helix/enforcement/response_enforcer.py` - nutzt run_phase statt continue_session
+
