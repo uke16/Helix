@@ -22,6 +22,7 @@ Refactored with ADR-034 LLM-Native flow:
 """
 
 import asyncio
+import logging
 import json
 import os
 import sys
@@ -38,6 +39,8 @@ from jinja2 import Environment, FileSystemLoader
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from helix.claude_runner import ClaudeRunner
+from helix.enforcement.validators import StepMarkerValidator
+from helix.enforcement.validators.base import ValidationIssue
 
 from ..middleware import InputValidator, limiter, CHAT_COMPLETIONS_LIMIT
 from ..models import (
@@ -339,6 +342,20 @@ async def _run_consultant_streaming(
             # Final fallback - clean message, NOT raw JSONL
             if not response_text:
                 response_text = "Verarbeitung abgeschlossen."
+
+        # ADR-038: Validate response and apply fallbacks if needed
+        # This ensures STEP markers are always present for step tracking
+        step_validator = StepMarkerValidator()
+        validation_issues = step_validator.validate(response_text, {})
+        if validation_issues:
+            # Apply fallback heuristics to fix the response
+            fixed_response = step_validator.apply_fallback(response_text, {})
+            if fixed_response:
+                response_text = fixed_response
+                # Log that fallback was applied
+                logging.getLogger(__name__).info(
+                    f"ADR-038: Applied STEP marker fallback for session {session_id}"
+                )
 
         # Stream the actual response
         yield _make_chunk(completion_id, created, model, "\n\n---\n\n")
