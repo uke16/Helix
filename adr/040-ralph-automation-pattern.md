@@ -1,6 +1,6 @@
 ---
 adr_id: "040"
-title: "Ralph Automation Pattern - Iterative ADR Execution"
+title: "Ralph Automation Pattern - Iterative ADR Execution with Consultant Verification"
 status: Proposed
 
 component_type: PROCESS
@@ -17,12 +17,12 @@ skills:
 files:
   create:
     - src/helix/ralph/__init__.py
-    - src/helix/ralph/promises.py
-    - src/helix/ralph/sub_agent.py
+    - src/helix/ralph/consultant_verify.py
     - docs/RALPH-PATTERN.md
   modify:
+    - control/verify-with-consultant.sh
+    - control/spawn-consultant.sh
     - templates/controller/CLAUDE.md.j2
-    - templates/adr/template.md.j2
   docs:
     - docs/ARCHITECTURE-MODULES.md
     - adr/INDEX.md
@@ -38,360 +38,346 @@ Proposed - 2025-12-31
 
 ADR-Implementierung war bisher manuell und fehleranfällig:
 - Controller vergessen `files.modify` Schritte
-- Keine automatische Verifikation ob Integration funktioniert
-- Kein Retry bei Fehlern
-- Sub-Agenten (Consultant) werden nicht getestet
+- Automatische Verify-Scripts prüfen nur was reingeschrieben wurde
+- Textuelle ADR-Anforderungen werden nicht geprüft
+- Ralph gibt Promise aus obwohl nicht alle Phasen fertig sind
 
-### Lösung: Ralph Pattern
+### Beispiel: ADR-039 Fehler
 
-Das Ralph Wiggum Pattern (benannt nach Geoffrey Huntley's Technik) ermöglicht:
-- Iterative Ausführung bis Erfolg
-- Klare Completion Promises
-- Sub-Agent Freigabe (Controller testet Consultant)
-- Selbst-Korrektur durch Dateisystem-Feedback
+```
+Ralph machte Phase 1 (Paths) ──► Integration Test OK ──► Promise ausgegeben
+                                                              │
+                                    ❌ Phase 2 (LSP) vergessen
+                                    ❌ Phase 3 (Docs) vergessen
+```
 
-### Beweis
+Das Verify-Script prüfte nur:
+- Files existieren? ✅
+- Tests grün? ✅
 
-ADR-039 wurde erfolgreich mit Ralph implementiert:
-- 1 Iteration
-- 13 Dateien migriert
-- 83 Unit Tests grün
-- Integration Test bestanden (Sub-Agent Consultant antwortete)
+Aber NICHT:
+- "ENABLE_LSP_TOOL Default soll 1 sein" (textuell im ADR)
+- "ConsultantMeeting dokumentiert" (textuell im ADR)
+
+### Lösung: Consultant als intelligentes Verify
+
+Der Consultant LIEST das ADR und versteht ALLE Anforderungen - auch textuelle.
 
 ## Entscheidung
 
-### 1. Ralph Section in allen ADRs
+### 1. Incremental Goals Pattern
 
-Jedes ADR mit `component_type: TOOL|NODE|AGENT|SERVICE|PROCESS` bekommt eine Ralph Section:
+**Schlecht:** "Implementiere ADR komplett"
+**Gut:** Phasenweise mit Tests nach jeder Phase
+
+```
+Phase 1: [Aufgabe] ──► Test ──► GRÜN? ──► weiter
+Phase 2: [Aufgabe] ──► Test ──► GRÜN? ──► weiter  
+Phase 3: [Aufgabe] ──► Test ──► GRÜN? ──► weiter
+FINAL: Consultant Verify ──► PASSED? ──► Promise
+```
+
+### 2. Consultant-als-Verify (KERN-INNOVATION)
+
+```bash
+./control/verify-with-consultant.sh adr/XXX.md
+```
+
+**Flow:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     verify-with-consultant.sh                                │
+│                                                                              │
+│  1. Automatische Checks (schnell, billig)                                   │
+│     └── Files existieren? Tests grün? Syntax OK?                            │
+│                          │                                                   │
+│                          ▼                                                   │
+│  2. Spawne Consultant mit:                                                  │
+│     ├── ADR Inhalt (VOLLSTÄNDIG)                                            │
+│     ├── Automatische Check-Ergebnisse                                       │
+│     └── Frage: "Sind ALLE Anforderungen erfüllt?"                          │
+│                          │                                                   │
+│                          ▼                                                   │
+│  3. Consultant:                                                              │
+│     ├── Liest ADR (versteht textuelle Anforderungen)                        │
+│     ├── Führt EIGENE Checks aus (pyright, grep, etc.)                       │
+│     ├── Vergleicht mit Anforderungen                                        │
+│     └── Verdict: PASSED + Promise ODER FAILED + was fehlt                   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Warum Consultant besser als Script:**
+
+| Automatisches Script | Consultant |
+|---------------------|------------|
+| Prüft nur was reingeschrieben | Liest ADR komplett |
+| Versteht keinen Kontext | "Default soll 1 sein" → prüft :-1 vs :-0 |
+| Kann keine neuen Checks | Führt pyright, grep etc. selbst aus |
+| Vergisst textuelle Reqs | Versteht "dokumentiert in X" |
+
+### 3. Ralph Section Format für ADRs
 
 ```markdown
 ## Ralph Automation
 
-### Master Promise
-`<promise>ADR_XXX_COMPLETE</promise>`
+### Incremental Phases
 
-### Phasen-Promises
+| Phase | Aufgabe | Test |
+|-------|---------|------|
+| 1 | [Beschreibung] | `pytest tests/unit/test_X.py` |
+| 2 | [Beschreibung] | `python3 -m py_compile src/X.py` |
+| 3 | [Beschreibung] | `grep -q "X" docs/Y.md` |
 
-| Phase | Rolle | Promise | Kriterien |
-|-------|-------|---------|-----------|
-| 1 | Developer | `IMPLEMENTATION_COMPLETE` | Code geschrieben, Syntax OK |
-| 2 | Tester | `UNIT_TESTS_PASSED` | pytest grün |
-| 3 | Integrator | `INTEGRATION_VERIFIED` | Sub-Agent Test OK |
-| 4 | Reviewer | `REVIEW_APPROVED` | Checkliste erfüllt |
-| 5 | Dokumentierer | `DOCS_COMPLETE` | Docs aktualisiert |
-
-### Sub-Agent Freigabe
+### Final Verification
 
 ```bash
-# Integration Test - Sub-Agent muss antworten
-curl -s -X POST http://localhost:8001/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"helix-consultant","messages":[{"role":"user","content":"Test"}]}' \
-  | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-content = data.get('choices',[{}])[0].get('message',{}).get('content','')
-assert len(content) > 50, 'Sub-Agent Response zu kurz'
-print('SUB_AGENT_OK')
-"
-```
+./control/verify-with-consultant.sh adr/040-*.md
 ```
 
-### 2. Standard Completion Promises
+### Completion Promise
 
-#### Developer Promise: `IMPLEMENTATION_COMPLETE`
-
-```yaml
-kriterien:
-  - Alle files.create Dateien existieren
-  - Alle files.modify Änderungen gemacht
-  - python3 -m py_compile für alle .py Dateien
-  - Keine hardcoded Paths (/home/aiuser01)
-  - Kein sys.path.insert() (außer in Tests)
+Nur wenn Consultant "VERDICT: PASSED" sagt:
+`<promise>ADR_040_COMPLETE</promise>`
 ```
 
-#### Tester Promise: `UNIT_TESTS_PASSED`
+### 4. Sub-Agent Spawn für Developer
 
-```yaml
-kriterien:
-  - pytest tests/unit/ -v --tb=short
-  - Alle Tests PASSED
-  - Coverage > 80% für neue Dateien (optional)
+Developer kann Consultant jederzeit spawnen:
+
+```bash
+# Code Review
+./control/spawn-consultant.sh review src/helix/new_module.py
+
+# Architektur-Frage
+./control/spawn-consultant.sh analyze "Wo gehört Caching hin?"
+
+# ADR Draft
+./control/spawn-consultant.sh adr "Neues Feature X"
 ```
 
-#### Integrator Promise: `INTEGRATION_VERIFIED`
-
-```yaml
-kriterien:
-  - API startet auf Port 8001
-  - Health Check: GET /health → 200
-  - Sub-Agent Test: Consultant antwortet
-  - Response > 50 Zeichen
-  - Response ist kein Raw-JSONL
-  - Response enthält nicht nur STEP-Marker
-```
-
-#### Reviewer Promise: `REVIEW_APPROVED`
-
-```yaml
-kriterien:
-  - ADR Akzeptanzkriterien erfüllt
-  - Code Style konsistent
-  - Keine Security Issues
-  - Error Handling vorhanden
-  - Logging für kritische Pfade
-```
-
-#### Dokumentierer Promise: `DOCS_COMPLETE`
-
-```yaml
-kriterien:
-  - Docstrings für alle public Functions
-  - ARCHITECTURE-MODULES.md aktualisiert (wenn neues Modul)
-  - README.md aktualisiert (wenn neues Feature)
-  - ADR in INDEX.md eingetragen
-```
-
-### 3. Sub-Agent Freigabe Pattern
-
-Das kritischste Pattern: **Der Controller testet den Consultant**
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    RALPH CONTROLLER                          │
-│                                                              │
-│  /ralph-loop "Implementiere ADR-XXX..."                     │
-│       --max-iterations 10                                    │
-│       --completion-promise "ADR_XXX_COMPLETE"               │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ Iteration 1                                          │    │
-│  │   ├── Code schreiben                                │    │
-│  │   ├── Unit Tests laufen lassen                      │    │
-│  │   ├── Tests FAILED? → Iteration 2                   │    │
-│  │   └── Tests PASSED? → Weiter                        │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                          ↓                                   │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ Integration Test (SUB-AGENT FREIGABE)               │    │
-│  │                                                      │    │
-│  │   1. API neu starten                                │    │
-│  │   2. curl POST /v1/chat/completions                 │    │
-│  │   3. Consultant (SUB-AGENT) antwortet               │    │
-│  │   4. Response validieren:                           │    │
-│  │      - len(content) > 50                            │    │
-│  │      - "STEP" not in content[:50]                   │    │
-│  │      - Kein JSONL                                   │    │
-│  │   5. PASSED? → <promise>INTEGRATION_VERIFIED</promise>│   │
-│  │      FAILED? → Nächste Iteration                    │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                          ↓                                   │
-│  <promise>ADR_XXX_COMPLETE</promise>                        │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 4. Universelle Patterns
-
-#### Reviewer Pattern (universell)
+### 5. Controller CLAUDE.md Template
 
 ```markdown
-## Reviewer Checkliste
+# Ralph Controller für ADR-XXX
 
-- [ ] ADR Akzeptanzkriterien alle erfüllt
-- [ ] Keine TODO/FIXME im Code (außer dokumentiert)
-- [ ] Error Messages sind hilfreich
-- [ ] Keine sensitive Daten in Logs
-- [ ] Edge Cases behandelt
+## Incremental Goals
 
-Wenn alle Checkboxen ✓: <promise>REVIEW_APPROVED</promise>
+### Phase 1: [Name]
+```bash
+# Aufgabe
+[Code schreiben]
+
+# Test
+pytest tests/unit/test_X.py -v
+# Wenn GRÜN → weiter zu Phase 2
 ```
 
-#### Dokumentierer Pattern (universell)
+### Phase 2: [Name]
+```bash
+# Aufgabe
+[Code schreiben]
 
-```markdown
-## Dokumentation Checkliste
+# Test
+[Spezifischer Test]
+# Wenn GRÜN → weiter zu Phase 3
+```
 
-- [ ] Alle public Functions haben Docstrings
-- [ ] Modul-Level Docstring vorhanden
-- [ ] Beispiele in Docstrings wo sinnvoll
-- [ ] ARCHITECTURE-MODULES.md aktualisiert
-- [ ] ADR in INDEX.md eingetragen
+### FINAL: Consultant Verification
+```bash
+./control/verify-with-consultant.sh adr/XXX.md
+```
 
-Wenn alle Checkboxen ✓: <promise>DOCS_COMPLETE</promise>
+Nur wenn Consultant "VERDICT: PASSED" sagt:
+<promise>ADR_XXX_COMPLETE</promise>
 ```
 
 ## Implementation
 
-### Phase 1: Promise Registry
+### Phase 1: Ralph Python Module
 
 ```python
-# src/helix/ralph/promises.py
-from dataclasses import dataclass
-from typing import Callable
+# src/helix/ralph/__init__.py
+"""Ralph Automation Pattern - Iterative ADR Execution."""
 
-@dataclass
-class CompletionPromise:
-    """A completion promise for Ralph loops."""
-    name: str
-    role: str  # developer, tester, integrator, reviewer, documenter
-    criteria: list[str]
-    validator: Callable[[], bool]
+from .consultant_verify import ConsultantVerifier
 
-STANDARD_PROMISES = {
-    "UNIT_TESTS_PASSED": CompletionPromise(
-        name="UNIT_TESTS_PASSED",
-        role="tester",
-        criteria=["pytest tests/unit/ passes"],
-        validator=lambda: run_pytest() == 0,
-    ),
-    "INTEGRATION_VERIFIED": CompletionPromise(
-        name="INTEGRATION_VERIFIED",
-        role="integrator",
-        criteria=["API healthy", "Sub-agent responds"],
-        validator=lambda: check_integration(),
-    ),
-}
+__all__ = ["ConsultantVerifier"]
 ```
 
-### Phase 2: Sub-Agent Validator
-
 ```python
-# src/helix/ralph/sub_agent.py
-import httpx
+# src/helix/ralph/consultant_verify.py
+"""Consultant-based ADR verification."""
 
-async def validate_sub_agent(
-    api_url: str = "http://localhost:8001",
-    min_response_length: int = 50,
-) -> bool:
-    """Validate that the sub-agent (Consultant) responds correctly."""
-    async with httpx.AsyncClient(timeout=60) as client:
-        response = await client.post(
-            f"{api_url}/v1/chat/completions",
-            json={
-                "model": "helix-consultant",
-                "messages": [{"role": "user", "content": "Was ist HELIX?"}],
-                "stream": False,
-            },
+import subprocess
+from pathlib import Path
+
+class ConsultantVerifier:
+    """Verify ADR completion using Consultant sub-agent."""
+    
+    def __init__(self, helix_root: Path):
+        self.helix_root = helix_root
+        self.spawn_script = helix_root / "control" / "spawn-consultant.sh"
+    
+    def verify_adr(self, adr_path: Path) -> tuple[bool, str]:
+        """Verify ADR is complete using Consultant.
+        
+        Returns:
+            (passed: bool, verdict: str)
+        """
+        # Run automatic checks first
+        auto_results = self._run_auto_checks(adr_path)
+        
+        # Build prompt for Consultant
+        adr_content = adr_path.read_text()
+        prompt = self._build_verify_prompt(adr_content, auto_results)
+        
+        # Spawn Consultant
+        result = subprocess.run(
+            [str(self.spawn_script), prompt],
+            capture_output=True,
+            text=True,
+            timeout=120
         )
         
-        data = response.json()
-        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        verdict = result.stdout
+        passed = "VERDICT: PASSED" in verdict
         
-        # Validation criteria
-        if len(content) < min_response_length:
-            return False
-        if "STEP" in content[:50]:  # Only STEP marker, no real content
-            return False
-        if content.startswith("{"):  # Raw JSONL
-            return False
-            
-        return True
+        return passed, verdict
+    
+    def _run_auto_checks(self, adr_path: Path) -> str:
+        """Run automatic checks (files, tests, syntax)."""
+        # Implementation details...
+        pass
+    
+    def _build_verify_prompt(self, adr_content: str, auto_results: str) -> str:
+        """Build prompt for Consultant verification."""
+        return f"""
+Prüfe ob dieses ADR VOLLSTÄNDIG implementiert ist.
+
+AUTOMATISCHE CHECK-ERGEBNISSE:
+{auto_results}
+
+ADR INHALT:
+{adr_content}
+
+AUFGABE:
+1. Lies ALLE Anforderungen im ADR
+2. Vergleiche mit automatischen Checks
+3. Prüfe was die Checks NICHT abgedeckt haben
+4. Führe eigene Checks aus wenn nötig
+
+VERDICT:
+Falls ALLES erfüllt: "VERDICT: PASSED"
+Falls etwas fehlt: "VERDICT: FAILED" + Liste was fehlt
+"""
 ```
 
-### Phase 3: ADR Template Update
+### Phase 2: Docs erstellen
 
-```jinja2
-{# templates/adr/template.md.j2 #}
-{% if component_type in ['TOOL', 'NODE', 'AGENT', 'SERVICE', 'PROCESS'] %}
-## Ralph Automation
+```markdown
+# docs/RALPH-PATTERN.md
 
-### Master Promise
-`<promise>ADR_{{ adr_id }}_COMPLETE</promise>`
+## Overview
 
-### Phasen-Promises
+Ralph Automation Pattern für iterative ADR-Ausführung mit Consultant-Verifikation.
 
-| Phase | Rolle | Promise | Kriterien |
-|-------|-------|---------|-----------|
-| 1 | Developer | `IMPLEMENTATION_COMPLETE` | {{ implementation_criteria | default('Code geschrieben') }} |
-| 2 | Tester | `UNIT_TESTS_PASSED` | pytest grün |
-| 3 | Integrator | `INTEGRATION_VERIFIED` | Sub-Agent Test OK |
-| 4 | Reviewer | `REVIEW_APPROVED` | ADR Kriterien erfüllt |
-| 5 | Dokumentierer | `DOCS_COMPLETE` | Docs aktualisiert |
-
-### Sub-Agent Test
+## Quick Start
 
 ```bash
-{{ sub_agent_test | default('curl -s http://localhost:8001/health') }}
+# 1. Controller erstellen
+mkdir -p projects/claude/controller-adr-XXX
+# ... CLAUDE.md mit Incremental Goals
+
+# 2. Ralph Loop starten
+/ralph-wiggum:ralph-loop "Lies CLAUDE.md..." --max-iterations 10 --completion-promise "ADR_XXX_COMPLETE"
+
+# 3. Final Verify
+./control/verify-with-consultant.sh adr/XXX.md
 ```
-{% endif %}
+
+## Best Practices
+
+1. **Incremental Goals**: Kleine Phasen mit Tests nach jeder
+2. **Consultant Verify**: Nicht Script, Consultant liest ADR
+3. **Sub-Agent Spawn**: Developer kann Consultant jederzeit nutzen
 ```
+
+### Phase 3: Template Update
+
+Update `templates/controller/CLAUDE.md.j2` mit Incremental Goals Pattern.
 
 ## Akzeptanzkriterien
 
 ### Must Have
-- [ ] Standard Promises definiert (5 Rollen)
-- [ ] Sub-Agent Freigabe Pattern dokumentiert
-- [ ] ADR Template enthält Ralph Section
-- [ ] Controller Template nutzt Ralph
+- [ ] `src/helix/ralph/__init__.py` existiert
+- [ ] `src/helix/ralph/consultant_verify.py` mit ConsultantVerifier
+- [ ] `docs/RALPH-PATTERN.md` mit vollständiger Dokumentation
+- [ ] `verify-with-consultant.sh` funktioniert für beliebige ADRs
+- [ ] Unit Tests für ConsultantVerifier
 
 ### Should Have
-- [ ] Promise Registry in Python implementiert
-- [ ] Sub-Agent Validator Funktion
-- [ ] Automatische Promise-Erkennung im ADR
+- [ ] Controller Template mit Incremental Goals
+- [ ] Beispiel-Controller für ADR-040 selbst
 
 ### Nice to Have
+- [ ] CLI: `helix ralph verify adr/XXX.md`
 - [ ] Dashboard für Ralph Loop Status
-- [ ] Metrics für Iterationen pro ADR
-- [ ] Automatische Retry-Strategie Optimierung
 
 ## Konsequenzen
 
 ### Positiv
-- **Garantierte Integration**: Sub-Agent Test beweist dass Änderungen funktionieren
-- **Selbst-Korrektur**: Ralph iteriert bis Erfolg
-- **Standardisierung**: Gleiche Promises für alle ADRs
-- **Nachvollziehbarkeit**: status.md dokumentiert jeden Schritt
+- **Intelligente Verifikation**: Consultant versteht textuelle Anforderungen
+- **Incremental Goals**: Phasenweise mit Tests verhindert "vergessene" Phasen
+- **Sub-Agent Pattern**: Developer kann Consultant für Reviews nutzen
+- **Selbst-korrigierend**: Ralph iteriert bis Consultant PASSED sagt
 
 ### Negativ
-- **API Kosten**: Mehr Iterationen = mehr Claude Aufrufe
-- **Zeitaufwand**: Ralph Loops können lange dauern
-- **Komplexität**: Neues Konzept für Team
+- **API Kosten**: Consultant-Call pro Verify (aber nur 1x am Ende)
+- **Latenz**: Consultant braucht ~30-60s für Verify
 
 ### Risiken
-- **Endlos-Loops**: max-iterations als Sicherheit
-- **False Positives**: Sub-Agent Test muss robust sein
-- **Ressourcen**: Mehrere Claude-Instanzen parallel
+- **Consultant-Fehler**: Consultant könnte PASSED sagen obwohl was fehlt
+  - Mitigation: Automatische Checks als Baseline
+- **Timeout**: Consultant könnte zu lange brauchen
+  - Mitigation: 120s Timeout
 
 ## Referenzen
 
-- [Ralph Wiggum Technique](https://ghuntley.com/ralph/) - Original Konzept
-- [Ralph Orchestrator](https://github.com/mikeyobrien/ralph-orchestrator) - Reference Implementation
-- ADR-038: Response Enforcement - Basis für Sub-Agent Validation
-- ADR-039: Code Quality Hardening - Erster erfolgreicher Ralph-Einsatz
-
-## Ralph Automation
-
-### Master Promise
-`<promise>ADR_040_COMPLETE</promise>`
-
-### Phasen-Promises
-
-| Phase | Rolle | Promise | Kriterien |
-|-------|-------|---------|-----------|
-| 1 | Developer | `IMPLEMENTATION_COMPLETE` | promises.py, sub_agent.py erstellt |
-| 2 | Tester | `UNIT_TESTS_PASSED` | pytest für Ralph Module |
-| 3 | Integrator | `INTEGRATION_VERIFIED` | Ralph Controller funktioniert |
-| 4 | Reviewer | `REVIEW_APPROVED` | Pattern dokumentiert |
-| 5 | Dokumentierer | `DOCS_COMPLETE` | RALPH-PATTERN.md erstellt |
-
-### Sub-Agent Test
-
-```bash
-# Test: Ralph Controller kann Bubblesort implementieren
-cd /tmp/ralph-test
-/ralph-loop "Implementiere Bubblesort" --max-iterations 3 --completion-promise "TESTS_PASSING"
-# Erwartet: bubblesort.py + test_bubblesort.py + pytest grün
-```
+- [Ralph Wiggum Technique](https://ghuntley.com/ralph/)
+- ADR-038: Response Enforcement (--resume Implementation)
+- ADR-039: Code Quality Hardening (erster Ralph-Einsatz + Learnings)
 
 ## Dokumentation
 
 ### Zu aktualisierende Docs
-- `docs/RALPH-PATTERN.md` - Neues Dokument für Ralph Pattern
+- `docs/RALPH-PATTERN.md` - Neues Dokument
 - `docs/ARCHITECTURE-MODULES.md` - Ralph Module Sektion
-- `templates/controller/CLAUDE.md.j2` - Ralph Integration
-- `templates/adr/template.md.j2` - Ralph Section Template
+- `docs/SUB-AGENT-PATTERN.md` - Bereits erstellt
 
 ### Verlinkte ADRs
 - ADR-038: Response Enforcement
-- ADR-039: Code Quality Hardening (erster Ralph-Einsatz)
+- ADR-039: Code Quality Hardening
+
+## Ralph Automation
+
+### Incremental Phases
+
+| Phase | Aufgabe | Test |
+|-------|---------|------|
+| 1 | Ralph Python Module | `python3 -m py_compile src/helix/ralph/*.py` |
+| 2 | Docs erstellen | `test -f docs/RALPH-PATTERN.md` |
+| 3 | Template Update | `grep -q "Incremental" templates/controller/CLAUDE.md.j2` |
+| 4 | Unit Tests | `pytest tests/unit/test_ralph.py -v` |
+
+### Final Verification
+
+```bash
+./control/verify-with-consultant.sh adr/040-ralph-automation-pattern.md
+```
+
+### Completion Promise
+
+Nur wenn Consultant "VERDICT: PASSED" sagt:
+`<promise>ADR_040_COMPLETE</promise>`
