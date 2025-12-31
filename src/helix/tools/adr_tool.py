@@ -24,6 +24,18 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+# ADRParseError with fallback for when helix.adr.parser is not available
+class ADRParseError(Exception):
+    """ADRParseError for validation failures."""
+    pass
+
+# Try to use the real one if available
+try:
+    from helix.adr.parser import ADRParseError as _RealADRParseError
+    ADRParseError = _RealADRParseError  # type: ignore
+except ImportError:
+    pass  # Use our fallback
+
 # HELIX root directory
 HELIX_ROOT = Path(__file__).parent.parent.parent.parent
 ADR_DIR = HELIX_ROOT / "adr"
@@ -85,7 +97,7 @@ def validate_adr(adr_path: str | Path) -> ADRToolResult:
     # Try to use helix.adr.validator if available
     try:
         from helix.adr.validator import ADRValidator
-        from helix.adr.parser import ADRParseError
+        # ADRParseError already imported at module level
         validator = ADRValidator()
         result = validator.validate_file(path)
         
@@ -142,7 +154,7 @@ def validate_adr(adr_path: str | Path) -> ADRToolResult:
     )
 
 
-def _basic_validate(content: str) -> tuple[list, list, str, str]:
+def _basic_validate(content: str) -> tuple[list[str], list[str], str | None, str | None]:
     """Basic validation without helix.adr module."""
     errors = []
     warnings = []
@@ -218,6 +230,14 @@ def finalize_adr(adr_path: str | Path, force: bool = False) -> ADRToolResult:
     
     adr_id = validation.adr_id
     adr_title = validation.adr_title
+    
+    # Ensure we have valid adr_id and title
+    if not adr_id or not adr_title:
+        return ADRToolResult(
+            success=False,
+            message="Could not extract ADR ID or title from file",
+            errors=["Missing adr_id or title in YAML frontmatter"]
+        )
     
     # Determine target filename
     # Convert title to slug

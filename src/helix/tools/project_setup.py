@@ -14,7 +14,7 @@ from pathlib import Path
 import yaml
 
 
-def create_adr_project(name: str, base_dir: Path, adr_id: str = None) -> Path:
+def create_adr_project(name: str, base_dir: Path, adr_id: str | None = None) -> Path:
     """Create a new ADR project with Consultant setup."""
     project_dir = base_dir / name
     project_dir.mkdir(parents=True, exist_ok=True)

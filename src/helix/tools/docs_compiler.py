@@ -23,7 +23,7 @@ Example:
 
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast, TYPE_CHECKING
 import ast
 import argparse
 import sys
@@ -131,10 +131,14 @@ class DocCompiler:
             RuntimeError: If Jinja2 is not installed.
         """
         if self._env is None:
-            if Environment is None:
+            if Environment is None:  # pragma: no cover
                 raise RuntimeError("Jinja2 is not installed. Run: pip install jinja2")
 
-            self._env = Environment(
+            if Environment is None:  # pragma: no cover
+                raise RuntimeError("Jinja2 is not installed. Run: pip install jinja2")
+            # Environment is guaranteed not None here
+            _Env = cast(type, Environment)
+            self._env = _Env(
                 loader=FileSystemLoader(str(self.templates_dir)),
                 trim_blocks=True,
                 lstrip_blocks=True,
@@ -286,7 +290,7 @@ class DocCompiler:
                                 "path": str(adr_file.relative_to(self.root)),
                             })
 
-            except (yaml.YAMLError, OSError):
+            except Exception:  # yaml.YAMLError or OSError
                 # Skip files with parsing errors
                 pass
 
@@ -480,7 +484,7 @@ class DocCompiler:
                             meta = data["_meta"]
                             description = meta.get("description", "")
                             generated_outputs = meta.get("generated_outputs", [])
-            except (yaml.YAMLError, OSError):
+            except Exception:  # yaml.YAMLError or OSError
                 pass
 
             sources.append(SourceInfo(

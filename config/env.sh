@@ -40,4 +40,4 @@ fi
 export CLAUDE_MODEL="${CLAUDE_MODEL:-opus}"
 
 # LSP Tool Configuration (ADR-039)
-export ENABLE_LSP_TOOL="${ENABLE_LSP_TOOL:-0}"
+export ENABLE_LSP_TOOL="${ENABLE_LSP_TOOL:-1}"
