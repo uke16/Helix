@@ -316,8 +316,29 @@ async def _run_consultant_streaming(
                 except json.JSONDecodeError:
                     continue
 
+            # Second: Extract last assistant text message (FIX: bug-raw-jsonl-fallback)
             if not response_text:
-                response_text = stdout or "Verarbeitung abgeschlossen."
+                for line in reversed(stdout.strip().split("\n")):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                        if data.get("type") == "assistant":
+                            msg = data.get("message", {})
+                            content_blocks = msg.get("content", [])
+                            for block in content_blocks:
+                                if block.get("type") == "text" and block.get("text"):
+                                    response_text = block["text"]
+                                    break
+                            if response_text:
+                                break
+                    except json.JSONDecodeError:
+                        continue
+
+            # Final fallback - clean message, NOT raw JSONL
+            if not response_text:
+                response_text = "Verarbeitung abgeschlossen."
 
         # Stream the actual response
         yield _make_chunk(completion_id, created, model, "\n\n---\n\n")
