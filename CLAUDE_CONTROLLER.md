@@ -49,3 +49,18 @@ MANUAL_INTERVENTIONS.md + BUGS_AND_IMPROVEMENTS.md ausfüllen
 ## Ziel
 
 Jede dokumentierte Intervention = Input für Workflow-Verbesserung → Richtung Autonomie.
+
+## Known Limitations
+
+### files.modify wird oft übersprungen
+
+Controller führen `files.create` zuverlässig aus, aber `files.modify` (Integration in bestehenden Code) wird häufig vergessen.
+
+**Workaround:** Nach Controller-Abschluss prüfen:
+```bash
+grep "files:" adr/XXX-*.md | grep -A20 "modify:"
+```
+
+Falls Dateien gelistet sind die nicht geändert wurden → manuell oder mit fokussiertem Claude Code Workflow nachholen.
+
+**Beispiel:** ADR-038 erstellte das enforcement/ Package, aber die Integration in openai.py musste separat gemacht werden.
