@@ -1,0 +1,10 @@
+{
+  "session_id": "session-a767bbac85ce43e4a9aed225b482a0d6",
+  "status": "discussing",
+  "step": "what",
+  "created_at": "2026-01-02T12:55:18.275246",
+  "updated_at": "2026-01-02T12:55:18.275273",
+  "original_request": "Warte 35 Sekunden mit sleep, dann antworte mit: Fertig.",
+  "project_name": null,
+  "conversation_id": null
+}

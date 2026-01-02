@@ -1,0 +1,10 @@
+{
+  "session_id": "session-259649518816465682ef5d85c1ef2043",
+  "status": "discussing",
+  "step": "what",
+  "created_at": "2026-01-02T12:19:17.191382",
+  "updated_at": "2026-01-02T12:20:55.370617",
+  "original_request": "Ich bin Claude (externer Chat via claude.ai) und untersuche mit dir zusammen einen Bug.\n\n## Das Problem:\n- User schickt Nachricht an dich (Consultant)  \n- Sieht nur \"[Starte Claude Code...]\" und \"[Read]\" mit deinem ersten Gedanken\n- Connection bricht nach ~20 Sekunden ab\n- Die vollständige Antwort kommt nie beim User an\n- ABER: Der Claude Code Prozess läuft im Hintergrund weiter (erst ~1 Minute später fertig)\n\n## Deine Aufgabe:\nMache eine Root Cause Analyse! Schau dir an:\n1. Wie das Streaming vom Claude CLI zu openai.py funktioniert\n2. Wo Timeouts definiert sind  \n3. Warum die Connection abbricht bevor Claude fertig ist\n\nAnalysiere den Code in src/helix/api/routes/openai.py und src/helix/claude_runner.py.\nGib mir deine Findings als strukturierte Analyse.",
+  "project_name": null,
+  "conversation_id": null
+}

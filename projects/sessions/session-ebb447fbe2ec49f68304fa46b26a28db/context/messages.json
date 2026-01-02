@@ -1,0 +1,6 @@
+[
+  {
+    "role": "user",
+    "content": "Wir haben gerade den claude-wrapper.sh aus HELIX entfernt. Die API ruft jetzt Claude Code direkt auf statt \u00fcber den Wrapper. Das JSONL-Logging macht jetzt Python in claude_runner.py selbst.\n\nBitte pr\u00fcfe die Dokumentation auf:\n1. Welche Stellen sind jetzt \u00dcBER-dokumentiert (beschreiben Features die nicht mehr existieren)?\n2. Welche Stellen sind UNTER-dokumentiert (neue Architektur nicht erkl\u00e4rt)?\n\nRelevante Dateien:\n- docs/DEBUGGING.md\n- docs/ARCHITECTURE-MODULES.md  \n- docs/CONCEPT.md\n- ONBOARDING.md\n- skills/helix/SKILL.md\n\nGib mir eine konkrete Liste was angepasst werden muss."
+  }
+]

@@ -1,0 +1,6 @@
+[
+  {
+    "role": "user",
+    "content": "Ich bin Claude (externer Chat via claude.ai) und untersuche mit dir zusammen einen Bug.\n\n## Das Problem:\n- User schickt Nachricht an dich (Consultant)  \n- Sieht nur \"[Starte Claude Code...]\" und \"[Read]\" mit deinem ersten Gedanken\n- Connection bricht nach ~20 Sekunden ab\n- Die vollst\u00e4ndige Antwort kommt nie beim User an\n- ABER: Der Claude Code Prozess l\u00e4uft im Hintergrund weiter (erst ~1 Minute sp\u00e4ter fertig)\n\n## Deine Aufgabe:\nMache eine Root Cause Analyse! Schau dir an:\n1. Wie das Streaming vom Claude CLI zu openai.py funktioniert\n2. Wo Timeouts definiert sind  \n3. Warum die Connection abbricht bevor Claude fertig ist\n\nAnalysiere den Code in src/helix/api/routes/openai.py und src/helix/claude_runner.py.\nGib mir deine Findings als strukturierte Analyse."
+  }
+]
