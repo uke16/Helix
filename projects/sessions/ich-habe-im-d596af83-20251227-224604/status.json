@@ -1,9 +1,0 @@
-{
-  "session_id": "ich-habe-im-d596af83-20251227-224604",
-  "status": "discussing",
-  "step": "what",
-  "created_at": "2025-12-27T22:46:04.733700",
-  "updated_at": "2025-12-27T22:46:04.734291",
-  "original_request": "Ich habe im letzten Chat das hier geschrieben \n\nHaben wir das Dokumentation  AdR schon implementiert? Welches AdR ist das und was löst es und wie.schau mal bitte nach.  Und das Delta zur aktuellen Dokumentation erklären\n\n\nUnd habe eine generische Antwort bekommen. Da ist was schief gegangen. Kannst du das mal prüfen? Und den root cause finden?",
-  "project_name": null
-}

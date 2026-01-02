@@ -1,1 +1,0 @@
-Python Script, Daten kommen aus PostgreSQL via REST API. XLSX Format. CLI Tool. BOMs haben max 500 Artikel und 5 Ebenen Tiefe.

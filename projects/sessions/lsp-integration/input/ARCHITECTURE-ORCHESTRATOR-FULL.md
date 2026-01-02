@@ -1,1 +1,0 @@
-../../../docs/ARCHITECTURE-ORCHESTRATOR-FULL.md

@@ -1,8 +1,8 @@
-# Encoder Domain - POSITAL/FRABA
+# Encoder Domain - Brand/Company
 
 ## Overview
 
-FRABA manufactures rotary encoders and inclinometers under the POSITAL brand.
+Company manufactures rotary encoders and inclinometers under the Brand brand.
 
 ## Product Types
 
@@ -50,4 +50,4 @@ encoder:
 4. Export to webshop
 5. Integration with customer systems
 
-*Note: FRABA-specific product codes and options to be added.*
+*Note: Company-specific product codes and options to be added.*

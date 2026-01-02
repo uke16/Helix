@@ -1,9 +1,0 @@
-{
-  "session_id": "in-der-letzten-c8c70b42-20251226-205323",
-  "status": "discussing",
-  "step": "execute",
-  "created_at": "2025-12-26T20:53:23.578251",
-  "updated_at": "2025-12-26T21:31:08.611298",
-  "original_request": "In der letzten consultant Session ist die Session abgeschmiert als ich geschrieben habe \n\nKannst du die Doku gaps fillen und alles vervollständigen? Danach kannst du durch git history gehen und nach weiteren Doku gaps suchen.\n\n\nKannst du mal analysieren warum es abgeschmiert ist in open webui ? Oder ist die Anfrage sogar fertig und nur nicht an open webui gesendet?",
-  "project_name": null
-}

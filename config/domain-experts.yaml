@@ -1,5 +1,5 @@
 # HELIX v4 - Domain-Experten Konfiguration
-# FRABA-spezifisch
+# Company-spezifisch
 
 experts:
   helix:
@@ -36,7 +36,7 @@ experts:
       
   encoder:
     name: "Encoder Technology Expert"
-    description: "Drehgeber, Encoder-Technologie, POSITAL, FRABA Produkte"
+    description: "Drehgeber, Encoder-Technologie, POSITAL, Company Produkte"
     skills:
       - "domains/encoder/technology.md"
       - "domains/encoder/posital.md"
@@ -103,7 +103,7 @@ experts:
 
   webshop:
     name: "Webshop Expert"
-    description: "FRABA Webshop, Produktkonfigurator, Bestellprozess"
+    description: "Company Webshop, Produktkonfigurator, Bestellprozess"
     skills:
       - "domains/webshop/architecture.md"
       - "domains/webshop/configurator.md"

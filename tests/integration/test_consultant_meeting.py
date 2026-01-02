@@ -26,7 +26,7 @@ class TestConsultantMeetingIntegration:
         experts = expert_manager.load_experts()
 
         assert isinstance(experts, dict)
-        # Should have FRABA-specific experts
+        # Should have Company-specific experts
         expected_domains = ["pdm", "encoder", "erp", "helix"]
         found = [d for d in expected_domains if d in experts]
         assert len(found) >= 2  # At least some experts loaded

@@ -268,7 +268,7 @@ Das `-` nach `%` entfernt Whitespace.
 - Generierte Docs: Gemischt
 
 **Entscheidung nötig:**
-- Option A: Alles Deutsch (Zielgruppe: FRABA intern)
+- Option A: Alles Deutsch (Zielgruppe: Company intern)
 - Option B: Alles Englisch (Open Source ready)
 - Option C: Hybrid (DE für User-facing, EN für Code)
 

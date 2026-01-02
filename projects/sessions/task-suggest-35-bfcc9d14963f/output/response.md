@@ -1,1 +1,0 @@
-{ "follow_ups": ["Was genau macht der aktive Job 3b68386a gerade?", "Wie kann ich einen neuen Job starten oder den laufenden beenden?", "Was ist der Unterschied zwischen Production (Port 8001) und Test-System (Port 9001)?", "Welche Features bietet HELIX und was kann ich damit automatisieren?"] }

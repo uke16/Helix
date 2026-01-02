@@ -1,3 +1,0 @@
-# User Request
-
-Lies die ADRs 039, 040, 041, 042 und fasse zusammen was dort beschrieben wird. Nimm dir Zeit.

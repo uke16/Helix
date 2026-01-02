@@ -1,1 +1,0 @@
-{ "follow_ups": ["Ja, starte den Server neu und teste danach ob der Bugfix funktioniert.", "Kannst du vor dem Neustart die Änderungen noch committen?", "Wie kann ich den Fix manuell testen nachdem der Server neu gestartet ist?", "Was passiert mit laufenden Sessions wenn der Server neu startet?"] }

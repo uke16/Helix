@@ -1,1 +1,0 @@
-ich ahbe es noch nicht veruscht. es ist aber klar dass es nicht funktioniert ohne cross instance. und ich möchte dass sich helix selbst evolven kann. im moment habe ich claude desktop der claude code steuert der die anderen claude codes steuert. ich möchte am ende aber nur mit dir reden und nciht die ganzen umwege.

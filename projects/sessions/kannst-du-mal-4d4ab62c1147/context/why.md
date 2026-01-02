@@ -1,1 +1,0 @@
-Was ist das denn für eine Nachricht??

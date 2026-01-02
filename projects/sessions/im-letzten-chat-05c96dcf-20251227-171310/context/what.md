@@ -1,1 +1,0 @@
-Nur antworten bitte. Nix machen. Kannst du theoretisch diese 3 bugs fixen und muss dann die api neugestartet werden damit das angewandt wird? Und könntest du das machen?

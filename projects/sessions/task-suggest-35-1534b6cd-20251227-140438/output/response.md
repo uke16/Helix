@@ -1,1 +1,0 @@
-{ "follow_ups": ["Kannst du den Server jetzt neustarten und testen ob die Änderungen aktiv sind?", "Zeig mir den aktuellen Code in openai.py - wie wird Claude dort aufgerufen?", "Wie genau soll das Live-Streaming der Tool Calls an Open WebUI funktionieren?", "Kannst du mir helfen den intern-simple Workflow zu starten um ADR-013 fertigzustellen?"] }

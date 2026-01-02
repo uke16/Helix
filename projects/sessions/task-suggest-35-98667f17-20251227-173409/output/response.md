@@ -1,1 +1,0 @@
-{ "follow_ups": ["Okay, dann mach das bitte - fixe die 3 Bugs und sag mir wie ich den Server neustarte.", "Gibt es ein Risiko dass der Fix andere Teile der API kaputt macht?", "Wie lange dauert so ein Server-Neustart und gibt es dabei Downtime?", "Kannst du nach dem Fix auch einen Test machen um zu verifizieren dass es funktioniert?"] }

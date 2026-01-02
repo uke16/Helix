@@ -1,1 +1,0 @@
-../../../adr/ADR-TEMPLATE.md

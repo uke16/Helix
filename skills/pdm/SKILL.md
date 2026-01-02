@@ -2,7 +2,7 @@
 
 ## Overview
 
-PDM at FRABA manages product lifecycle data including:
+PDM at Company manages product lifecycle data including:
 - Article master data
 - Bill of Materials (BOM/Stücklisten)
 - Revisions and versions
@@ -57,4 +57,4 @@ Article
     └── Unit
 ```
 
-*Note: FRABA-specific field names and structures to be added.*
+*Note: Company-specific field names and structures to be added.*

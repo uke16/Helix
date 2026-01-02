@@ -1,3 +1,0 @@
-# User Request
-
-Warte 35 Sekunden mit sleep, dann antworte mit: Fertig.

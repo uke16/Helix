@@ -80,7 +80,7 @@ class ExpertManager:
 
     DEFAULT_CONFIG_PATH = PathConfig.DOMAIN_EXPERTS_CONFIG
 
-    # Default expert configurations (FRABA-specific)
+    # Default expert configurations (Company-specific)
     DEFAULT_EXPERTS: dict[str, dict[str, Any]] = {
         "helix": {
             "name": "HELIX Architecture Expert",
@@ -172,7 +172,7 @@ class ExpertManager:
         },
         "webshop": {
             "name": "Webshop Expert",
-            "description": "Expert for FRABA Webshop, product configurator, and e-commerce",
+            "description": "Expert for Company Webshop, product configurator, and e-commerce",
             "skills": [
                 "e-commerce",
                 "product-configuration",

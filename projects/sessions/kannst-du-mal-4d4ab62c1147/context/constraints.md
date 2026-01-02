@@ -1,2 +1,0 @@
-Ich möchte ein eigenes adr dafür. Können wir alles einzeln durchgehen damit wir nichts vergessen. Und auch ob alles schon nach unserem Dokumentationen adr Standard ist und umgesetzt werden soll? Wir haben glaube 2 adrs für Doku implementiert und vielleicht noch nicht zu umgesetzt 
-Bitte jeden Punkt der unklar ist wie todos im Code oder api Route mit mir herausfinden ob und wie wir das umsetzen wollen oder löschen wollen

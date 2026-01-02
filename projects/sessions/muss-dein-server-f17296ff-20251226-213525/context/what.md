@@ -1,1 +1,0 @@
-Funktioniert das Skript für Helix restart im Control Verzeichnis? So dass du Helix neustartest und dann der aktuelle Code geladen ist? Falls ja dann mache das. Ich kann dann danach hier wieder mit dir chatten ohne dass ich was via ssh machen muss?

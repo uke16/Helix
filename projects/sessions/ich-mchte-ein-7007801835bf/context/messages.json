@@ -1,6 +1,0 @@
-[
-  {
-    "role": "user",
-    "content": "Ich m\u00f6chte ein neues Feature bauen: Eine REST API f\u00fcr Benutzer-Authentifizierung mit OAuth2. Das brauchen wir f\u00fcr unsere neue Mobile App."
-  }
-]

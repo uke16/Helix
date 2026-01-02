@@ -1,1 +1,0 @@
-{ "follow_ups": ["Kannst du das Streaming-Projekt (ADR-013) jetzt starten?", "Was kostet OpenRouter im Vergleich zu meinem Claude Max Account?", "Wie kann ich zwischen Anthropic und OpenRouter per Request umschalten?", "Existieren die Debug-Module (stream_parser.py, tool_tracker.py) wirklich nicht oder wurden sie woanders implementiert?"] }

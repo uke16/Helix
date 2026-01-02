@@ -1,6 +1,0 @@
-[
-  {
-    "role": "user",
-    "content": "Analysiere die heutige Evolution Pipeline Session f\u00fcr ADR-019 und ADR-020. \n\nDie Pipeline wurde erfolgreich ausgef\u00fchrt aber es gab Probleme bei der automatischen Integration. Ich brauche:\n\n1. Eine Analyse was funktioniert hat und was nicht\n2. Konkrete Empfehlungen f\u00fcr Pipeline-Verbesserungen\n3. Ein ADR-Entwurf f\u00fcr die wichtigsten Fixes\n\nRelevante Logs findest du in:\n- projects/evolution/adr-019-docs-as-code/\n- projects/evolution/adr-020-intelligent-docs-discovery/\n- docs/analysis/EVOLUTION-PIPELINE-ISSUES-2024-12-28.md\n\nBitte lies zuerst die Analyse-Datei und dann die Projekt-Status-Dateien."
-  }
-]

@@ -8,7 +8,7 @@
 - Use smart pointers (no raw new/delete)
 - RAII for resource management
 - Header guards or #pragma once
-- Follow FRABA embedded coding standards
+- Follow Company embedded coding standards
 
 ## For Embedded (NXP)
 

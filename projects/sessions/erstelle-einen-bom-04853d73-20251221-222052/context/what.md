@@ -1,1 +1,0 @@
-Artikelnummer, Beschreibung, Menge und Status. Multi-Level BOM mit allen Unterebenen.

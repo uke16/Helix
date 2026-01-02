@@ -1,6 +1,0 @@
-[
-  {
-    "role": "user",
-    "content": "Wir haben heute folgendes erarbeitet:\n\n1. ADR-032: MCP Server f\u00fcr Hardware-Testst\u00e4nde (iterativer Ansatz f\u00fcr Claude + ChatGPT Kompatibilit\u00e4t)\n2. ADR-033: Consultant Legacy Cleanup\n3. DRAFT: HELIX Services Layer (autonome Agenten f\u00fcr Tests)\n4. mcp/base/ - Dummy MCP Server mit FastMCP\n5. mcp/hardware/ - Hardware Tools (locking, audit, J-Link API)\n6. skills/hardware/SKILL.md - Skill Referenz\n\nWas muss dokumentiert werden damit bei der Implementierung nichts vergessen wird? Welche Dokumente m\u00fcssen wo liegen nach unseren internen Richtlinien? Gib mir eine Checkliste."
-  }
-]

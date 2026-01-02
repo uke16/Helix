@@ -1,6 +1,0 @@
-[
-  {
-    "role": "user",
-    "content": "Bitte lies und verifiziere ADR-032 in adr/032-mcp-server-hardware-teststand.md. Pr\u00fcfe ob das ADR vollst\u00e4ndig ist, ob die Architektur sinnvoll ist, und ob etwas fehlt. Gib konstruktives Feedback."
-  }
-]

@@ -1,3 +1,0 @@
-# User Request
-
-Lies alle ADRs im adr/ Verzeichnis und liste die Nummern auf. Nimm dir Zeit.

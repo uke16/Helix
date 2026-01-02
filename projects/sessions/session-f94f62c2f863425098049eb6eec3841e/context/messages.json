@@ -1,6 +1,0 @@
-[
-  {
-    "role": "user",
-    "content": "WICHTIG: Du bist jetzt ein Debugging-Experte. Es gibt einen kritischen Streaming-Bug:\n\n## Symptome:\n1. User schickt Nachricht an Consultant (via Open WebUI)\n2. User sieht nur [Starte Claude Code...] und [Read]\n3. Connection bricht nach ~20 Sekunden ab\n4. Claude-Prozess l\u00e4uft im Hintergrund WEITER und produziert vollst\u00e4ndige Antwort\n5. Diese Antwort erreicht den User NIE\n\n## Architektur:\n- Caddy (Port 8443) -> Open WebUI (Port 8090) -> HELIX API (Port 8001) -> Claude CLI\n- SSE Streaming mit asyncio Queue\n- Heartbeat alle 25s (funktioniert scheinbar nicht)\n\n## Verdacht:\n- Caddy hat keine expliziten SSE-Timeout Settings\n- Open WebUI HTTP Client Timeout?\n- asyncio.gather() blockiert den Generator?\n\nBitte analysiere:\n1. Lies src/helix/api/routes/openai.py (die _run_consultant_streaming Funktion)\n2. Lies src/helix/claude_runner.py (run_phase_streaming Methode)\n3. Pruefe /home/aiuser01/Caddyfile\n4. Erstelle eine Root-Cause Analyse mit konkretem Fix-Vorschlag"
-  }
-]

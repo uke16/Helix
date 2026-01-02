@@ -52,3 +52,17 @@ y-router/
 
 # Old y-router location (to be cleaned up with sudo)
 y-router/
+
+# Sensitive data - DO NOT PUSH
+projects/sessions/
+projects/claude/
+projects/evolution/
+projects/internal/
+
+# Config with secrets
+.config/
+*.env
+.netrc
+
+# Backup files
+mcp-backup-*/
