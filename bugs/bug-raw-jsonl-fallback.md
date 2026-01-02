@@ -100,3 +100,6 @@ async def chat_completions(
 
 ### Betroffene Dateien
 - `src/helix/api/routes/openai.py`
+
+## Status
+✅ GEFIXT (Commit in routes/openai.py Zeile 387+)
