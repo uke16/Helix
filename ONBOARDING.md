@@ -453,4 +453,4 @@ intent = await llm.classify_intent(message)
 4. Schränke ich User-Flexibilität ein? → Der LLM ist flexibler
 
 **Details**: `/home/aiuser01/claude-memory/lessons/2025-12-30-anti-patterns-root-cause.md`
-**Check**: `./scripts/check-anti-patterns.sh`
+**Check**: `./control/check-anti-patterns.sh`
