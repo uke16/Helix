@@ -267,7 +267,7 @@ async def _run_consultant_streaming(
 
     # Create runner
     runner = ClaudeRunner(
-        claude_cmd=PathConfig.get_claude_wrapper(),
+        claude_cmd=PathConfig.CLAUDE_CMD,
         use_stdbuf=True,
     )
 
@@ -286,20 +286,78 @@ async def _run_consultant_streaming(
     last_tool: str | None = None
     stdout_buffer: list[str] = []
 
+    # ADR-042: Queue for real-time streaming events
+    from asyncio import Queue
+    event_queue: Queue[str | None] = Queue()
+    
     async def on_output(stream: str, line: str) -> None:
-        """Callback for each line of output."""
+        """Callback for each line of output - NOW QUEUES FOR STREAMING."""
         nonlocal last_tool
         if stream == "stdout":
             stdout_buffer.append(line)
+            
+            # Parse JSONL and queue tool calls for streaming
+            try:
+                data = json.loads(line)
+                msg_type = data.get("type", "")
+                
+                # Stream tool calls (Read, Write, Bash, etc.)
+                if msg_type == "assistant":
+                    content_blocks = data.get("message", {}).get("content", [])
+                    for block in content_blocks:
+                        if block.get("type") == "tool_use":
+                            tool_name = block.get("name", "unknown")
+                            if tool_name != last_tool:
+                                last_tool = tool_name
+                                await event_queue.put(f"\n[{tool_name}] ")
+                                
+            except json.JSONDecodeError:
+                pass  # Not JSON, ignore
+    
+    # ADR-042: Heartbeat task to keep connection alive
+    async def heartbeat_task():
+        """Send heartbeat every 25s to prevent timeout."""
+        try:
+            while True:
+                await asyncio.sleep(10)
+                await event_queue.put(".")
+        except asyncio.CancelledError:
+            pass
+    
+    heartbeat = asyncio.create_task(heartbeat_task())
 
     # Run with streaming
     response_text = None
     try:
-        result = await runner.run_phase_streaming(
-            phase_dir=session_path,
-            on_output=on_output,
-            timeout=600,
+        # ADR-042: Run Claude Code in background, stream events from queue
+        claude_task = asyncio.create_task(
+            runner.run_phase_streaming(
+                phase_dir=session_path,
+                on_output=on_output,
+                timeout=600,
+            )
         )
+        
+        # Stream events from queue while Claude Code runs
+        while not claude_task.done():
+            try:
+                # Wait for event with timeout
+                event = await asyncio.wait_for(event_queue.get(), timeout=1.0)
+                if event:
+                    yield _make_chunk(completion_id, created, model, event)
+            except asyncio.TimeoutError:
+                # No event, check if task done
+                continue
+        
+        # Cancel heartbeat
+        heartbeat.cancel()
+        try:
+            await heartbeat
+        except asyncio.CancelledError:
+            pass
+        
+        # Get result from claude task
+        result = await claude_task
 
         # === FIX 2: Validate response file timestamp ===
         if response_file.exists():
@@ -513,7 +571,7 @@ async def _run_consultant(session_id: str, state: SessionState) -> str:
 
     # Create runner
     runner = ClaudeRunner(
-        claude_cmd=PathConfig.get_claude_wrapper(),
+        claude_cmd=PathConfig.CLAUDE_CMD,
         use_stdbuf=True,
     )
 
