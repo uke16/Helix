@@ -67,3 +67,20 @@ projects/internal/
 # Backup files
 mcp-backup-*/
 projects/
+
+# Evolution Pipeline Artifacts
+approvals/
+backup/
+generated/
+modified/
+new/
+output/
+.claude-async/
+
+# Session/Temp files
+NEXT_SESSION_PROMPT.md
+*-summary.md
+TEST_RESULTS.md
+ITERATION_LOG.md
+*.bak
+*.backup
