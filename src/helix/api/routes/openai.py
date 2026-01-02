@@ -338,34 +338,17 @@ async def _run_consultant_streaming(
             )
         )
         
-        # ADR-044: Check session completion via status.json (persistent signal)
-        # This fixes the race condition where stdout closes before Claude finishes
-        def check_session_done() -> bool:
-            """Check if session is done via status.json."""
-            status_file = session_path / "status.json"
-            if status_file.exists():
-                try:
-                    status = json.loads(status_file.read_text())
-                    return status.get("step") == "done"
-                except Exception:
-                    pass
-            return False
-        
-        # Stream events from queue while Claude Code runs or session not done
-        last_status_check = time.time()
-        session_done = False
-        
-        while not claude_task.done() and not session_done:
+        # Stream events from queue while Claude Code runs
+        # NOTE: claude_task.done() waits for process.wait() = real process end
+        # No need for status.json check - that was sugar coating!
+        while not claude_task.done():
             try:
                 # Wait for event with timeout
                 event = await asyncio.wait_for(event_queue.get(), timeout=1.0)
                 if event:
                     yield _make_chunk(completion_id, created, model, event)
             except asyncio.TimeoutError:
-                # No event - check status.json every 2 seconds (not every loop)
-                if time.time() - last_status_check > 2.0:
-                    session_done = check_session_done()
-                    last_status_check = time.time()
+                # No event, but process still running - continue waiting
                 continue
         
         # Cancel heartbeat

@@ -157,8 +157,9 @@ class StepMarkerValidator(ResponseValidator):
         if any(kw in response_lower for kw in why_keywords):
             return "why"
 
-        # Default to done (safe choice - doesn't trigger more actions)
-        return "done"
+        # Default to unknown - be honest when we can't determine the step
+        # DO NOT use "done" here - that's sugar coating incomplete responses!
+        return "unknown"
 
 
 def extract_step(response: str) -> Optional[str]:
