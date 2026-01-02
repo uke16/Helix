@@ -103,8 +103,29 @@ als bewährtes Agent-Harness und fokussieren uns auf das, was HELIX einzigartig 
 
 ```bash
 # Prerequisites
+
+## System Requirements
+- Python 3.10+
+- Node.js 18+ (for Claude CLI)
+- Git
+
+## Install Dependencies
+
+# 1. Node.js (if not installed)
+# Option A: via nvm (recommended)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install 20
+nvm use 20
+
+# Option B: via package manager
+# Ubuntu/Debian: sudo apt install nodejs npm
+# macOS: brew install node
+
+# 2. Claude CLI (requires Node.js)
 npm install -g @anthropic-ai/claude-code
-pip install claude-agent-sdk
+
+# 3. Python dependencies
+pip install -e .  # or: pip install -r requirements.txt
 
 # OpenRouter Config
 export ANTHROPIC_BASE_URL="https://openrouter.ai/api/v1"

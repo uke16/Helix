@@ -32,21 +32,27 @@ from typing import Optional
 
 
 def _find_nvm_bin() -> Optional[str]:
-    """Find NVM node bin directory.
+    """Find NVM node bin directory with Claude CLI.
 
     Searches common locations for NVM-managed Node.js installations.
+    Prefers versions that have Claude CLI installed.
 
     Returns:
         Path to NVM bin directory, or None if not found.
     """
-    # Check common NVM locations
     home = Path.home()
-
-    # Standard NVM location
     nvm_base = home / ".nvm" / "versions" / "node"
+
     if nvm_base.exists():
-        # Find the latest version
         versions = sorted(nvm_base.iterdir(), reverse=True)
+
+        # First pass: find version WITH claude CLI
+        for version in versions:
+            bin_path = version / "bin"
+            if bin_path.exists() and (bin_path / "claude").exists():
+                return str(bin_path)
+
+        # Fallback: any version with node (claude may be elsewhere)
         for version in versions:
             bin_path = version / "bin"
             if bin_path.exists() and (bin_path / "node").exists():
