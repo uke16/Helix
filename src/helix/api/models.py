@@ -119,25 +119,3 @@ class ModelInfo(BaseModel):
     object: str = "model"
     created: int
     owned_by: str = "helix"
-
-
-# Remote Control models
-class SpawnClaudeRequest(BaseModel):
-    """Request to spawn a new Claude instance."""
-    prompt: str = Field(..., description="Prompt to send to Claude", min_length=1)
-    working_dir: str | None = Field(default=None, description="Working directory")
-    timeout: int = Field(default=600, ge=10, le=3600, description="Timeout in seconds")
-    system_prompt: str | None = Field(default=None, description="System prompt override")
-    output_format: str = Field(default="text", description="Output format: text, json, stream-json")
-
-
-class ReadLogsRequest(BaseModel):
-    """Request to read log files."""
-    log_type: str = Field(default="api", description="Log type: api, helix, helix-test")
-    lines: int = Field(default=100, ge=1, le=5000, description="Number of lines to return")
-    search: str | None = Field(default=None, description="Filter lines containing this string")
-
-
-class ControlCommandRequest(BaseModel):
-    """Request to run a HELIX control command."""
-    command: str = Field(..., description="Control command: status, health, logs")
