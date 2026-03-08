@@ -25,7 +25,7 @@ from .middleware import limiter, RateLimitExceededHandler
 
 from helix.config.paths import PathConfig
 
-from .routes import openai, helix, stream, evolution
+from .routes import openai, helix, stream, evolution, remote_control
 
 # Configure logging
 LOG_DIR = PathConfig.HELIX_ROOT / "logs"
@@ -146,6 +146,7 @@ app.include_router(openai.router)
 app.include_router(helix.router)
 app.include_router(stream.router)
 app.include_router(evolution.router)
+app.include_router(remote_control.router)
 
 
 @app.get("/")
@@ -163,6 +164,9 @@ async def root():
             "execute": "/helix/execute",
             "jobs": "/helix/jobs",
             "stream": "/helix/stream/{job_id}",
+            "remote_control": "/remote-control/status",
+            "spawn_claude": "/remote-control/spawn",
+            "instances": "/remote-control/instances",
         },
     }
 
